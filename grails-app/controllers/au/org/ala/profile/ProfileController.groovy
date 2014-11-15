@@ -1,5 +1,7 @@
 package au.org.ala.profile
 
+import grails.converters.JSON
+
 class ProfileController {
 
     def profileService
@@ -52,25 +54,76 @@ class ProfileController {
 
     def getByUuid(){
        def tp = Profile.findByUuidOrGuidOrScientificName(params.uuid, params.uuid, params.uuid)
+
        if(tp){
-           render(contentType: "application/json") {
-               profile (
-                   "uuid" : "${tp.uuid}",
-                   "guid" : "${tp.guid}",
-                   "dataResourceUid" : "${tp.opus.dataResourceUid}",
-                   "opusId" : "${tp.opus.uuid}",
-                   "opusName" : "${tp.opus.title}",
-                   "scientificName" : "${tp.scientificName}",
-                   "attributes": array {
-                       tp.attributes.each { attr ->
-                           attribute(
-                                   "title":"${attr.title}",
-                                   "text":"${attr.text}"
-                           )
-                       }
-                   }
-               )
+//           render(contentType: "application/json") {
+//               def links = tp.links
+//
+//               profile (
+//                   "uuid" : "${tp.uuid}",
+//                   "guid" : "${tp.guid}",
+//                   "dataResourceUid" : "${tp.opus.dataResourceUid}",
+//                   "opusId" : "${tp.opus.uuid}",
+//                   "opusName" : "${tp.opus.title}",
+//                   "scientificName" : "${tp.scientificName}",
+//                   "links": array {
+//                       links.each { lnk ->
+//                           link(
+//                               "url":"${lnk.url}",
+//                               "title":"${lnk.title}",
+//                               "description":"${lnk.description}"
+//                           )
+//                       }
+//                   },
+//                   "attributes": array {
+//                       tp.attributes.each { attr ->
+//                           attribute(
+//                               "title":"${attr.title}",
+//                               "text":"${attr.text}",
+//                               "contributor": array {
+//                                   attr.contributors.each { c ->
+//                                       link(
+//                                           "name":"${c.name}",
+//                                       )
+//                                   }
+//                               }
+//                           )
+//                       }
+//                   }
+//               )
+//           }
+
+           def attributesToRender = []
+           tp.attributes.each { attr ->
+               attributesToRender << [
+                   "title":"${attr.title}",
+                   "text":"${attr.text}",
+                   "contributor": attr.contributors.collect{ it.name }
+               ]
            }
+
+           def linksToRender = []
+           tp.links.each {
+               linksToRender << [
+                   "url":"${it.url}",
+                   "title":"${it.title}",
+                   "description": "${it.description}"
+               ]
+           }
+
+           def response =  [
+               "uuid" : "${tp.uuid}",
+               "guid" : "${tp.guid}",
+               "dataResourceUid" : "${tp.opus.dataResourceUid}",
+               "opusId" : "${tp.opus.uuid}",
+               "opusName" : "${tp.opus.title}",
+               "scientificName" : "${tp.scientificName}",
+               "attributes": attributesToRender,
+               "links":linksToRender
+           ]
+
+           render response as JSON
+
        } else {
             response.sendError(404, "Identifier unrecognised: "+ params.uuid)
        }
