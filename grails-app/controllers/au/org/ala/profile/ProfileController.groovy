@@ -52,6 +52,23 @@ class ProfileController {
 //        }
 //    }
 
+    def classification(){
+
+
+        def classification = []
+        def availableProfiles = []
+        if(profile.guid){
+            classification = js.parseText(new URL("http://bie.ala.org.au/ws/classification/" + params.guid).text)
+
+
+
+        }
+
+
+
+    }
+
+
     def getByUuid(){
        def tp = Profile.findByUuidOrGuidOrScientificName(params.uuid, params.uuid, params.uuid)
 

@@ -39,19 +39,9 @@ grails.project.dependency.resolution = {
 
     repositories {
         inherits true // Whether to inherit repository definitions from plugins
-
-        grailsPlugins()
-        grailsHome()
         mavenLocal()
-        grailsCentral()
-        mavenCentral()
-        // uncomment these (or add new ones) to enable remote dependency resolution from public Maven repositories
-        //mavenRepo "http://repository.codehaus.org"
-        //mavenRepo "http://download.java.net/maven/2/"
-        //mavenRepo "http://repository.jboss.com/maven2/"
-        mavenRepo "http://maven.ala.org.au/repository"
         mavenRepo "http://nexus.ala.org.au/content/groups/public/"
-//        mavenRepo "http://repository.codehaus.org"
+        mavenRepo "http://maven.ala.org.au/repository/"
     }
 
     dependencies {
@@ -61,17 +51,19 @@ grails.project.dependency.resolution = {
     }
 
     plugins {
+        build ":release:3.0.1"
         // plugins for the build system only
         build ":tomcat:7.0.55"
+        runtime ":ala-web-theme:1.0.1"
         runtime ":mongodb:3.0.2"
 
         // plugins for the compile step
         compile ":scaffolding:2.1.2"
-        compile ':cache:1.1.7'
-        compile ":asset-pipeline:1.9.6"
+        compile ':cache:1.1.6'
+//        compile ":asset-pipeline:1.9.6"
 
         // plugins needed at runtime but not for compilation
-        runtime ":database-migration:1.4.0"
-        runtime ":jquery:1.11.1"
+//        runtime ":database-migration:1.4.0"
+//        runtime ":jquery:1.11.1"
     }
 }
