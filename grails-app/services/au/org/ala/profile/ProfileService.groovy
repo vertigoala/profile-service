@@ -18,7 +18,9 @@ class ProfileService {
                 dataResourceUid:  "dr382",
                 title: "Flora of Australia",
                 imageSources: ["dr382", "dr413", "dr689"],
-                recordSources : ["dr376"]
+                recordSources : ["dr376"],
+                logoUrl: "https://fieldcapture.ala.org.au/static/RrjzrZ0Ci0GPLETIr8x8KUMjfJtZKvifrUtMCedwKRB.png",
+                bannerUrl: "http://www.anbg.gov.au/images/photo_cd/FLIND_RANGES/fr-3_3.jpg"
             )
             foaOpus.save(flush:true)
         }

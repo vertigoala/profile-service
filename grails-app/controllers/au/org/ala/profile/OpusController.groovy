@@ -16,7 +16,9 @@ class OpusController {
                     "uuid": "${result.uuid}",
                     "title": "${result.title}",
                     "imageSources": result.imageSources,
-                    "recordSources": result.recordSources
+                    "recordSources": result.recordSources,
+                    "logoUrl": result.logoUrl,
+                    "bannerUrl": result.bannerUrl
                 )
                 }
             }
@@ -32,7 +34,9 @@ class OpusController {
                     "uuid" : "${result.uuid}",
                     "title" : "${result.title}",
                     "imageSources" : result.imageSources,
-                    "recordSources" : result.recordSources
+                    "recordSources" : result.recordSources,
+                    "logoUrl": result.logoUrl,
+                    "bannerUrl": result.bannerUrl
                 ]
             }
         } else {

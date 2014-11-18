@@ -7,10 +7,14 @@ class Opus {
     String dataResourceUid
     List<String> imageSources            // a list of drs that are providing images we can include
     List<String>  recordSources         // a list of drs that are providing images we can include
+    String logoUrl
+    String bannerUrl
 
     static constraints = {}
 
     static mapping = {
         version false
+        logoUrl nullable: true
+        bannerUrl nullable: true
     }
 }

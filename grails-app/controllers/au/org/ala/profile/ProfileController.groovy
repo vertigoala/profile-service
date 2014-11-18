@@ -6,10 +6,11 @@ class ProfileController {
 
     def profileService
 
-    def index() {
+    def search(){
 
-        def results = Profile.findAll([max:100], {})
-//        if(results) {
+        def opus = Opus.findByUuid(params.opusUuid)
+        if(opus){
+            def results = Profile.findAllByScientificNameIlikeAndOpus(params.scientificName+"%", opus)
             render(contentType: "application/json") {
                 if(results) {
                     profiles = array {
@@ -25,90 +26,43 @@ class ProfileController {
                     []
                 }
             }
-//        }
+        } else {
+            response.sendError(400)
+        }
     }
-//
-//    def getByScientificName(){
-//        def tp = Profile.findByScientificName(params.scientificName)
-//        render(contentType: "application/json") {
-//            profile (
-//                "uuid" : "${tp.uuid}",
-//                "guid" : "${tp.guid}",
-//                "scientificName" : "${tp.scientificName}",
-//                "attributes": array {
-//                    tp.attributes.each { attr ->
-//                        attribute(
-//                            "title":"${attr.title}",
-//                            "text":"${attr.text}",
-//                            "contributors": array {
-//                                attr.contributors.each { contr ->
-//                                    contributor("name": contr.name)
-//                                }
-//                            }
-//                        )
-//                    }
-//                }
-//            )
-//        }
-//    }
+
+    def index() {
+        def results = Profile.findAll([max:100], {})
+        render(contentType: "application/json") {
+            if(results) {
+                profiles = array {
+                    results.each { tp ->
+                        taxon(
+                                "uuid": "${tp.uuid}",
+                                "guid": "${tp.guid}",
+                                "scientificName": "${tp.scientificName}"
+                        )
+                    }
+                }
+            } else {
+                []
+            }
+        }
+    }
 
     def classification(){
-
 
         def classification = []
         def availableProfiles = []
         if(profile.guid){
             classification = js.parseText(new URL("http://bie.ala.org.au/ws/classification/" + params.guid).text)
-
-
-
         }
-
-
-
     }
-
 
     def getByUuid(){
        def tp = Profile.findByUuidOrGuidOrScientificName(params.uuid, params.uuid, params.uuid)
 
        if(tp){
-//           render(contentType: "application/json") {
-//               def links = tp.links
-//
-//               profile (
-//                   "uuid" : "${tp.uuid}",
-//                   "guid" : "${tp.guid}",
-//                   "dataResourceUid" : "${tp.opus.dataResourceUid}",
-//                   "opusId" : "${tp.opus.uuid}",
-//                   "opusName" : "${tp.opus.title}",
-//                   "scientificName" : "${tp.scientificName}",
-//                   "links": array {
-//                       links.each { lnk ->
-//                           link(
-//                               "url":"${lnk.url}",
-//                               "title":"${lnk.title}",
-//                               "description":"${lnk.description}"
-//                           )
-//                       }
-//                   },
-//                   "attributes": array {
-//                       tp.attributes.each { attr ->
-//                           attribute(
-//                               "title":"${attr.title}",
-//                               "text":"${attr.text}",
-//                               "contributor": array {
-//                                   attr.contributors.each { c ->
-//                                       link(
-//                                           "name":"${c.name}",
-//                                       )
-//                                   }
-//                               }
-//                           )
-//                       }
-//                   }
-//               )
-//           }
 
            def attributesToRender = []
            tp.attributes.each { attr ->
@@ -152,6 +106,9 @@ class ProfileController {
     }
 
     def importFloraBase(){
+    }
+
+    def importSponges(){
 
 
     }

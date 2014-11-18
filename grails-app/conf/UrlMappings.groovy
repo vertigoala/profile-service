@@ -6,6 +6,8 @@ class UrlMappings {
 
         "/importFOA"(controller: "profile", action: "importFOA")
 
+        "/profile/search"(controller: "profile", action: "search")
+
         "/profile/$uuid"(controller: "profile", action: "getByUuid")
 
         "/profile/"(controller: "profile", action: "index")
