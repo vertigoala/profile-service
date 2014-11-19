@@ -6,26 +6,33 @@ class ProfileController {
 
     def profileService
 
+    /**
+     * Basic search
+     * TODO replace with a free text search index backed search.
+     *
+     * @return
+     */
     def search(){
 
+        response.setContentType("application/json")
         def opus = Opus.findByUuid(params.opusUuid)
         if(opus){
-            def results = Profile.findAllByScientificNameIlikeAndOpus(params.scientificName+"%", opus)
-            render(contentType: "application/json") {
-                if(results) {
-                    profiles = array {
-                        results.each { tp ->
-                            taxon(
-                                    "uuid": "${tp.uuid}",
-                                    "guid": "${tp.guid}",
-                                    "scientificName": "${tp.scientificName}"
-                            )
-                        }
-                    }
-                } else {
-                    []
-                }
+            def results = Profile.findAllByScientificNameIlikeAndOpus(params.scientificName+"%", opus, [max:10])
+            def toRender = []
+            results.each { tp ->
+                toRender << [
+                    "uuid": "${tp.uuid}",
+                    "guid": "${tp.guid}",
+                    "scientificName": "${tp.scientificName}"
+                ]
             }
+            response.setContentType("application/json")
+            if(params.callback){
+                render "${params.callback}(${toRender as JSON})"
+            } else {
+                render toRender as JSON
+            }
+
         } else {
             response.sendError(400)
         }
@@ -35,7 +42,7 @@ class ProfileController {
         def results = Profile.findAll([max:100], {})
         render(contentType: "application/json") {
             if(results) {
-                profiles = array {
+                array {
                     results.each { tp ->
                         taxon(
                                 "uuid": "${tp.uuid}",
@@ -51,7 +58,6 @@ class ProfileController {
     }
 
     def classification(){
-
         def classification = []
         def availableProfiles = []
         if(profile.guid){

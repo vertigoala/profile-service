@@ -2,6 +2,8 @@ class UrlMappings {
 
 	static mappings = {
 
+        "/opus/"(controller: "opus", action: "index")
+
         "/opus/$uuid"(controller: "opus", action: "show")
 
         "/importFOA"(controller: "profile", action: "importFOA")
