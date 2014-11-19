@@ -8,6 +8,8 @@ class UrlMappings {
 
         "/importFOA"(controller: "profile", action: "importFOA")
 
+        "/importSponges"(controller: "profile", action: "importSponges")
+
         "/profile/search"(controller: "profile", action: "search")
 
         "/profile/$uuid"(controller: "profile", action: "getByUuid")

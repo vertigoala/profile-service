@@ -102,7 +102,7 @@ class ProfileController {
            render response as JSON
 
        } else {
-            response.sendError(404, "Identifier unrecognised: "+ params.uuid)
+            response.sendError(404, "Identifier unrecognised: " + params.uuid)
        }
     }
 
@@ -114,8 +114,8 @@ class ProfileController {
     def importFloraBase(){
     }
 
-    def importSponges(){
-
-
+    def importSponges() {
+        profileService.importSponges()
+        render "done"
     }
 }

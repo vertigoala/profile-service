@@ -9,6 +9,23 @@ class ProfileService {
 
     def nameService
 
+    def importSponges(){
+        def spongeOpus = Opus.findByDataResourceUid("dr824")
+        if(!spongeOpus){
+            spongeOpus = new Opus(
+                    uuid : UUID.randomUUID().toString(),
+                    dataResourceUid:  "dr824",
+                    title: "Spongemaps",
+                    imageSources: ["dr344"],
+                    recordSources : ["dr344"],
+                    logoUrl: "http://collections.ala.org.au/data/institution/QMN_logo.jpg",
+                    bannerUrl: "http://images.ala.org.au/store/a/0/5/0/12c3a0cc-8a7a-4731-946a-6d481a60050a/thumbnail_large"
+            )
+            spongeOpus.save(flush:true)
+        }
+    }
+
+
     def importFOA(){
 
         def foaOpus = Opus.findByDataResourceUid("dr382")
@@ -112,23 +129,4 @@ class ProfileService {
             }
         }
     }
-//
-//    def createTaxonProfile(String guid){
-//
-//        def taxonProfile = new TaxonProfile([
-//            uuid: UUID.randomUUID().toString(),
-//            descriptions: [
-//                new Attribute(uuid:UUID.randomUUID().toString(), title:"Habitat", text:"Forests and swamplands", authorName: "Dave Martin", authorId: "123"),
-//                new Attribute(uuid:UUID.randomUUID().toString(), title:"Taxonomy", text:"Belongs in the family...", authorName: "Linnaeus", authorId: "132"),
-//                new Attribute(uuid:UUID.randomUUID().toString(), title:"Geography", text:"Belongs in the family...", authorName: "Linnaeus", authorId: "132",
-//                    subAttributes: [
-//                        new Attribute(uuid:UUID.randomUUID().toString(), title:"South Australia", text:"Belongs in the family...", authorName: "Linnaeus", authorId: "132"),
-//                        new Attribute(uuid:UUID.randomUUID().toString(), title:"New South Wales", text:"Belongs in the family...", authorName: "Linnaeus", authorId: "132")
-//                    ]
-//                ),
-//            ]
-//        ])
-//
-//        taxonProfile.save(flush:true)
-//    }
 }
