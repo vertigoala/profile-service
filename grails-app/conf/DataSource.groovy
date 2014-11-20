@@ -4,7 +4,7 @@ environments {
             mongo {
                 host = "localhost"
                 port = "27017"
-                databaseName = "taxon-profile"
+                databaseName = "profiles"
             }
         }
     }
@@ -13,7 +13,7 @@ environments {
             mongo {
                 host = "localhost"
                 port = "27017"
-                databaseName = "taxon-profile-test"
+                databaseName = "profiles-test"
             }
         }
     }
@@ -22,7 +22,7 @@ environments {
             mongo {
                 host = "localhost"
                 port = "27017"
-                databaseName = "taxon-profile"
+                databaseName = "profiles"
             }
         }
     }

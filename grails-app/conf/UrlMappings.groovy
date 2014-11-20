@@ -2,6 +2,11 @@ class UrlMappings {
 
 	static mappings = {
 
+
+        "/attribute/"(controller: "attribute", action: [GET:"index", PUT:"create",  POST:"create"])
+
+        "/attribute/$uuid"(controller: "attribute", action: [GET:"show", PUT:"update", DELETE:"delete", POST:"update"])
+
         "/opus/"(controller: "opus", action: "index")
 
         "/opus/$uuid"(controller: "opus", action: "show")

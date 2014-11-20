@@ -2,6 +2,7 @@ package au.org.ala.profile
 
 class Contributor {
 
+    String uuid
     String userId  //CAS ID may be null
     String name
     String dataResourceUid

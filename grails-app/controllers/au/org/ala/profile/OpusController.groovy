@@ -12,8 +12,8 @@ class OpusController {
             opui: array {
                 opui.each { result ->
                     opus(
-                    "dataResourceUid": "${result.dataResourceUid}",
                     "uuid": "${result.uuid}",
+                    "dataResourceUid": "${result.dataResourceUid}",
                     "title": "${result.title}",
                     "imageSources": result.imageSources,
                     "recordSources": result.recordSources,
@@ -30,8 +30,8 @@ class OpusController {
         if(result){
             render(contentType: "application/json") {
                 [
-                    "dataResourceUid": "${result.dataResourceUid}",
                     "uuid" : "${result.uuid}",
+                    "dataResourceUid": "${result.dataResourceUid}",
                     "title" : "${result.title}",
                     "imageSources" : result.imageSources,
                     "recordSources" : result.recordSources,

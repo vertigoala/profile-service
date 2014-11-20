@@ -25,6 +25,13 @@ class ProfileService {
         }
     }
 
+    def cleanupText(str){
+        if(str){
+            str.replaceAll('<i>', '').replaceAll('</i>', '')
+        } else {
+            str
+        }
+    }
 
     def importFOA(){
 
@@ -49,19 +56,19 @@ class ProfileService {
                 def contributors = []
 
                 foaProfile.ROWSET.ROW.CONTRIBUTORS?.CONTRIBUTORS_ITEM?.each {
-                    contributors << it.CONTRIBUTOR.text()
+                    contributors << cleanupText(it.CONTRIBUTOR.text())
                 }
 
                 def distributions = []
                 foaProfile.ROWSET.ROW.DISTRIBUTIONS?.DISTRIBUTIONS_ITEM?.each {
-                    distributions << it.DIST_TEXT.text()
+                    distributions << cleanupText(it.DIST_TEXT.text())
                 }
 
                 def parsed = [
                         scientificName: foaProfile.ROWSET.ROW.TAXON_NAME?.text(),
-                        habitat       : foaProfile.ROWSET.ROW?.HABITAT?.text(),
-                        source        : foaProfile.ROWSET.ROW.SOURCE.text().replaceAll('<i>', '').replaceAll('</i>', ''),
-                        description   : foaProfile.ROWSET.ROW.DESCRIPTION?.text(),
+                        habitat       : cleanupText(foaProfile.ROWSET.ROW?.HABITAT?.text()),
+                        source        : cleanupText(foaProfile.ROWSET.ROW.SOURCE.text()),
+                        description   : cleanupText(foaProfile.ROWSET.ROW.DESCRIPTION?.text()),
                         distributions : distributions,
                         contributor   : contributors
                 ]
@@ -101,11 +108,13 @@ class ProfileService {
                         if(retrieved){
                             contribs << retrieved
                         } else {
-                            contribs << new Contributor(name: it, dataResourceUid: foaOpus.dataResourceUid)
+                            contribs << new Contributor(uuid:UUID.randomUUID().toString(), name: it, dataResourceUid: foaOpus.dataResourceUid)
                         }
                     }
 
-                    def oldFoaLink = new Link(title: parsed.scientificName,
+                    def oldFoaLink = new Link(
+                            uuid:UUID.randomUUID().toString(),
+                            title: parsed.scientificName,
                             description: "Old Flora of Australia site page for " + parsed.scientificName,
                             url: "http://www.anbg.gov.au/abrs/online-resources/flora/stddisplay.xsql?pnid="+it.getName().replace(".xml", "")
                     )

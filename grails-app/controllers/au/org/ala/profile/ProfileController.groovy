@@ -73,6 +73,7 @@ class ProfileController {
            def attributesToRender = []
            tp.attributes.each { attr ->
                attributesToRender << [
+                   "uuid":"${attr.uuid}",
                    "title":"${attr.title}",
                    "text":"${attr.text}",
                    "contributor": attr.contributors.collect{ it.name }
@@ -82,6 +83,7 @@ class ProfileController {
            def linksToRender = []
            tp.links.each {
                linksToRender << [
+
                    "url":"${it.url}",
                    "title":"${it.title}",
                    "description": "${it.description}"
