@@ -101,6 +101,24 @@ class AttributeController {
     }
 
     def delete(){
-        response.sendError(500, "Not implemented yet")
+
+        def attr = Attribute.findByUuid(params.uuid)
+
+        def profile = Profile.findByUuid(params.profileUuid)
+
+        if(attr && profile){
+            //remove from profile
+            profile.attributes.remove(attr)
+            profile.save(flush:true)
+        }
+
+        if(attr){
+//            attr.delete(flush: true)
+            response.setStatus(204)
+            def result = [success:false]
+            render result as JSON
+        } else {
+            response.sendError(404, "No attribute found for uuid: " + params.uuid)
+        }
     }
 }
