@@ -2,6 +2,9 @@ class UrlMappings {
 
 	static mappings = {
 
+        "/vocab/"(controller: "vocab", action: "index")
+
+        "/vocab/$uuid"(controller: "vocab", action: "show")
 
         "/attribute/"(controller: "attribute", action: [GET:"index", PUT:"create",  POST:"create"])
 

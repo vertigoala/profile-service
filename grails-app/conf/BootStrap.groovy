@@ -30,14 +30,14 @@ class BootStrap {
         def vocab = Vocab.findByName(vocabName)
 
         if(!vocab){
-            vocab = new Vocab(name:vocabName)
+            vocab = new Vocab(name:vocabName, uuid: UUID.randomUUID().toString())
             vocab.save(flush:true)
         }
 
         termsToAdd.each {
             def term = Term.findByVocabAndName(vocab, it)
             if(!term){
-               term = new Term(name:it.toLowerCase().capitalize(), vocab:vocab)
+               term = new Term(name:it.toLowerCase().capitalize(), uuid: UUID.randomUUID().toString(), vocab:vocab)
                term.save(flush:true)
             }
         }
