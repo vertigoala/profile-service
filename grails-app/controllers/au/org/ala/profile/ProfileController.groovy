@@ -80,10 +80,12 @@ class ProfileController {
                ]
            }
 
+           //TODO sort alphabetically - this should be replaced by custom attribute sorting for an Opus..
+           attributesToRender.sort { it.title.toLowerCase() }
+
            def linksToRender = []
            tp.links.each {
                linksToRender << [
-
                    "url":"${it.url}",
                    "title":"${it.title}",
                    "description": "${it.description}"
