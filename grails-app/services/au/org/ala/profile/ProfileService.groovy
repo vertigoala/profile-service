@@ -44,7 +44,8 @@ class ProfileService {
                 imageSources: ["dr382", "dr413", "dr689"],
                 recordSources : ["dr376"],
                 logoUrl: "https://fieldcapture.ala.org.au/static/RrjzrZ0Ci0GPLETIr8x8KUMjfJtZKvifrUtMCedwKRB.png",
-                bannerUrl: "http://www.anbg.gov.au/images/photo_cd/FLIND_RANGES/fr-3_3.jpg"
+                bannerUrl: "http://www.anbg.gov.au/images/photo_cd/FLIND_RANGES/fr-3_3.jpg",
+                attributeVocabUuid: "7dba0bab-65d2-4a22-a682-c13b4e301f70"
             )
             foaOpus.save(flush:true)
         }

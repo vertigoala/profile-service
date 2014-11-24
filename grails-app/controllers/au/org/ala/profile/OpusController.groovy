@@ -1,12 +1,9 @@
 package au.org.ala.profile
 
-import groovy.json.JsonSlurper
-
 class OpusController {
 
     def index() {
 
-        def js = new JsonSlurper()
         def opui = Opus.findAll()
         render(contentType: "application/json") {
             opui: array {
@@ -18,7 +15,8 @@ class OpusController {
                     "imageSources": result.imageSources,
                     "recordSources": result.recordSources,
                     "logoUrl": result.logoUrl,
-                    "bannerUrl": result.bannerUrl
+                    "bannerUrl": result.bannerUrl,
+                    "attributeVocabUuid": result.attributeVocabUuid
                 )
                 }
             }
@@ -36,7 +34,8 @@ class OpusController {
                     "imageSources" : result.imageSources,
                     "recordSources" : result.recordSources,
                     "logoUrl": result.logoUrl,
-                    "bannerUrl": result.bannerUrl
+                    "bannerUrl": result.bannerUrl,
+                    "attributeVocabUuid": result.attributeVocabUuid
                 ]
             }
         } else {

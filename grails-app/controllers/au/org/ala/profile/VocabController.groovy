@@ -9,11 +9,13 @@ class VocabController {
         def vocabsToRender = []
         vocabs.each { vocab ->
             vocabsToRender << [
-                "uuid":"${vocab.uuid}",
-                "name":"${vocab.name}"
+                "name":"${vocab.name}",
+                "uuid":"${vocab.uuid}"
+
             ]
         }
-        render vocabsToRender as JSON
+
+        render vocabsToRender.sort { it.name.toLowerCase() } as JSON
     }
 
     def show(){
@@ -22,13 +24,13 @@ class VocabController {
             def termsToRender = []
             vocab.terms.each { term ->
                 termsToRender << [
-                        "uuid":"${term.uuid}",
-                        "name":"${term.name}"
+                    "name":"${term.name}",
+                    "uuid":"${term.uuid}"
                 ]
             }
 
-
-            render termsToRender as JSON
+            def payload =  [name:vocab.name, terms: termsToRender.sort { it.name.toLowerCase() }]
+            render payload as JSON
         } else {
             response.sendError(404)
         }
