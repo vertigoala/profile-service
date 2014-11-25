@@ -9,6 +9,9 @@ class Opus {
     List<String>  recordSources         // a list of drs that are providing images we can include
     String logoUrl
     String bannerUrl
+    String mapAttribution // e.g. AVH (CHAH)
+    String biocacheUrl    // e.f  http://avh.ala.org.au/
+    String biocacheName    ///e.g. Australian Virtual Herbarium
     String attributeVocabUuid
     Boolean enablePhyloUpload = true
     Boolean enableOccurrenceUpload = true
@@ -23,6 +26,9 @@ class Opus {
         enableOccurrenceUpload nullable: true
         enableTaxaUpload nullable: true
         enableKeyUpload nullable: true
+        mapAttribution nullable: true
+        biocacheUrl nullable: true
+        biocacheName nullable: true
     }
 
     static mapping = {

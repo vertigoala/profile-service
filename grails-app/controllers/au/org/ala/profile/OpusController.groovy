@@ -17,10 +17,13 @@ class OpusController {
                     "logoUrl": result.logoUrl,
                     "bannerUrl": result.bannerUrl,
                     "attributeVocabUuid": result.attributeVocabUuid,
-                    "enablePhyloUpload":result.enablePhyloUpload,
-                    "enableOccurrenceUpload":result.enableOccurrenceUpload,
-                    "enableTaxaUpload":result.enableTaxaUpload,
-                    "enableKeyUpload":result.enableKeyUpload
+                    "enablePhyloUpload":result.enablePhyloUpload != null ? result.enableKeyUpload : true,
+                    "enableOccurrenceUpload":result.enableOccurrenceUpload != null ? result.enableKeyUpload : true,
+                    "enableTaxaUpload":result.enableTaxaUpload != null ? result.enableKeyUpload : true,
+                    "enableKeyUpload":result.enableKeyUpload != null ? result.enableKeyUpload : true,
+                    "mapAttribution":result.mapAttribution?:'Atlas',
+                    "biocacheUrl":result.biocacheUrl?:'http://biocache.ala.org.au',
+                    "biocacheName":result.biocacheName?:'Atlas'
                 )
                 }
             }
@@ -40,10 +43,13 @@ class OpusController {
                     "logoUrl": result.logoUrl,
                     "bannerUrl": result.bannerUrl,
                     "attributeVocabUuid": result.attributeVocabUuid,
-                    "enablePhyloUpload":result.enablePhyloUpload,
-                    "enableOccurrenceUpload":result.enableOccurrenceUpload,
-                    "enableTaxaUpload":result.enableTaxaUpload,
-                    "enableKeyUpload":result.enableKeyUpload
+                    "enablePhyloUpload":result.enablePhyloUpload  != null ? result.enableKeyUpload : true,
+                    "enableOccurrenceUpload":result.enableOccurrenceUpload != null ? result.enableKeyUpload : true,
+                    "enableTaxaUpload":result.enableTaxaUpload != null ? result.enableKeyUpload : true,
+                    "enableKeyUpload":result.enableKeyUpload != null ? result.enableKeyUpload : true,
+                    "mapAttribution":result.mapAttribution?:'Atlas',
+                    "biocacheUrl":result.biocacheUrl?:'http://biocache.ala.org.au',
+                    "biocacheName":result.biocacheName?:'Atlas'
                 ]
             }
         } else {

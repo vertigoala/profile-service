@@ -41,22 +41,27 @@ class ProfileService {
 
     def importFOA(){
 
+        def opusModel = [
+            uuid : UUID.randomUUID().toString(),
+            dataResourceUid:  "dr382",
+            title: "Flora of Australia",
+            imageSources: ["dr382", "dr413", "dr689"],
+            recordSources : ["dr376"],
+            logoUrl: "https://fieldcapture.ala.org.au/static/RrjzrZ0Ci0GPLETIr8x8KUMjfJtZKvifrUtMCedwKRB.png",
+            bannerUrl: "http://www.anbg.gov.au/images/photo_cd/FLIND_RANGES/fr-3_3.jpg",
+            attributeVocabUuid: "7dba0bab-65d2-4a22-a682-c13b4e301f70",
+            enablePhyloUpload: false,
+            enableOccurrenceUpload: false,
+            enableTaxaUpload: false,
+            enableKeyUpload: false,
+            mapAttribution:'Australian Virtual Herbarium (CHAH)',
+            biocacheUrl:'http://avh.ala.org.au',
+            biocacheName:'Australian Virtual Herbarium'
+        ]
+
         def foaOpus = Opus.findByDataResourceUid("dr382")
         if(!foaOpus){
-            foaOpus = new Opus(
-                uuid : UUID.randomUUID().toString(),
-                dataResourceUid:  "dr382",
-                title: "Flora of Australia",
-                imageSources: ["dr382", "dr413", "dr689"],
-                recordSources : ["dr376"],
-                logoUrl: "https://fieldcapture.ala.org.au/static/RrjzrZ0Ci0GPLETIr8x8KUMjfJtZKvifrUtMCedwKRB.png",
-                bannerUrl: "http://www.anbg.gov.au/images/photo_cd/FLIND_RANGES/fr-3_3.jpg",
-                attributeVocabUuid: "7dba0bab-65d2-4a22-a682-c13b4e301f70",
-                enablePhyloUpload: false,
-                enableOccurrenceUpload: false,
-                enableTaxaUpload: false,
-                enableKeyUpload: false
-            )
+            foaOpus = new Opus(opusModel)
             foaOpus.save(flush:true)
         }
 
