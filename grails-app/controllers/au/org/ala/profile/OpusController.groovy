@@ -17,10 +17,10 @@ class OpusController {
                     "logoUrl": result.logoUrl,
                     "bannerUrl": result.bannerUrl,
                     "attributeVocabUuid": result.attributeVocabUuid,
-                    "enablePhyloUpload":result.enablePhyloUpload?:true,
-                    "enableOccurrenceUpload":result.enableOccurrenceUpload?:true,
-                    "enableTaxaUpload":result.enableTaxaUpload?:true,
-                    "enableKeyUpload":result.enableKeyUpload?:true
+                    "enablePhyloUpload":result.enablePhyloUpload,
+                    "enableOccurrenceUpload":result.enableOccurrenceUpload,
+                    "enableTaxaUpload":result.enableTaxaUpload,
+                    "enableKeyUpload":result.enableKeyUpload
                 )
                 }
             }
@@ -40,10 +40,10 @@ class OpusController {
                     "logoUrl": result.logoUrl,
                     "bannerUrl": result.bannerUrl,
                     "attributeVocabUuid": result.attributeVocabUuid,
-                    "enablePhyloUpload":result.enablePhyloUpload?:true,
-                    "enableOccurrenceUpload":result.enableOccurrenceUpload?:true,
-                    "enableTaxaUpload":result.enableTaxaUpload?:true,
-                    "enableKeyUpload":result.enableKeyUpload?:true
+                    "enablePhyloUpload":result.enablePhyloUpload,
+                    "enableOccurrenceUpload":result.enableOccurrenceUpload,
+                    "enableTaxaUpload":result.enableTaxaUpload,
+                    "enableKeyUpload":result.enableKeyUpload
                 ]
             }
         } else {
