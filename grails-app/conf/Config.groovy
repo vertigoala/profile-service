@@ -102,6 +102,12 @@ environments {
     }
 }
 
+grails.cache.config = {
+    provider {
+        name "ehcache-profile-service-"+(new Date().format("yyyyMMddHHmmss"))
+    }
+}
+
 // log4j configuration
 log4j.main = {
     // Example of changing the log pattern for the default console appender:

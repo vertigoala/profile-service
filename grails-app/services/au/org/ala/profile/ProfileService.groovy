@@ -19,9 +19,15 @@ class ProfileService {
                     imageSources: ["dr344"],
                     recordSources : ["dr344"],
                     logoUrl: "http://collections.ala.org.au/data/institution/QMN_logo.jpg",
-                    bannerUrl: "http://images.ala.org.au/store/a/0/5/0/12c3a0cc-8a7a-4731-946a-6d481a60050a/thumbnail_large"
+                    bannerUrl: "http://images.ala.org.au/store/a/0/5/0/12c3a0cc-8a7a-4731-946a-6d481a60050a/thumbnail_large",
+                    enablePhyloUpload: true,
+                    enableOccurrenceUpload: true,
+                    enableTaxaUpload: true,
+                    enableKeyUpload: true
             )
             spongeOpus.save(flush:true)
+
+            spongeOpus.getErrors().getAllErrors().each { println it }
         }
     }
 
@@ -45,7 +51,11 @@ class ProfileService {
                 recordSources : ["dr376"],
                 logoUrl: "https://fieldcapture.ala.org.au/static/RrjzrZ0Ci0GPLETIr8x8KUMjfJtZKvifrUtMCedwKRB.png",
                 bannerUrl: "http://www.anbg.gov.au/images/photo_cd/FLIND_RANGES/fr-3_3.jpg",
-                attributeVocabUuid: "7dba0bab-65d2-4a22-a682-c13b4e301f70"
+                attributeVocabUuid: "7dba0bab-65d2-4a22-a682-c13b4e301f70",
+                enablePhyloUpload: false,
+                enableOccurrenceUpload: false,
+                enableTaxaUpload: false,
+                enableKeyUpload: false
             )
             foaOpus.save(flush:true)
         }

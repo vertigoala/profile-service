@@ -16,7 +16,11 @@ class OpusController {
                     "recordSources": result.recordSources,
                     "logoUrl": result.logoUrl,
                     "bannerUrl": result.bannerUrl,
-                    "attributeVocabUuid": result.attributeVocabUuid
+                    "attributeVocabUuid": result.attributeVocabUuid,
+                    "enablePhyloUpload":result.enablePhyloUpload?:true,
+                    "enableOccurrenceUpload":result.enableOccurrenceUpload?:true,
+                    "enableTaxaUpload":result.enableTaxaUpload?:true,
+                    "enableKeyUpload":result.enableKeyUpload?:true
                 )
                 }
             }
@@ -35,7 +39,11 @@ class OpusController {
                     "recordSources" : result.recordSources,
                     "logoUrl": result.logoUrl,
                     "bannerUrl": result.bannerUrl,
-                    "attributeVocabUuid": result.attributeVocabUuid
+                    "attributeVocabUuid": result.attributeVocabUuid,
+                    "enablePhyloUpload":result.enablePhyloUpload?:true,
+                    "enableOccurrenceUpload":result.enableOccurrenceUpload?:true,
+                    "enableTaxaUpload":result.enableTaxaUpload?:true,
+                    "enableKeyUpload":result.enableKeyUpload?:true
                 ]
             }
         } else {
