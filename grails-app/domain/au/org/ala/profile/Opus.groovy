@@ -31,6 +31,13 @@ class Opus {
         biocacheName nullable: true
     }
 
+    def beforeValidate() {
+        if(uuid == null){
+            //mint an UUID
+            uuid = UUID.randomUUID().toString()
+        }
+    }
+
     static mapping = {
         version false
     }

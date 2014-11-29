@@ -14,6 +14,8 @@ class UrlMappings {
 
         "/opus/$uuid"(controller: "opus", action: "show")
 
+        "/opus/taxaUpload"(controller: "opus", action: "taxaUpload")
+
         "/importFOA"(controller: "profile", action: "importFOA")
 
         "/importSponges"(controller: "profile", action: "importSponges")

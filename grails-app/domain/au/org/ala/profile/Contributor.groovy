@@ -10,6 +10,13 @@ class Contributor {
     Date dateCreated
     Date lastUpdated
 
+    def beforeValidate() {
+        if(uuid == null){
+            //mint an UUID
+            uuid = UUID.randomUUID().toString()
+        }
+    }
+
     static constraints = {
         userId nullable: true
         dataResourceUid nullable: true

@@ -52,20 +52,11 @@ grails.project.dependency.resolution = {
 
     plugins {
         build ":release:3.0.1"
-        // plugins for the build system only
         build ":tomcat:7.0.55"
         runtime ":ala-web-theme:1.0.1"
         runtime ":mongodb:3.0.2"
-
-        // plugins for the compile step
         compile ":scaffolding:2.1.2"
         compile ':cache:1.1.6'
-
         runtime ":cors:1.1.6"
-//        compile ":asset-pipeline:1.9.6"
-
-        // plugins needed at runtime but not for compilation
-//        runtime ":database-migration:1.4.0"
-//        runtime ":jquery:1.11.1"
     }
 }

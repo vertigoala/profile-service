@@ -12,4 +12,11 @@ class Attribute {
     static hasMany = [subAttributes: Attribute, contributors: Contributor]
 
     static constraints = {}
+
+    def beforeValidate() {
+        if(uuid == null){
+            //mint an UUID
+            uuid = UUID.randomUUID().toString()
+        }
+    }
 }

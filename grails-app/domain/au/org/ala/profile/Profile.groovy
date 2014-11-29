@@ -23,4 +23,11 @@ class Profile {
     static mapping = {
         version false
     }
+
+    def beforeValidate() {
+        if(uuid == null){
+            //mint an UUID
+            uuid = UUID.randomUUID().toString()
+        }
+    }
 }
