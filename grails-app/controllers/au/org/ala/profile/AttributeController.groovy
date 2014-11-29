@@ -51,6 +51,16 @@ class AttributeController {
         def json = jsonSlurper.parse(request.getReader())
         def profile = Profile.findByUuid(json.profileUuid)
 
+        println(json.userId)
+
+        def contributor = Contributor.findByUserId(json.userId)
+        if(!contributor){
+            contributor = new Contributor(userId: json.userId, name: json.userDisplayName)
+            contributor.save(flush: true)
+        }
+
+        //json.userId
+        //json.userDisplayName
         if(profile){
 
             def attribute = new Attribute(
@@ -58,6 +68,8 @@ class AttributeController {
                     title: json.title,
                     text: json.text
             )
+            attribute.contributors = [contributor]
+
             profile.attributes.add(attribute)
             profile.save(flush:true)
 
