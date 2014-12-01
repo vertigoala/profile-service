@@ -12,7 +12,7 @@ class Profile {
     Date dateCreated
     Date lastUpdated
 
-    static hasMany = [links: Link, attributes: Attribute]
+    static hasMany = [links: Link, attributes: Attribute, bhlLinks:Link]
 
     static belongsTo = [opus: Opus]
 

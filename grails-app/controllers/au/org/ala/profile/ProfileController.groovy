@@ -1,10 +1,82 @@
 package au.org.ala.profile
 
 import grails.converters.JSON
+import groovy.json.JsonSlurper
 
 class ProfileController {
 
     def profileService
+
+    def saveBHLLinks(){
+        def jsonSlurper = new JsonSlurper()
+        def json = jsonSlurper.parse(request.getReader())
+        def profile = Profile.findByUuid(json.profileUuid)
+        def uuids = []
+        def linksToSave = []
+        if(profile){
+            if(json.links){
+                json.links.each {
+                    def link
+                    if(it.uuid){
+                        link = Link.findByUuid(it.uuid)
+                    } else {
+                        link = new Link(uuid:UUID.randomUUID().toString())
+                    }
+
+                    link.url = it.url
+                    link.title = it.title
+                    link.description = it.description
+                    link.fullTitle = it.fullTitle
+                    link.edition = it.edition
+                    link.publisherName = it.publisherName
+                    link.doi = it.doi
+                    linksToSave << link
+                    uuids << link.uuid
+                }
+
+                profile.bhlLinks = linksToSave
+                profile.save(flush:true)
+                profile.errors.allErrors.each {
+                    println it
+                }
+            }
+        }
+        render uuids as JSON
+    }
+
+    def saveLinks(){
+        def jsonSlurper = new JsonSlurper()
+        def json = jsonSlurper.parse(request.getReader())
+        def profile = Profile.findByUuid(json.profileUuid)
+        def uuids = []
+        def linksToSave = []
+        if(profile){
+            if(json.links){
+                json.links.each {
+                    def link
+                    if(it.uuid){
+                        link = Link.findByUuid(it.uuid)
+                    } else {
+                        link = new Link(uuid:UUID.randomUUID().toString())
+                    }
+                    link.url = it.url
+                    link.title = it.title
+                    link.description = it.description
+                    link.errors.allErrors.each {
+                        println it
+                    }
+                    linksToSave << link
+                    uuids << link.uuid
+                }
+                profile.links = linksToSave
+                profile.save(flush:true)
+                profile.errors.allErrors.each {
+                    println it
+                }
+            }
+        }
+        render uuids as JSON
+    }
 
     /**
      * Basic search
@@ -86,8 +158,23 @@ class ProfileController {
            def linksToRender = []
            tp.links.each {
                linksToRender << [
+                   "uuid":"${it.uuid}",
                    "url":"${it.url}",
                    "title":"${it.title}",
+                   "description": "${it.description}"
+               ]
+           }
+
+           def bhlToRender = []
+           tp.bhlLinks.each {
+               bhlToRender << [
+                   "uuid":"${it.uuid}",
+                   "url":"${it.url}",
+                   "title":"${it.title}",
+                   "fullTitle":"${it.fullTitle}",
+                   "edition":"${it.edition}",
+                   "publisherName":"${it.publisherName}",
+                   "doi":"${it.doi}",
                    "description": "${it.description}"
                ]
            }
@@ -100,13 +187,14 @@ class ProfileController {
                "opusName" : "${tp.opus.title}",
                "scientificName" : "${tp.scientificName}",
                "attributes": attributesToRender,
-               "links":linksToRender
+               "links":linksToRender,
+               "bhl":bhlToRender
            ]
 
            render response as JSON
 
        } else {
-            response.sendError(404, "Identifier unrecognised: " + params.uuid)
+           response.sendError(404, "Identifier unrecognised: " + params.uuid)
        }
     }
 

@@ -51,7 +51,7 @@ class AttributeController {
         def json = jsonSlurper.parse(request.getReader())
         def profile = Profile.findByUuid(json.profileUuid)
 
-        println(json.userId)
+//        println(json.userId)
 
         def contributor = Contributor.findByUserId(json.userId)
         if(!contributor){

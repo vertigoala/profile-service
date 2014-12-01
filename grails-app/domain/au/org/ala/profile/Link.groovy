@@ -6,13 +6,26 @@ class Link {
     String url
     String title
     String description
+    String doi
+    String edition
+    String publisherName
+    String fullTitle
+    String userId
+
+    static hasMany = [contributors: Contributor]
 
     def beforeValidate() {
-        if(uuid == null){
+        if(!uuid){
             //mint an UUID
             uuid = UUID.randomUUID().toString()
         }
     }
 
-    static constraints = {}
+    static constraints = {
+        doi nullable: true
+        edition nullable: true
+        publisherName nullable: true
+        fullTitle nullable: true
+        userId nullable: true
+    }
 }

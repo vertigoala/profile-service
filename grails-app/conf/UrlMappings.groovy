@@ -26,6 +26,11 @@ class UrlMappings {
 
         "/profile/"(controller: "profile", action: "index")
 
+        "/profile/links/$uuid"(controller: "profile", action: [POST:"saveLinks"])
+
+        "/profile/bhl/$uuid"(controller: "profile", action: [POST:"saveBHLLinks"])
+
+
         "/$controller/$action?/$id?(.$format)?"{
             constraints {
                 // apply constraints here
