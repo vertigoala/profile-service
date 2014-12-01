@@ -2,6 +2,9 @@ class UrlMappings {
 
 	static mappings = {
 
+
+        "/classification"(controller: "profile", action: [GET:"classification"])
+
         "/vocab/"(controller: "vocab", action: "index")
 
         "/vocab/$uuid"(controller: "vocab", action: "show")
@@ -29,7 +32,6 @@ class UrlMappings {
         "/profile/links/$uuid"(controller: "profile", action: [POST:"saveLinks"])
 
         "/profile/bhl/$uuid"(controller: "profile", action: [POST:"saveBHLLinks"])
-
 
         "/$controller/$action?/$id?(.$format)?"{
             constraints {

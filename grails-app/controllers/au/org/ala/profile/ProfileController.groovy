@@ -130,10 +130,21 @@ class ProfileController {
     }
 
     def classification(){
-        def classification = []
-        def availableProfiles = []
-        if(profile.guid){
-            classification = js.parseText(new URL("http://bie.ala.org.au/ws/classification/" + params.guid).text)
+
+        println("Retrieving classification for: " + params.guid)
+
+        if(params.guid){
+            def js = new JsonSlurper()
+            def classification = js.parseText(new URL("http://bie.ala.org.au/ws/classification/" + params.guid).text)
+            classification.each {
+                def profile = Profile.findByGuid(it.guid)
+                it.profileUuid = profile?.uuid?:''
+            }
+
+            response.setContentType("application/json")
+            render classification as JSON
+        } else {
+            response.sendError(400)
         }
     }
 
