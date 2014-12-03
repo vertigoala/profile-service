@@ -51,8 +51,6 @@ class AttributeController {
         def json = jsonSlurper.parse(request.getReader())
         def profile = Profile.findByUuid(json.profileUuid)
 
-//        println(json.userId)
-
         def contributor = Contributor.findByUserId(json.userId)
         if(!contributor){
             contributor = new Contributor(userId: json.userId, name: json.userDisplayName)
@@ -100,7 +98,22 @@ class AttributeController {
                 attr.title = json.title
             }
             attr.text = json.text
-            attr.save()
+
+            def contributor = Contributor.findByUserId(json.userId)
+            if(!contributor){
+                contributor = new Contributor(userId: json.userId, name: json.userDisplayName)
+                contributor.save(flush: true)
+            }
+
+            if(!attr.editors){
+                attr.editors = []
+            }
+
+            if(!attr.editors.contains(contributor)){
+                attr.editors << contributor
+            }
+
+            attr.save(flush:true)
             //need to handle the attribution
             response.setStatus(201)
             def result = [success:true, uuid: attr.uuid]

@@ -12,7 +12,7 @@ class Link {
     String fullTitle
     String userId
 
-    static hasMany = [contributors: Contributor]
+    static hasMany = [creators: Contributor]
 
     def beforeValidate() {
         if(!uuid){

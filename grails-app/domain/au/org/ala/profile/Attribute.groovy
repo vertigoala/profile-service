@@ -9,9 +9,14 @@ class Attribute {
     Date dateCreated
     Date lastUpdated
 
-    static hasMany = [subAttributes: Attribute, contributors: Contributor]
+    static hasMany = [subAttributes: Attribute, creators: Contributor, editors: Contributor]
 
-    static constraints = {}
+    // The original attribute this was copied from
+    static belongsTo = [original: Attribute]
+
+    static constraints = {
+        original nullable:true
+    }
 
     def beforeValidate() {
         if(uuid == null){

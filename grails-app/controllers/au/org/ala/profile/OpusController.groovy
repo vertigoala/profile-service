@@ -54,7 +54,8 @@ class OpusController {
                     "enableKeyUpload":result.enableKeyUpload != null ? result.enableKeyUpload : true,
                     "mapAttribution":result.mapAttribution?:'Atlas',
                     "biocacheUrl":result.biocacheUrl?:'http://biocache.ala.org.au',
-                    "biocacheName":result.biocacheName?:'Atlas'
+                    "biocacheName":result.biocacheName?:'Atlas',
+                    "additionalOccurrenceResources" : result.additionalOccurrenceResources ?: []
                 ]
             }
         } else {

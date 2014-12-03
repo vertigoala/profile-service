@@ -18,6 +18,8 @@ class Opus {
     Boolean enableTaxaUpload = true
     Boolean enableKeyUpload = true
 
+    static hasMany = [additionalOccurrenceResources: OccurrenceResource]
+
     static constraints = {
         logoUrl nullable: true
         bannerUrl nullable: true

@@ -5,6 +5,9 @@ import org.xml.sax.SAXException
 @Transactional
 class ProfileService {
 
+    def foaUuid = "2f75e6c9-7034-409b-b27c-3864326bee41"
+    def spongesUuid = "e3e35631-d864-44ed-a0b1-2c707bbc6d61"
+
     def serviceMethod() {}
 
     def nameService
@@ -13,7 +16,7 @@ class ProfileService {
         def spongeOpus = Opus.findByDataResourceUid("dr824")
         if(!spongeOpus){
             spongeOpus = new Opus(
-                    uuid : UUID.randomUUID().toString(),
+                    uuid : spongesUuid,
                     dataResourceUid:  "dr824",
                     title: "Spongemaps",
                     imageSources: ["dr344"],
@@ -42,7 +45,7 @@ class ProfileService {
     def importFOA(){
 
         def opusModel = [
-            uuid : UUID.randomUUID().toString(),
+            uuid : foaUuid,
             dataResourceUid:  "dr382",
             title: "Flora of Australia",
             imageSources: ["dr382", "dr413", "dr689"],
@@ -138,7 +141,7 @@ class ProfileService {
                     profile.links = [oldFoaLink]
 
                     profile.attributes.each {
-                        it.contributors = contribs
+                        it.creators = contribs
                     }
 
                      profile.save(flush: true)

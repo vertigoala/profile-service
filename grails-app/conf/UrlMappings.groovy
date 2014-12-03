@@ -33,6 +33,8 @@ class UrlMappings {
 
         "/profile/bhl/$uuid"(controller: "profile", action: [POST:"saveBHLLinks"])
 
+        "/createTestOccurrenceSource"(controller: 'profile', action: 'createTestOccurrenceSource')
+
         "/$controller/$action?/$id?(.$format)?"{
             constraints {
                 // apply constraints here

@@ -159,11 +159,11 @@ class ProfileController {
                    "uuid":"${attr.uuid}",
                    "title":"${attr.title}",
                    "text":"${attr.text}",
-                   "contributor": attr.contributors.collect{ it.name }
+                   "creators": attr.creators.collect { it.name },
+                   "editors": attr.editors.collect { it.name }
                ]
            }
 
-           //TODO sort alphabetically - this should be replaced by custom attribute sorting for an Opus..
            attributesToRender.sort { it.title.toLowerCase() }
 
            def linksToRender = []
@@ -172,7 +172,8 @@ class ProfileController {
                    "uuid":"${it.uuid}",
                    "url":"${it.url}",
                    "title":"${it.title}",
-                   "description": "${it.description}"
+                   "description": "${it.description}",
+                   "creators": it.creators.collect { it.name },
                ]
            }
 
@@ -186,7 +187,8 @@ class ProfileController {
                    "edition":"${it.edition}",
                    "publisherName":"${it.publisherName}",
                    "doi":"${it.doi}",
-                   "description": "${it.description}"
+                   "description": "${it.description}",
+                   "creators": it.creators.collect { it.name }
                ]
            }
 
@@ -214,8 +216,31 @@ class ProfileController {
         render "done"
     }
 
-    def importFloraBase(){
+    def createTestOccurrenceSource(){
+        def opus = Opus.findByUuid(profileService.spongesUuid)
+
+        def testResources = [
+            new OccurrenceResource(
+                name: "Test resource 1",
+                webserviceUrl: "http://sandbox.ala.org.au/biocache-service",
+                uiUrl: "http://sandbox.ala.org.au/ala-hub",
+                dataResourceUid: "drt123",
+                pointColour: "CCFF00"
+            ),
+            new OccurrenceResource(
+                name: "Test resource 2",
+                webserviceUrl: "http://sandbox.ala.org.au/biocache-service",
+                uiUrl: "http://sandbox.ala.org.au/ala-hub",
+                dataResourceUid: "drt125",
+                pointColour: "FFCC00"
+            )
+        ]
+
+        opus.additionalOccurrenceResources = testResources
+        opus.save(flush:true)
     }
+
+    def importFloraBase(){}
 
     def importSponges() {
         profileService.importSponges()
