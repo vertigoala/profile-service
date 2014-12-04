@@ -3,6 +3,10 @@ class UrlMappings {
 	static mappings = {
 
 
+        "/audit/object/$uuid"(controller: "audit", action: [GET:"auditTrailForObject"])
+
+        "/audit/user/$userId"(controller: "audit", action: [GET:"auditTrailForUser"])
+        
         "/classification"(controller: "profile", action: [GET:"classification"])
 
         "/vocab/"(controller: "vocab", action: "index")

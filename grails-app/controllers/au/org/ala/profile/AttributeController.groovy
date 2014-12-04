@@ -15,7 +15,8 @@ class AttributeController {
                         "uuid": "${attr.uuid}",
                         "title": "${attr.title}",
                         "text": "${attr.text}",
-                        "contributors": attr.contributors.collect{ it.name }
+                        "creators": attr.creators.collect{ it.name },
+                        "editors": attr.editors.collect{ it.name }
                 ]
             }
             response.setContentType("application/json")
@@ -66,7 +67,7 @@ class AttributeController {
                     title: json.title,
                     text: json.text
             )
-            attribute.contributors = [contributor]
+            attribute.creators = [contributor]
 
             profile.attributes.add(attribute)
             profile.save(flush:true)
@@ -128,7 +129,6 @@ class AttributeController {
     def delete(){
 
         def attr = Attribute.findByUuid(params.uuid)
-
         def profile = Profile.findByUuid(params.profileUuid)
 
         if(attr && profile){
@@ -138,7 +138,6 @@ class AttributeController {
         }
 
         if(attr){
-//            attr.delete(flush: true)
             response.setStatus(204)
             def result = [success:false]
             render result as JSON

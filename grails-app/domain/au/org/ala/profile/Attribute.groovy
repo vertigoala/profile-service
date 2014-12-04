@@ -2,6 +2,8 @@ package au.org.ala.profile
 
 class Attribute {
 
+    static auditable = true
+
     String uuid
     String title
     String text // = "This animal lives...."

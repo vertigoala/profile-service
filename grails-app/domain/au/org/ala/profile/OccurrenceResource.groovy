@@ -11,6 +11,5 @@ class OccurrenceResource {
     String dataResourceUid
     String pointColour
 
-    static constraints = {
-    }
+    static constraints = {}
 }
