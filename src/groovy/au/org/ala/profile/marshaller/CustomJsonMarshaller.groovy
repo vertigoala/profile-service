@@ -17,6 +17,7 @@ public class AuditMessageMarshaller {
             return [
                     uuid : auditMessage.entityId,
                     userId : auditMessage.userId,
+                    userDisplayName : auditMessage.userDisplayName,
                     object: object
             ]
         }

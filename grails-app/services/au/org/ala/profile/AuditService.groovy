@@ -47,12 +47,11 @@ class AuditService {
         def user = userService.getCurrentUserDetails()
         def userId = user?.userId ?: '<anon>'   // if, for some reason, we don't have a user, probably should log anyway
         def auditEventType = getAuditEventTypeFromGormEventType(event.eventType)
-//        def entityId = IdentifierHelper.getEntityIdentifier(entity)
         def entityId = entity.uuid
 
         try {
 
-            def message = new AuditMessage(date: new Date(), userId: userId, eventType: auditEventType, entityType: entity.class.name, entityId: entityId)
+            def message = new AuditMessage(date: new Date(), userId: userId, eventType: auditEventType, entityType: entity.class.name, entityId: entityId, userDisplayName: user?.displayName)
             // TODO: When the MongoDB plugin supports the dynamic isDirty() and/or dirtyProperties() methods, we could
             // optimize what gets stored during an 'update' by only logging the dirty properties.
             // At the moment we log all the properties

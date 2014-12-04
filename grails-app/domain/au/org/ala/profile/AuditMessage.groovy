@@ -8,6 +8,7 @@ class AuditMessage {
     ObjectId id
     Date date
     String userId
+    String userDisplayName
     AuditEventType eventType
     String entityType
     String entityId
