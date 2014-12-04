@@ -3,7 +3,6 @@ import au.org.ala.profile.AuditService
 import org.grails.datastore.mapping.core.Datastore
 import org.grails.datastore.mapping.engine.event.AbstractPersistenceEvent
 import org.grails.datastore.mapping.engine.event.AbstractPersistenceEventListener
-import org.grails.datastore.mapping.engine.event.EventType
 import org.springframework.context.ApplicationEvent
 /**
  * GORM event listener to trigger ElasticSearch updates when domain classes change
@@ -23,16 +22,10 @@ class AuditListener extends AbstractPersistenceEventListener {
 
     @Override
     protected void onPersistenceEvent(final AbstractPersistenceEvent event) {
-
-        switch (event.eventType) {
-            case EventType.PostInsert:
-            case EventType.PostUpdate:
-            case EventType.PostDelete:
-                auditService.logGormEvent(event)
-                break
-            case EventType.PreUpdate:
-                auditService.logGormEvent(event)
-                break
+        if (event.eventType.name() == "PreUpdate") {
+            auditService.logGormEvent(event)
+        } else if(event.eventType.name() == "PostDelete"){
+            //how do we store deletes ?
         }
     }
 
