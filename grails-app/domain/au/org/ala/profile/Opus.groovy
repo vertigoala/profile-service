@@ -10,6 +10,7 @@ class Opus {
     String logoUrl
     String bannerUrl
     String mapAttribution // e.g. AVH (CHAH)
+    String pointColour = ''
     String biocacheUrl    // e.f  http://avh.ala.org.au/
     String biocacheName    ///e.g. Australian Virtual Herbarium
     String attributeVocabUuid
@@ -18,7 +19,7 @@ class Opus {
     Boolean enableTaxaUpload = true
     Boolean enableKeyUpload = true
 
-    static hasMany = [additionalOccurrenceResources: OccurrenceResource]
+    static hasMany = [additionalOccurrenceResources: OccurrenceResource, admins: Contributor, editors: Contributor]
 
     static constraints = {
         logoUrl nullable: true
