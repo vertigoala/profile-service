@@ -150,62 +150,8 @@ class ProfileController {
 
     def getByUuid(){
        def tp = Profile.findByUuidOrGuidOrScientificName(params.uuid, params.uuid, params.uuid)
-
        if(tp){
-
-           def attributesToRender = []
-           tp.attributes.each { attr ->
-               attributesToRender << [
-                   "uuid":"${attr.uuid}",
-                   "title":"${attr.title}",
-                   "text":"${attr.text}",
-                   "creators": attr.creators.collect { it.name },
-                   "editors": attr.editors.collect { it.name }
-               ]
-           }
-
-           attributesToRender.sort { it.title.toLowerCase() }
-
-           def linksToRender = []
-           tp.links.each {
-               linksToRender << [
-                   "uuid":"${it.uuid}",
-                   "url":"${it.url}",
-                   "title":"${it.title}",
-                   "description": "${it.description}",
-                   "creators": it.creators.collect { it.name },
-               ]
-           }
-
-           def bhlToRender = []
-           tp.bhlLinks.each {
-               bhlToRender << [
-                   "uuid":"${it.uuid}",
-                   "url":"${it.url}",
-                   "title":"${it.title}",
-                   "fullTitle":"${it.fullTitle}",
-                   "edition":"${it.edition}",
-                   "publisherName":"${it.publisherName}",
-                   "doi":"${it.doi}",
-                   "description": "${it.description}",
-                   "creators": it.creators.collect { it.name }
-               ]
-           }
-
-           def response =  [
-               "uuid" : "${tp.uuid}",
-               "guid" : "${tp.guid}",
-               "dataResourceUid" : "${tp.opus.dataResourceUid}",
-               "opusId" : "${tp.opus.uuid}",
-               "opusName" : "${tp.opus.title}",
-               "scientificName" : "${tp.scientificName}",
-               "attributes": attributesToRender,
-               "links":linksToRender,
-               "bhl":bhlToRender
-           ]
-
-           render response as JSON
-
+           respond tp, [formats:['json', 'xml']]
        } else {
            response.sendError(404, "Identifier unrecognised: " + params.uuid)
        }

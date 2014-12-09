@@ -10,7 +10,11 @@ class Opus {
     String logoUrl
     String bannerUrl
     String mapAttribution // e.g. AVH (CHAH)
-    String pointColour = ''
+    String mapPointColour = "FF9900"
+    Float mapDefaultLatitude = -23.6
+    Float mapDefaultLongitude = 133.6
+    Integer mapZoom = 3
+    String mapBaseLayer = "https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png"
     String biocacheUrl    // e.f  http://avh.ala.org.au/
     String biocacheName    ///e.g. Australian Virtual Herbarium
     String attributeVocabUuid

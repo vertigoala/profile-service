@@ -1,6 +1,4 @@
-import au.org.ala.profile.marshaller.AttributeMarshaller
-import au.org.ala.profile.marshaller.AuditMessageMarshaller
-import au.org.ala.profile.marshaller.CustomObjectMarshallers
+import au.org.ala.profile.marshaller.*
 
 // Place your Spring DSL code here
 beans = {
@@ -8,7 +6,9 @@ beans = {
     customObjectMarshallers( CustomObjectMarshallers ) {
         marshallers = [
             new AuditMessageMarshaller(),
-            new AttributeMarshaller()
+            new AttributeMarshaller(),
+            new OpusMarshaller(),
+            new ProfileMarshaller()
         ]
     }
 }
