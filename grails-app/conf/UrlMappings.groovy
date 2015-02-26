@@ -11,33 +11,27 @@ class UrlMappings {
 
         "/vocab/"(controller: "vocab", action: "index")
 
-        "/vocab/$uuid"(controller: "vocab", action: "show")
+        "/vocab/$vocabId"(controller: "vocab", action: "show")
 
         "/attribute/"(controller: "attribute", action: [GET:"index", PUT:"create",  POST:"create"])
 
-        "/attribute/$uuid"(controller: "attribute", action: [GET:"show", PUT:"update", DELETE:"delete", POST:"update"])
+        "/attribute/$attributeId"(controller: "attribute", action: [GET:"show", PUT:"update", DELETE:"delete", POST:"update"])
 
         "/opus/"(controller: "opus", action: "index")
 
-        "/opus/$uuid"(controller: "opus", action: "show")
+        "/opus/$opusId"(controller: "opus", action: "show")
 
         "/opus/taxaUpload"(controller: "opus", action: "taxaUpload")
 
-        "/importFOA"(controller: "profile", action: "importFOA")
-
-        "/importSponges"(controller: "profile", action: "importSponges")
-
         "/profile/search"(controller: "profile", action: "search")
 
-        "/profile/$uuid"(controller: "profile", action: "getByUuid")
+        "/profile/$profileId"(controller: "profile", action: "getByUuid")
 
         "/profile/"(controller: "profile", action: "index")
 
-        "/profile/links/$uuid"(controller: "profile", action: [POST:"saveLinks"])
+        "/profile/links/$profileId"(controller: "profile", action: [POST:"saveLinks"])
 
-        "/profile/bhl/$uuid"(controller: "profile", action: [POST:"saveBHLLinks"])
-
-        "/createTestOccurrenceSource"(controller: 'profile', action: 'createTestOccurrenceSource')
+        "/profile/bhl/$profileId"(controller: "profile", action: [POST:"saveBHLLinks"])
 
         "/$controller/$action?/$id?(.$format)?"{
             constraints {
@@ -47,5 +41,11 @@ class UrlMappings {
 
         "/"(view:"/index")
         "500"(view:'/error')
+
+        // TODO remove these importXYZ and test mappings
+        "/importFOA"(controller: "profile", action: "importFOA")
+        "/importSponges"(controller: "profile", action: "importSponges")
+        "/createTestOccurrenceSource"(controller: 'profile', action: 'createTestOccurrenceSource')
+
 	}
 }

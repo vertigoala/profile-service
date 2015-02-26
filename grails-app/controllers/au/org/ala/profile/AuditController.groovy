@@ -4,14 +4,14 @@ import grails.converters.JSON
 
 class AuditController {
 
-    def index() { }
+    def index() {}
 
-    def auditTrailForObject(){
-        def results = AuditMessage.findAllByEntityId(params.uuid, [max: 10, sort: "date", order: "desc", offset: 0])
+    def auditTrailForObject() {
+        def results = AuditMessage.findAllByEntityId(params.entityId, [max: 10, sort: "date", order: "desc", offset: 0])
         render results as JSON
     }
 
-    def auditTrailForUser(){
+    def auditTrailForUser() {
         def results = AuditMessage.findAllByUserId(params.userId, [max: 10, sort: "date", order: "desc", offset: 0])
         render results as JSON
     }

@@ -9,8 +9,8 @@ class VocabController {
         def vocabsToRender = []
         vocabs.each { vocab ->
             vocabsToRender << [
-                "name":"${vocab.name}",
-                "uuid":"${vocab.uuid}"
+                    "name": "${vocab.name}",
+                    "vocabId": "${vocab.uuid}"
 
             ]
         }
@@ -18,18 +18,18 @@ class VocabController {
         render vocabsToRender.sort { it.name.toLowerCase() } as JSON
     }
 
-    def show(){
-        def vocab = Vocab.findByUuid(params.uuid)
-        if(vocab){
+    def show() {
+        def vocab = Vocab.findByUuid(params.vocabId)
+        if (vocab) {
             def termsToRender = []
             vocab.terms.each { term ->
                 termsToRender << [
-                    "name":"${term.name}",
-                    "uuid":"${term.uuid}"
+                        "name": "${term.name}",
+                        "vocabId": "${term.uuid}"
                 ]
             }
 
-            def payload =  [name:vocab.name, terms: termsToRender.sort { it.name.toLowerCase() }]
+            def payload = [name: vocab.name, terms: termsToRender.sort { it.name.toLowerCase() }]
             render payload as JSON
         } else {
             response.sendError(404)

@@ -1,26 +1,27 @@
 package au.org.ala.profile
+
 import grails.transaction.Transactional
 import org.xml.sax.SAXException
 
 @Transactional
 class ProfileService {
 
-    def foaUuid = "2f75e6c9-7034-409b-b27c-3864326bee41"
-    def spongesUuid = "e3e35631-d864-44ed-a0b1-2c707bbc6d61"
+    def foaOpusId = "2f75e6c9-7034-409b-b27c-3864326bee41"
+    def spongesOpusId = "e3e35631-d864-44ed-a0b1-2c707bbc6d61"
 
     def serviceMethod() {}
 
     def nameService
 
-    def importSponges(){
+    def importSponges() {
         def spongeOpus = Opus.findByDataResourceUid("dr824")
-        if(!spongeOpus){
+        if (!spongeOpus) {
             spongeOpus = new Opus(
-                    uuid : spongesUuid,
-                    dataResourceUid:  "dr824",
+                    opusId: spongesOpusId,
+                    dataResourceUid: "dr824",
                     title: "Spongemaps",
                     imageSources: ["dr344"],
-                    recordSources : ["dr344"],
+                    recordSources: ["dr344"],
                     logoUrl: "http://collections.ala.org.au/data/institution/QMN_logo.jpg",
                     bannerUrl: "http://images.ala.org.au/store/a/0/5/0/12c3a0cc-8a7a-4731-946a-6d481a60050a/thumbnail_large",
                     enablePhyloUpload: true,
@@ -28,44 +29,44 @@ class ProfileService {
                     enableTaxaUpload: true,
                     enableKeyUpload: true
             )
-            spongeOpus.save(flush:true)
+            spongeOpus.save(flush: true)
 
             spongeOpus.getErrors().getAllErrors().each { println it }
         }
     }
 
-    def cleanupText(str){
-        if(str){
+    def cleanupText(str) {
+        if (str) {
             str.replaceAll('<i>', '').replaceAll('</i>', '')
         } else {
             str
         }
     }
 
-    def importFOA(){
+    def importFOA() {
 
         def opusModel = [
-            uuid : foaUuid,
-            dataResourceUid:  "dr382",
-            title: "Flora of Australia",
-            imageSources: ["dr382", "dr413", "dr689"],
-            recordSources : ["dr376"],
-            logoUrl: "https://fieldcapture.ala.org.au/static/RrjzrZ0Ci0GPLETIr8x8KUMjfJtZKvifrUtMCedwKRB.png",
-            bannerUrl: "http://www.anbg.gov.au/images/photo_cd/FLIND_RANGES/fr-3_3.jpg",
-            attributeVocabUuid: "7dba0bab-65d2-4a22-a682-c13b4e301f70",
-            enablePhyloUpload: false,
-            enableOccurrenceUpload: false,
-            enableTaxaUpload: false,
-            enableKeyUpload: false,
-            mapAttribution:'Australian Virtual Herbarium (CHAH)',
-            biocacheUrl:'http://avh.ala.org.au',
-            biocacheName:'Australian Virtual Herbarium'
+                opusId                  : foaOpusId,
+                dataResourceUid       : "dr382",
+                title                 : "Flora of Australia",
+                imageSources          : ["dr382", "dr413", "dr689"],
+                recordSources         : ["dr376"],
+                logoUrl               : "https://fieldcapture.ala.org.au/static/RrjzrZ0Ci0GPLETIr8x8KUMjfJtZKvifrUtMCedwKRB.png",
+                bannerUrl             : "http://www.anbg.gov.au/images/photo_cd/FLIND_RANGES/fr-3_3.jpg",
+                attributeVocabUid    : "7dba0bab-65d2-4a22-a682-c13b4e301f70",
+                enablePhyloUpload     : false,
+                enableOccurrenceUpload: false,
+                enableTaxaUpload      : false,
+                enableKeyUpload       : false,
+                mapAttribution        : 'Australian Virtual Herbarium (CHAH)',
+                biocacheUrl           : 'http://avh.ala.org.au',
+                biocacheName          : 'Australian Virtual Herbarium'
         ]
 
         def foaOpus = Opus.findByDataResourceUid("dr382")
-        if(!foaOpus){
+        if (!foaOpus) {
             foaOpus = new Opus(opusModel)
-            foaOpus.save(flush:true)
+            foaOpus.save(flush: true)
         }
 
         new File("/data/foa").listFiles().each {
@@ -99,24 +100,24 @@ class ProfileService {
 
                     //add a match to APC / APNI
                     def profile = new Profile([
-                        uuid            : UUID.randomUUID().toString(),
-                        guid            : guid,
-                        scientificName  : parsed.scientificName,
-                        opus            : foaOpus
+                            profileId          : UUID.randomUUID().toString(),
+                            guid          : guid,
+                            scientificName: parsed.scientificName,
+                            opus          : foaOpus
                     ])
 
-                     profile.attributes = []
+                    profile.attributes = []
 
-                    if(parsed.habitat) {
-                         profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: "Habitat", text: parsed.habitat)
+                    if (parsed.habitat) {
+                        profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: "Habitat", text: parsed.habitat)
                     }
-                    if(parsed.description) {
-                         profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: "Description", text: parsed.description)
+                    if (parsed.description) {
+                        profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: "Description", text: parsed.description)
                     }
 
                     parsed.distributions.each {
-                        if(it) {
-                             profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: "Distribution", text: it)
+                        if (it) {
+                            profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: "Distribution", text: it)
                         }
                     }
 
@@ -124,18 +125,18 @@ class ProfileService {
                     def contribs = []
                     contributors.each {
                         def retrieved = Contributor.findByName(it)
-                        if(retrieved){
+                        if (retrieved) {
                             contribs << retrieved
                         } else {
-                            contribs << new Contributor(uuid:UUID.randomUUID().toString(), name: it, dataResourceUid: foaOpus.dataResourceUid)
+                            contribs << new Contributor(uuid: UUID.randomUUID().toString(), name: it, dataResourceUid: foaOpus.dataResourceUid)
                         }
                     }
 
                     def oldFoaLink = new Link(
-                            uuid:UUID.randomUUID().toString(),
+                            uuid: UUID.randomUUID().toString(),
                             title: parsed.scientificName,
                             description: "Old Flora of Australia site page for " + parsed.scientificName,
-                            url: "http://www.anbg.gov.au/abrs/online-resources/flora/stddisplay.xsql?pnid="+it.getName().replace(".xml", "")
+                            url: "http://www.anbg.gov.au/abrs/online-resources/flora/stddisplay.xsql?pnid=" + it.getName().replace(".xml", "")
                     )
 
                     profile.links = [oldFoaLink]
@@ -144,17 +145,47 @@ class ProfileService {
                         it.creators = contribs
                     }
 
-                     profile.save(flush: true)
+                    profile.save(flush: true)
 
-                     profile.errors.allErrors.each {
+                    profile.errors.allErrors.each {
                         println(it)
                     }
                 }
-            } catch (SAXException se){
+            } catch (SAXException se) {
                 //se.printStackTrace()
-            } catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace()
             }
         }
+    }
+
+    boolean deleteAttribute(String attributeId, String profileId) {
+
+        Attribute attr = Attribute.findByUuid(attributeId)
+        Profile profile = Profile.findByUuid(profileId)
+
+        log.debug("Deleting attribute ${attr?.title} from profile ${profile?.scientificName}...")
+
+        boolean deleted = false;
+        if (attr && profile) {
+            log.debug("Removing attribute from Profile...")
+            profile.removeFromAttributes(attr)
+            profile.save(flush: true)
+
+            attr.delete(flush: true)
+
+            if (attr.errors.allErrors.size() > 0) {
+                log.error("Failed to delete attribute with id ${attributeId}")
+                attr.errors.each { log.error(it) }
+                deleted = false
+            } else {
+                log.info("Attribute ${attributeId} deleted")
+                deleted = true
+            }
+        } else {
+            log.error("Failed to find matching attribute for id ${attributeId} and/or profile for id ${profileId}")
+        }
+
+        deleted
     }
 }

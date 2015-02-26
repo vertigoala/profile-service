@@ -1,5 +1,10 @@
 package au.org.ala.profile
 
+import groovy.transform.EqualsAndHashCode
+import groovy.transform.ToString
+
+@EqualsAndHashCode
+@ToString
 class Contributor {
 
     String uuid
@@ -11,7 +16,7 @@ class Contributor {
     Date lastUpdated
 
     def beforeValidate() {
-        if(uuid == null){
+        if (uuid == null) {
             //mint an UUID
             uuid = UUID.randomUUID().toString()
         }

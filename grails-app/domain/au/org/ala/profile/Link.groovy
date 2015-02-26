@@ -1,5 +1,10 @@
 package au.org.ala.profile
 
+import groovy.transform.EqualsAndHashCode
+import groovy.transform.ToString
+
+@EqualsAndHashCode
+@ToString
 class Link {
 
     String uuid
@@ -15,7 +20,7 @@ class Link {
     static hasMany = [creators: Contributor]
 
     def beforeValidate() {
-        if(!uuid){
+        if (!uuid) {
             //mint an UUID
             uuid = UUID.randomUUID().toString()
         }

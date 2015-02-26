@@ -1,12 +1,17 @@
 package au.org.ala.profile
 
+import groovy.transform.EqualsAndHashCode
+import groovy.transform.ToString
+
+@EqualsAndHashCode
+@ToString
 class Opus {
 
     String uuid
     String title
     String dataResourceUid
     List<String> imageSources            // a list of drs that are providing images we can include
-    List<String>  recordSources         // a list of drs that are providing images we can include
+    List<String> recordSources         // a list of drs that are providing images we can include
     String logoUrl
     String bannerUrl
     String mapAttribution // e.g. AVH (CHAH)
@@ -39,7 +44,7 @@ class Opus {
     }
 
     def beforeValidate() {
-        if(uuid == null){
+        if (uuid == null) {
             //mint an UUID
             uuid = UUID.randomUUID().toString()
         }

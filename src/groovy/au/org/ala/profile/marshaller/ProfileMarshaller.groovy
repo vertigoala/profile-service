@@ -9,7 +9,7 @@ class ProfileMarshaller {
         JSON.registerObjectMarshaller(Profile) { Profile profile ->
             return [
                 "uuid" : "${profile.uuid}",
-                "guid" : "${profile.guid}",
+                "guid" : profile.guid && profile.guid != "null" ? "${profile.guid}" : "",
                 "dataResourceUid" : "${profile.opus.dataResourceUid}",
                 "opusId" : "${profile.opus.uuid}",
                 "opusName" : "${profile.opus.title}",

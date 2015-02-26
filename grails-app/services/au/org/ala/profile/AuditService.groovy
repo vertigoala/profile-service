@@ -1,4 +1,5 @@
 package au.org.ala.profile
+
 import au.org.ala.profile.listener.AuditEventType
 import org.grails.datastore.mapping.engine.event.AbstractPersistenceEvent
 import org.grails.datastore.mapping.engine.event.EventType
@@ -19,7 +20,7 @@ class AuditService {
     private static Queue<AuditMessage> _messageQueue = new ConcurrentLinkedQueue<AuditMessage>()
 
     // Do not log GORM events for the AuditMessage class, otherwise we'll recurse off into the sunset...
-    private static List<Class> EXCLUDED_OBJECT_TYPES = [ AuditMessage.class ]
+    private static List<Class> EXCLUDED_OBJECT_TYPES = [AuditMessage.class]
 
     // If any particular properties are not to be logged, their names should be added to this list
     private static List<String> EXCLUDED_ENTITY_PROPERTIES = []
@@ -44,14 +45,21 @@ class AuditService {
             return
         }
 
-        def user = userService.getCurrentUserDetails()
+        def user = null
+        // TODO fix this
+//        try {
+//            user = userService.getCurrentUserDetails()
+//        }catch (Exception e) {
+//            log.error("Failed to fetch current user, using dummy value", e)
+//        }
         def userId = user?.userId ?: '<anon>'   // if, for some reason, we don't have a user, probably should log anyway
+        def username = user?.displayName ?: "Unknown"
         def auditEventType = getAuditEventTypeFromGormEventType(event.eventType)
         def entityId = entity.uuid
 
         try {
 
-            def message = new AuditMessage(date: new Date(), userId: userId, eventType: auditEventType, entityType: entity.class.name, entityId: entityId, userDisplayName: user?.displayName)
+            def message = new AuditMessage(date: new Date(), userId: userId, eventType: auditEventType, entityType: entity.class.name, entityId: entityId, userDisplayName: username)
             // TODO: When the MongoDB plugin supports the dynamic isDirty() and/or dirtyProperties() methods, we could
             // optimize what gets stored during an 'update' by only logging the dirty properties.
             // At the moment we log all the properties
@@ -80,7 +88,7 @@ class AuditService {
      * If the queue exceeds the value of 'maxMessagesToFlush', then only that number of messages will be saved, thus
      * preventing the loop from spinning endlessly.
      *
-     * Note: This is important as the a new sessions is created outside of the polling loop, and is only flused
+     * Note: This is important as a new session is created outside of the polling loop, and is only flushed
      * once either the queue is empty, or the max number of messages has been flushed.
      *
      * This method is called on a background thread scheduled by the Quartz job scheduler
