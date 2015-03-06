@@ -19,7 +19,7 @@ class UrlMappings {
 
         "/opus/"(controller: "opus", action: "index")
 
-        "/opus/$opusId"(controller: "opus", action: "show")
+        "/opus/$opusId"(controller: "opus", action: [GET: "show", POST:"updateOpus"])
 
         "/opus/taxaUpload"(controller: "opus", action: "taxaUpload")
 

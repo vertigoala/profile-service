@@ -3,8 +3,9 @@ package au.org.ala.profile
 import au.com.bytecode.opencsv.CSVReader
 import grails.converters.JSON
 
-class OpusController {
+class OpusController extends BaseController {
 
+    def profileService
     def nameService
 
     def index() {
@@ -16,7 +17,33 @@ class OpusController {
         if (result) {
             respond result, [formats: ['json', 'xml']]
         } else {
-            response.sendError(404)
+            notFound()
+        }
+    }
+
+    def create() {
+        profileService.createOpus(request.getJSON());
+    }
+
+    def updateOpus() {
+        if (!params.opusId) {
+            badRequest()
+        } else {
+            Opus opus = Opus.findByUuid(params.opusId);
+
+            if (!opus) {
+                notFound()
+            } else {
+                def json = request.getJSON()
+
+                boolean updated = profileService.updateOpus(params.opusId, json);
+
+                if (!updated) {
+                    saveFailed()
+                } else {
+                    success([updated: true])
+                }
+            }
         }
     }
 

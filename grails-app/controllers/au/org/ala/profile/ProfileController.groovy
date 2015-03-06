@@ -6,6 +6,7 @@ import groovy.json.JsonSlurper
 class ProfileController {
 
     def profileService
+    def importService
 
     def saveBHLLinks() {
         log.debug("Saving BHL links...")
@@ -167,7 +168,7 @@ class ProfileController {
     }
 
     def importFOA() {
-        profileService.importFOA()
+        importService.importFOA()
         render "done"
     }
 
@@ -198,7 +199,7 @@ class ProfileController {
     def importFloraBase() {}
 
     def importSponges() {
-        profileService.importSponges()
+        importService.importSponges()
         render "done"
     }
 }

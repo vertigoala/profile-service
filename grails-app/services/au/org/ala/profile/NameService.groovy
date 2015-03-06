@@ -6,8 +6,6 @@ import groovy.json.JsonSlurper
 @Transactional
 class NameService {
 
-    def serviceMethod() {}
-
     def getGuidForName(String name) {
         try {
             def resp = new URL("http://bie.ala.org.au/ws/guid/" + URLEncoder.encode(name, "UTF-8")).text
