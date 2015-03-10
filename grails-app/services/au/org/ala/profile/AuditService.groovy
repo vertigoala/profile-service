@@ -47,11 +47,11 @@ class AuditService {
 
         def user = null
         // TODO fix this
-//        try {
-//            user = userService.getCurrentUserDetails()
-//        }catch (Exception e) {
-//            log.error("Failed to fetch current user, using dummy value", e)
-//        }
+        try {
+            user = userService.getCurrentUserDetails()
+        }catch (Exception e) {
+            log.error("Failed to fetch current user, using dummy value", e)
+        }
         def userId = user?.userId ?: '<anon>'   // if, for some reason, we don't have a user, probably should log anyway
         def username = user?.displayName ?: "Unknown"
         def auditEventType = getAuditEventTypeFromGormEventType(event.eventType)

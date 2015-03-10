@@ -5,7 +5,7 @@ package au.org.ala.web
  *
  * @author "Nick dos Remedios <Nick.dosRemedios@csiro.au>"
  */
-class UserDetails {
+class UserDetails implements Serializable {
 
     public static final String REQUEST_USER_DETAILS_KEY = 'request.user.details'
 

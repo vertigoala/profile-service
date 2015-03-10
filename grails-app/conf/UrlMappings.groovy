@@ -3,7 +3,7 @@ class UrlMappings {
 	static mappings = {
 
 
-        "/audit/object/$uuid"(controller: "audit", action: [GET:"auditTrailForObject"])
+        "/audit/object/$entityId"(controller: "audit", action: [GET:"auditTrailForObject"])
 
         "/audit/user/$userId"(controller: "audit", action: [GET:"auditTrailForUser"])
         

@@ -7,6 +7,7 @@ class AuditController {
     def index() {}
 
     def auditTrailForObject() {
+        log.debug("Finding audit trail for entity ${params.entityId}")
         def results = AuditMessage.findAllByEntityId(params.entityId, [max: 10, sort: "date", order: "desc", offset: 0])
         render results as JSON
     }
