@@ -6,22 +6,20 @@ import grails.transaction.Transactional
 class ProfileService {
 
     boolean createOpus(json) {
+        log.debug("Creating new opus record")
         Opus opus = new Opus(json)
 
         opus.save(flush: true)
 
-        boolean saved
-
         if (opus.errors.allErrors.size() > 0) {
             log.error("Failed to create opus with id")
             opus.errors.each { log.error(it) }
-            saved = false
+            opus = null
         } else {
             log.info("Opus ${opus.uuid} created")
-            saved = true
         }
 
-        saved
+        opus
     }
 
     boolean updateOpus(opusId, json) {

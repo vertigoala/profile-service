@@ -17,9 +17,9 @@ class UrlMappings {
 
         "/attribute/$attributeId"(controller: "attribute", action: [GET:"show", PUT:"update", DELETE:"delete", POST:"update"])
 
-        "/opus/"(controller: "opus", action: "index")
+        "/opus/"(controller: "opus", action: [GET: "index", PUT: "create", POST: "create"])
 
-        "/opus/$opusId"(controller: "opus", action: [GET: "show", POST:"updateOpus"])
+        "/opus/$opusId"(controller: "opus", action: [GET: "show", POST:"updateOpus", DELETE: "deleteOpus"])
 
         "/opus/taxaUpload"(controller: "opus", action: "taxaUpload")
 

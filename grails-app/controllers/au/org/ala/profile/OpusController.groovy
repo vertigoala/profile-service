@@ -22,7 +22,18 @@ class OpusController extends BaseController {
     }
 
     def create() {
-        profileService.createOpus(request.getJSON());
+        respond profileService.createOpus(request.getJSON()), [formats: ["json"]];
+    }
+
+    def deleteOpus() {
+        if (!params.opusId) {
+            badRequest()
+        } else {
+            Opus opus = Opus.findByUuid(params.opusId);
+            if (opus) {
+                opus.delete(flush: true)
+            }
+        }
     }
 
     def updateOpus() {
