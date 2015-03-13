@@ -143,7 +143,7 @@ class ProfileController extends BaseController {
             badRequest()
         } else {
             def js = new JsonSlurper()
-            def classification = js.parseText(new URL("http://bie.ala.org.au/ws/classification/" + params.profileId).text)
+            def classification = js.parseText(new URL("${grailsApplication.config.bie.base.url}/ws/classification/${params.profileId}").text)
             classification.each {
                 def profile = Profile.findByGuid(it.guid)
                 it.profileUuid = profile?.uuid ?: ''
