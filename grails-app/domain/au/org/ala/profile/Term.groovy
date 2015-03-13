@@ -11,7 +11,6 @@ class Term {
 
     def beforeValidate() {
         if (uuid == null) {
-            //mint an UUID
             uuid = UUID.randomUUID().toString()
         }
     }

@@ -40,17 +40,28 @@ class ImportService {
         }
     }
 
+    Term getOrCreateTerm(String vocabId, String name) {
+        Vocab vocab = Vocab.findByUuid(vocabId)
+        Term term = Term.findByNameAndVocab(name, vocab)
+        if (!term) {
+            term = new Term(name: name, vocab: vocab)
+            term.save(flush: true)
+        }
+        term
+    }
+
     def importFOA() {
+        String FLORA_AUSTRALIA_VOCAB = "7dba0bab-65d2-4a22-a682-c13b4e301f70"
 
         def opusModel = [
-                opusId                  : foaOpusId,
+                opusId                : foaOpusId,
                 dataResourceUid       : "dr382",
                 title                 : "Flora of Australia",
                 imageSources          : ["dr382", "dr413", "dr689"],
                 recordSources         : ["dr376"],
                 logoUrl               : "https://fieldcapture.ala.org.au/static/RrjzrZ0Ci0GPLETIr8x8KUMjfJtZKvifrUtMCedwKRB.png",
                 bannerUrl             : "http://www.anbg.gov.au/images/photo_cd/FLIND_RANGES/fr-3_3.jpg",
-                attributeVocabUid    : "7dba0bab-65d2-4a22-a682-c13b4e301f70",
+                    attributeVocabUuid    : FLORA_AUSTRALIA_VOCAB,
                 enablePhyloUpload     : false,
                 enableOccurrenceUpload: false,
                 enableTaxaUpload      : false,
@@ -65,6 +76,10 @@ class ImportService {
             foaOpus = new Opus(opusModel)
             foaOpus.save(flush: true)
         }
+
+        Term habitatTerm = getOrCreateTerm(FLORA_AUSTRALIA_VOCAB, "Habitat")
+        Term descriptionTerm = getOrCreateTerm(FLORA_AUSTRALIA_VOCAB, "Description")
+        Term distributionTerm = getOrCreateTerm(FLORA_AUSTRALIA_VOCAB, "Distribution")
 
         new File("/data/foa").listFiles().each {
             try {
@@ -97,7 +112,7 @@ class ImportService {
 
                     //add a match to APC / APNI
                     def profile = new Profile([
-                            profileId          : UUID.randomUUID().toString(),
+                            profileId     : UUID.randomUUID().toString(),
                             guid          : guid,
                             scientificName: parsed.scientificName,
                             opus          : foaOpus
@@ -106,15 +121,15 @@ class ImportService {
                     profile.attributes = []
 
                     if (parsed.habitat) {
-                        profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: "Habitat", text: parsed.habitat)
+                        profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: habitatTerm, text: parsed.habitat)
                     }
                     if (parsed.description) {
-                        profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: "Description", text: parsed.description)
+                        profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: descriptionTerm, text: parsed.description)
                     }
 
                     parsed.distributions.each {
                         if (it) {
-                            profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: "Distribution", text: it)
+                            profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: distributionTerm, text: it)
                         }
                     }
 

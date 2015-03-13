@@ -9,6 +9,7 @@ class Vocab {
 
     String uuid
     String name
+    boolean strict = false
 
     static hasMany = [terms: Term]
 
@@ -16,7 +17,6 @@ class Vocab {
 
     def beforeValidate() {
         if (uuid == null) {
-            //mint an UUID
             uuid = UUID.randomUUID().toString()
         }
     }

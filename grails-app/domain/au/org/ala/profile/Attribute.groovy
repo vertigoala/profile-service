@@ -10,7 +10,7 @@ class Attribute {
     static auditable = true
 
     String uuid
-    String title
+    Term title
     String text // = "This animal lives...."
 
     Date dateCreated

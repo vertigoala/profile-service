@@ -4,70 +4,41 @@ import grails.converters.JSON
 import groovy.json.JsonSlurper
 import org.apache.http.HttpStatus
 
-class AttributeController {
+class AttributeController extends BaseController {
 
     ProfileService profileService
 
     def index() {
         def attributes = Attribute.findAll([max: 100], {})
-        if (attributes) {
-            if (params.callback) {
-                render "${params.callback}(${attributes as JSON})"
-            } else {
-                respond attributes, [formats: ['json', 'xml']]
-            }
-        } else {
-            response.sendError(400)
-        }
+
+        respond attributes, [formats: ['json', 'xml']]
     }
 
     def show() {
-        def attr = Attribute.findByUuid(params.attributeId)
-        if (params.callback) {
-            render "${params.callback}(${attr as JSON})"
+        if (!params.attributeId) {
+            badRequest()
         } else {
+            def attr = Attribute.findByUuid(params.attributeId)
+
             respond attr, [formats: ['json', 'xml']]
         }
     }
 
     def create() {
-
         def jsonSlurper = new JsonSlurper()
         def json = jsonSlurper.parse(request.getReader())
-        def profile = Profile.findByUuid(json.profileId)
 
-        def contributor = Contributor.findByUserId(json.userId)
-        if (!contributor) {
-            contributor = new Contributor(userId: json.userId, name: json.userDisplayName)
-            contributor.save(flush: true)
-        }
+        Profile profile = Profile.findByUuid(json.profileId)
 
-        //json.userId
-        //json.userDisplayName
-        if (profile) {
+        if (!profile) {
+            notFound()
+        } else {
+            Attribute attribute = profileService.createAttribute(json.profileId, json)
 
-            def attribute = new Attribute(
-                    uuid: UUID.randomUUID().toString(),
-                    title: json.title,
-                    text: json.text
-            )
-            attribute.creators = [contributor]
-
-            profile.attributes.add(attribute)
-            profile.save(flush: true)
-
-            profile.errors.allErrors.each { println(it) }
-
-            //need to handle the attribution
-            response.setStatus(201)
+            response.setStatus(HttpStatus.SC_CREATED)
             def result = [success: true, attributeId: attribute.uuid]
             render result as JSON
-        } else {
-            response.sendError(404)
-            def result = [success: false]
-            render result as JSON
         }
-
     }
 
     /**
@@ -76,37 +47,18 @@ class AttributeController {
     def update() {
         JsonSlurper jsonSlurper = new JsonSlurper()
         def json = jsonSlurper.parse(request.getReader())
-        Attribute attr = Attribute.findByUuid(params.attributeId)
 
-        if (attr) {
-            if (json.title) {
-                attr.title = json.title
-            }
-            attr.text = json.text
-
-            def contributor = Contributor.findByUserId(json.userId)
-            if (!contributor) {
-                contributor = new Contributor(userId: json.userId, name: json.userDisplayName)
-                contributor.save(flush: true)
-            }
-
-            if (!attr.editors) {
-                attr.editors = []
-            }
-
-            if (!attr.editors.contains(contributor)) {
-                attr.editors << contributor
-            }
-
-            attr.save(flush: true)
-            //need to handle the attribution
-            response.setStatus(201)
-            def result = [success: true, attributeId: attr.uuid]
-            render result as JSON
+        if (!params.attributeId) {
+            badRequest()
         } else {
-            response.sendError(404)
-            def result = [success: false]
-            render result as JSON
+            boolean success = profileService.updateAttribute(params.attributeId, json)
+
+            if (success) {
+                def result = [success: true, attributeId: params.attributeId]
+                render result as JSON
+            } else {
+                notFound()
+            }
         }
     }
 
@@ -117,11 +69,9 @@ class AttributeController {
 
         if (success) {
             response.setStatus(HttpStatus.SC_OK)
-            def result = [success: true]
-            render result as JSON
+            render([success: true] as JSON)
         } else {
-            response.setStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)
-            response.sendError(HttpStatus.SC_INTERNAL_SERVER_ERROR, "Failed to delete attribute")
+            saveFailed()
         }
     }
 }

@@ -3,7 +3,7 @@ package au.org.ala.profile
 import grails.converters.JSON
 import groovy.json.JsonSlurper
 
-class ProfileController {
+class ProfileController extends BaseController {
 
     def profileService
     def importService
@@ -86,6 +86,7 @@ class ProfileController {
     /**
      * Basic search
      * TODO replace with a free text search index backed search.
+     * http://grails.github.io/grails-data-mapping/mongodb/manual/guide/3.%20Mapping%20Domain%20Classes%20to%20MongoDB%20Collections.html#3.7%20Full%20Text%20Search
      *
      * @return
      */
@@ -98,7 +99,7 @@ class ProfileController {
             def toRender = []
             results.each { tp ->
                 toRender << [
-                        "profileId"          : "${tp.uuid}",
+                        "profileId"     : "${tp.uuid}",
                         "guid"          : "${tp.guid}",
                         "scientificName": "${tp.scientificName}"
                 ]
@@ -136,10 +137,11 @@ class ProfileController {
     }
 
     def classification() {
+        log.debug("Retrieving classification for: ${params.profileId}")
 
-        println("Retrieving classification for: " + params.profileId)
-
-        if (params.guid) {
+        if (!params.profileId) {
+            badRequest()
+        } else {
             def js = new JsonSlurper()
             def classification = js.parseText(new URL("http://bie.ala.org.au/ws/classification/" + params.profileId).text)
             classification.each {
@@ -149,8 +151,6 @@ class ProfileController {
 
             response.setContentType("application/json")
             render classification as JSON
-        } else {
-            response.sendError(400)
         }
     }
 

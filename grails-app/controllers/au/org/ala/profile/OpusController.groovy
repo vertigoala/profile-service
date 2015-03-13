@@ -5,8 +5,8 @@ import grails.converters.JSON
 
 class OpusController extends BaseController {
 
-    def profileService
-    def nameService
+    OpusService opusService
+    NameService nameService
 
     def index() {
         respond Opus.findAll(), [formats: ['json', 'xml']]
@@ -22,17 +22,14 @@ class OpusController extends BaseController {
     }
 
     def create() {
-        respond profileService.createOpus(request.getJSON()), [formats: ["json"]];
+        respond opusService.createOpus(request.getJSON()), [formats: ["json"]]
     }
 
     def deleteOpus() {
         if (!params.opusId) {
             badRequest()
         } else {
-            Opus opus = Opus.findByUuid(params.opusId);
-            if (opus) {
-                opus.delete(flush: true)
-            }
+            respond opusService.deleteOpus(params.opusIs), [formats: ["json"]]
         }
     }
 
@@ -47,7 +44,7 @@ class OpusController extends BaseController {
             } else {
                 def json = request.getJSON()
 
-                boolean updated = profileService.updateOpus(params.opusId, json);
+                boolean updated = opusService.updateOpus(params.opusId, json);
 
                 if (!updated) {
                     saveFailed()

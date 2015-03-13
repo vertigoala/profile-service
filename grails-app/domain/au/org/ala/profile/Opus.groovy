@@ -20,7 +20,7 @@ class Opus {
     Float mapDefaultLongitude = 133.6
     Integer mapZoom = 3
     String mapBaseLayer = "https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png"
-    String biocacheUrl    // e.f  http://avh.ala.org.au/
+    String biocacheUrl    // e.g.  http://avh.ala.org.au/
     String biocacheName    ///e.g. Australian Virtual Herbarium
     String attributeVocabUuid
     Boolean enablePhyloUpload = true

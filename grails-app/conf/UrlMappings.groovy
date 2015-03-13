@@ -11,7 +11,11 @@ class UrlMappings {
 
         "/vocab/"(controller: "vocab", action: "index")
 
-        "/vocab/$vocabId"(controller: "vocab", action: "show")
+        "/vocab/$vocabId"(controller: "vocab", action: [GET: "show", POST: "update"])
+
+        "/vocab/usages/find"(controller: "vocab", action: "findUsagesOfTerm")
+
+        "/vocab/usages/replace"(controller: "vocab", action: [POST: "replaceUsagesOfTerm"])
 
         "/attribute/"(controller: "attribute", action: [GET:"index", PUT:"create",  POST:"create"])
 
