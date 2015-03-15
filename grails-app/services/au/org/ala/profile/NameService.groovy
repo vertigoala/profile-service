@@ -6,6 +6,8 @@ import groovy.json.JsonSlurper
 @Transactional
 class NameService {
 
+    def grailsApplication
+
     def getGuidForName(String name) {
         try {
             def resp = new URL("${grailsApplication.config.bie.base.url}/ws/guid/${URLEncoder.encode(name, 'UTF-8')}").text
