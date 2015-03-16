@@ -27,7 +27,7 @@ class VocabController extends BaseController {
             vocab.terms.each { term ->
                 termsToRender << [
                         "name": "${term.name}",
-                        "vocabId": "${term.uuid}"
+                        "termId": "${term.uuid}"
                 ]
             }
 
