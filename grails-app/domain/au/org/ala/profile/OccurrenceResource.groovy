@@ -1,8 +1,13 @@
 package au.org.ala.profile
 
+import groovy.transform.EqualsAndHashCode
+import groovy.transform.ToString
+
 /**
  * Represents an occurrence dataset that has been uploaded.
  */
+@EqualsAndHashCode
+@ToString
 class OccurrenceResource {
 
     String name

@@ -13,7 +13,7 @@ class AuditFilters {
 
             before = {
                 // userId is set from either the request param userId or failing that it tries to get it from
-                // the UserPrincipal (assumes ecodata is being accessed directly via admin page)
+                // the UserPrincipal
                 def userId = request.getHeader(grailsApplication.config.app.http.header.userId) ?: RequestContextHolder.currentRequestAttributes()?.getUserPrincipal()?.attributes?.userid
                 if(userId){
                     def userDetails = userService.setCurrentUser(userId)

@@ -1,7 +1,11 @@
 package au.org.ala.profile
 
+import groovy.transform.EqualsAndHashCode
+import groovy.transform.ToString
 import org.bson.types.ObjectId
 
+@EqualsAndHashCode
+@ToString
 class Profile {
 
     ObjectId id
@@ -12,7 +16,7 @@ class Profile {
     Date dateCreated
     Date lastUpdated
 
-    static hasMany = [links: Link, attributes: Attribute, bhlLinks:Link]
+    static hasMany = [links: Link, attributes: Attribute, bhlLinks: Link]
 
     static belongsTo = [opus: Opus]
 
@@ -25,7 +29,7 @@ class Profile {
     }
 
     def beforeValidate() {
-        if(uuid == null){
+        if (uuid == null) {
             //mint an UUID
             uuid = UUID.randomUUID().toString()
         }

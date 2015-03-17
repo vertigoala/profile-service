@@ -8,7 +8,7 @@ class AttributeMarshaller {
         JSON.registerObjectMarshaller(Attribute) { Attribute attr ->
             return [
                     uuid: "${attr.uuid}",
-                    title: "${attr.title}",
+                    title: "${attr.title.name}",
                     text: "${attr.text}",
                     creators: attr.creators.collect{ it.name },
                     editors: attr.editors.collect{ it.name }

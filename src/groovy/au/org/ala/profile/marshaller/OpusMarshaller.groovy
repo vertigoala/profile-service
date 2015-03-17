@@ -26,7 +26,7 @@ class OpusMarshaller {
                     mapDefaultLongitude: opus.mapDefaultLongitude?: 133.6,
                     mapZoom: opus.mapZoom?:3,
                     mapBaseLayer: opus.mapBaseLayer?: "https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png",
-                    biocacheUrl:opus.biocacheUrl?:'http://biocache.ala.org.au',
+                    biocacheUrl:opus.biocacheUrl,
                     biocacheName:opus.biocacheName?:'Atlas'
             ]
         }

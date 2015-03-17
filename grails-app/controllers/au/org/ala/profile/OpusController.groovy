@@ -3,29 +3,64 @@ package au.org.ala.profile
 import au.com.bytecode.opencsv.CSVReader
 import grails.converters.JSON
 
-class OpusController {
+class OpusController extends BaseController {
 
-    def nameService
+    OpusService opusService
+    NameService nameService
 
     def index() {
-        respond Opus.findAll(), [formats:['json', 'xml']]
+        respond Opus.findAll(), [formats: ['json', 'xml']]
     }
 
-    def show(){
-        def result = Opus.findByUuid(params.uuid)
-        if(result){
-            respond result, [formats:['json', 'xml']]
+    def show() {
+        def result = Opus.findByUuid(params.opusId)
+        if (result) {
+            respond result, [formats: ['json', 'xml']]
         } else {
-            response.sendError(404)
+            notFound()
         }
     }
 
-    def taxaUpload(){
+    def create() {
+        respond opusService.createOpus(request.getJSON()), [formats: ["json"]]
+    }
+
+    def deleteOpus() {
+        if (!params.opusId) {
+            badRequest()
+        } else {
+            respond opusService.deleteOpus(params.opusIs), [formats: ["json"]]
+        }
+    }
+
+    def updateOpus() {
+        if (!params.opusId) {
+            badRequest()
+        } else {
+            Opus opus = Opus.findByUuid(params.opusId);
+
+            if (!opus) {
+                notFound()
+            } else {
+                def json = request.getJSON()
+
+                boolean updated = opusService.updateOpus(params.opusId, json);
+
+                if (!updated) {
+                    saveFailed()
+                } else {
+                    success([updated: true])
+                }
+            }
+        }
+    }
+
+    def taxaUpload() {
         log.info("taxa upload invoked....")
         def file = request.getFile('taxaUploadFile')
         def opus = Opus.findByUuid(params.opusId)
 
-        if(file) {
+        if (file) {
             log.info("files provided")
             def tmpFile = new File("/tmp/taxa-upload.txt")
             file.transferTo(tmpFile)
@@ -35,20 +70,20 @@ class OpusController {
             def taxaCreated = 0
             def linesSkipped = 0
             def alreadyExists = 0
-            if(columnHeaders.contains("scientificname")){
+            if (columnHeaders.contains("scientificname")) {
                 def columnIdx = columnHeaders.indexOf("scientificname")
-                while((currentLine = reader.readNext()) != null){
-                    if(currentLine.length > columnIdx) {
+                while ((currentLine = reader.readNext()) != null) {
+                    if (currentLine.length > columnIdx) {
                         def scientificName = currentLine[columnIdx]
-                        if(scientificName && scientificName.trim()) {
+                        if (scientificName && scientificName.trim()) {
                             def profile = Profile.findByOpusAndScientificName(opus, scientificName)
-                            if(profile){
+                            if (profile) {
                                 alreadyExists++
                             } else {
                                 profile = new Profile([
                                         scientificName: scientificName,
-                                        guid: nameService.getGuidForName(scientificName) ?: "",
-                                        opus: opus
+                                        guid          : nameService.getGuidForName(scientificName) ?: "",
+                                        opus          : opus
                                 ])
                                 profile.save(flush: true)
                                 taxaCreated++
@@ -61,7 +96,7 @@ class OpusController {
                 }
             }
             response.setContentType("application/json")
-            def model = [taxaCreated:taxaCreated, linesSkipped:linesSkipped, alreadyExists: alreadyExists]
+            def model = [taxaCreated: taxaCreated, linesSkipped: linesSkipped, alreadyExists: alreadyExists]
             render model as JSON
         } else {
             log.info("No file received")
