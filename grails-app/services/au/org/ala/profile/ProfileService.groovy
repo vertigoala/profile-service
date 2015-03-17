@@ -6,6 +6,78 @@ import grails.transaction.Transactional
 class ProfileService extends BaseDataAccessService {
     VocabService vocabService
 
+    List<String> saveBHLLinks(String profileId, Map json) {
+        log.debug("Saving BHL links...")
+
+        Profile profile = Profile.findByUuid(profileId)
+        List<String> linkIds = []
+        List<Link> linksToSave = []
+
+        log.debug("profile = ${profile != null}; links: ${json.links.size()}")
+        if (profile) {
+            if (json.links) {
+                json.links.each {
+                    log.debug("Saving link ${it.title}...")
+                    Link link
+                    if (it.uuid) {
+                        link = Link.findByUuid(it.uuid)
+                    } else {
+                        link = new Link(uuid: UUID.randomUUID().toString())
+                    }
+
+                    link.url = it.url
+                    link.title = it.title
+                    link.description = it.description
+                    link.fullTitle = it.fullTitle
+                    link.edition = it.edition
+                    link.publisherName = it.publisherName
+                    link.doi = it.doi
+                    linksToSave << link
+                    linkIds << link.uuid
+                }
+
+                profile.bhlLinks = linksToSave
+
+                save profile
+            }
+        }
+
+        linkIds
+    }
+
+    List<String> saveLinks(String profileId, Map json) {
+        Profile profile = Profile.findByUuid(profileId)
+
+        List<String> linkIds = []
+        List<Link> linksToSave = []
+
+        if (profile) {
+            if (json.links) {
+                json.links.each {
+                    Link link
+                    if (it.uuid) {
+                        link = Link.findByUuid(it.uuid)
+                    } else {
+                        link = new Link(uuid: UUID.randomUUID().toString())
+                    }
+                    link.url = it.url
+                    link.title = it.title
+                    link.description = it.description
+                    link.errors.allErrors.each {
+                        println it
+                    }
+                    linksToSave << link
+                    linkIds << link.uuid
+                }
+                profile.links = linksToSave
+
+                save profile
+            }
+        }
+
+        linkIds
+    }
+
     Attribute createAttribute(String profileId, Map data) {
         log.debug("Creating new attribute for profile ${profileId} with data ${data}")
         Profile profile = Profile.findByUuid(profileId)

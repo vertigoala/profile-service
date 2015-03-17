@@ -3,7 +3,9 @@ package au.org.ala.profile
 import org.xml.sax.SAXException
 
 
-class ImportService {
+class ImportService extends BaseDataAccessService {
+
+    // TODO secure ImportService!!
 
     def nameService
 
@@ -61,7 +63,7 @@ class ImportService {
                 recordSources         : ["dr376"],
                 logoUrl               : "https://fieldcapture.ala.org.au/static/RrjzrZ0Ci0GPLETIr8x8KUMjfJtZKvifrUtMCedwKRB.png",
                 bannerUrl             : "http://www.anbg.gov.au/images/photo_cd/FLIND_RANGES/fr-3_3.jpg",
-                    attributeVocabUuid    : FLORA_AUSTRALIA_VOCAB,
+                attributeVocabUuid    : FLORA_AUSTRALIA_VOCAB,
                 enablePhyloUpload     : false,
                 enableOccurrenceUpload: false,
                 enableTaxaUpload      : false,
@@ -77,11 +79,18 @@ class ImportService {
             foaOpus.save(flush: true)
         }
 
+        Vocab vocab = Vocab.findByUuid(FLORA_AUSTRALIA_VOCAB)
+        if (!vocab) {
+            vocab = new Vocab(uuid: FLORA_AUSTRALIA_VOCAB, name: "Flora of Australia Vocabulary")
+            save vocab
+        }
+
         Term habitatTerm = getOrCreateTerm(FLORA_AUSTRALIA_VOCAB, "Habitat")
         Term descriptionTerm = getOrCreateTerm(FLORA_AUSTRALIA_VOCAB, "Description")
         Term distributionTerm = getOrCreateTerm(FLORA_AUSTRALIA_VOCAB, "Distribution")
 
         new File("/data/foa").listFiles().each {
+            println "Processing ${it.name}..."
             try {
                 def foaProfile = new XmlParser().parseText(it.text)
 
@@ -169,6 +178,93 @@ class ImportService {
                 e.printStackTrace()
             }
         }
+    }
+
+    Map<String, String> importProfiles(String opusId, profilesJson) {
+        Opus opus = Opus.findByUuid(opusId);
+
+        Map<String, String> results = [:]
+
+        profilesJson.each {
+            Profile profile = Profile.findByScientificNameAndOpus(it.scientificName, opus);
+            if (profile) {
+                log.info("Profile already exists in this opus for scientific name ${it.scientificName}")
+                results << [(it.scientificName): "Exists"]
+            } else {
+                List<String> guidList = nameService.getGuidForName(it.scientificName)
+                String guid = null
+                if (guidList && guidList.size() > 0) {
+                    guid = guidList[0]
+                }
+
+                profile = new Profile(scientificName: it.scientificName, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: []);
+
+                it.links.each {
+                    if (it) {
+                        profile.links << createLink(it)
+                    }
+                }
+
+                it.bhl.each {
+                    if (it) {
+                        profile.bhlLinks << createLink(it)
+                    }
+                }
+
+                it.attributes.each {
+                    if (it.title && it.text) {
+                        Term term = getOrCreateTerm(opus.attributeVocabUuid, it.title)
+
+                        Attribute attribute = new Attribute(title: term, text: it.text)
+                        attribute.uuid = UUID.randomUUID().toString()
+
+                        if (it.creators) {
+                            attribute.creators = []
+                            it.creators.each {
+                                attribute.creators << getOrCreateContributor(it, opus.dataResourceUid)
+                            }
+                        }
+
+                        if (it.editors) {
+                            attribute.editors = []
+                            it.editors.each {
+                                attribute.editors << getOrCreateContributor(it, opus.dataResourceUid)
+                            }
+                        }
+
+                        profile.attributes << attribute
+                    }
+                }
+
+                boolean success = save profile
+
+                results << [(it.scientificName): success ? "Success" : "Invalid"]
+            }
+        }
+
+        results
+    }
+
+    Link createLink(data) {
+        Link link = new Link(data)
+        link.uuid = UUID.randomUUID().toString()
+
+        if (data.creators) {
+            link.creators = []
+            data.creators.each {
+                link.creators << new Contributor(name: it)
+            }
+        }
+
+        link
+    }
+
+    Contributor getOrCreateContributor(String name, String opusDataResourceId) {
+        Contributor contributor = Contributor.findByName(name)
+        if (!contributor) {
+            contributor = new Contributor(name: name, uuid: UUID.randomUUID().toString(), dataResourceUid: opusDataResourceId)
+        }
+        contributor
     }
 
 }

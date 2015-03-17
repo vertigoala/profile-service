@@ -13,13 +13,17 @@ class VocabService extends BaseDataAccessService {
 
         vocab.strict = data.strict as boolean
 
+        if (data.deleteExisting) {
+            vocab.terms.clear()
+        }
+
         Set<String> retainedTermIds = []
 
         data.terms.each { item ->
-            if (item.vocabId) {
-                Term term = Term.findByUuid(item.vocabId)
+            if (item.termId) {
+                Term term = Term.findByUuid(item.termId)
                 if (term) {
-                    retainedTermIds << item.vocabId
+                    retainedTermIds << item.termId
                     term.name = item.name
                 }
             } else {
@@ -46,7 +50,7 @@ class VocabService extends BaseDataAccessService {
     }
 
     Term getOrCreateTerm(String name, String vocabId) {
-        Term term = null
+        Term term
 
         Vocab vocab = Vocab.findByUuid(vocabId);
 
@@ -64,6 +68,8 @@ class VocabService extends BaseDataAccessService {
                     }
                 }
             }
+        } else {
+            throw new PersistenceException("Vocabulary with id ${vocabId} does not exist")
         }
 
         term

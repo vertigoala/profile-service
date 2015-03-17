@@ -22,12 +22,13 @@ class OpusController extends BaseController {
     }
 
     def create() {
-        respond opusService.createOpus(request.getJSON()), [formats: ["json"]]
+        Opus opus = opusService.createOpus(request.getJSON())
+        render opus as JSON
     }
 
     def deleteOpus() {
         if (!params.opusId) {
-            badRequest()
+            badRequest "You must provide an opusId"
         } else {
             respond opusService.deleteOpus(params.opusIs), [formats: ["json"]]
         }
@@ -35,7 +36,7 @@ class OpusController extends BaseController {
 
     def updateOpus() {
         if (!params.opusId) {
-            badRequest()
+            badRequest "You must provide an opusId"
         } else {
             Opus opus = Opus.findByUuid(params.opusId);
 
