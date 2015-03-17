@@ -23,10 +23,10 @@ class Opus {
     String biocacheUrl    // e.g.  http://avh.ala.org.au/
     String biocacheName    ///e.g. Australian Virtual Herbarium
     String attributeVocabUuid
-    Boolean enablePhyloUpload = true
-    Boolean enableOccurrenceUpload = true
-    Boolean enableTaxaUpload = true
-    Boolean enableKeyUpload = true
+    Boolean enablePhyloUpload = false
+    Boolean enableOccurrenceUpload = false
+    Boolean enableTaxaUpload = false
+    Boolean enableKeyUpload = false
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, admins: Contributor, editors: Contributor]
 

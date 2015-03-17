@@ -54,7 +54,8 @@ grails.project.dependency.resolution = {
     plugins {
         build ":release:3.0.1"
         build ":tomcat:7.0.55"
-        runtime ":ala-web-theme:1.0.1"
+        runtime ":ala-bootstrap2:1.4"
+        runtime ":ala-auth:1.2"
         runtime ":mongodb:3.0.2"
         compile ':cache:1.1.6'
         runtime ":cors:1.1.6"

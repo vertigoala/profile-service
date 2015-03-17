@@ -9,7 +9,17 @@ class OpusService extends BaseDataAccessService {
         log.debug("Creating new opus record")
         Opus opus = new Opus(json)
 
-        save opus
+        Vocab vocab = new Vocab(name: "${opus.title} Vocabulary", strict: false)
+        save vocab
+
+        opus.attributeVocabUuid = vocab.uuid
+
+        boolean success = save opus
+        if (success) {
+            opus
+        } else {
+            null
+        }
     }
 
     Opus updateOpus(opusId, json) {
@@ -22,14 +32,22 @@ class OpusService extends BaseDataAccessService {
             log.debug("Image sources:")
             opus.imageSources.each {log.debug("'${it}'")}
 
-            opus.imageSources.clear()
+            if (opus.imageSources) {
+                opus.imageSources.clear()
+            } else {
+                opus.imageSources = []
+            }
             opus.imageSources.addAll(json.imageSources)
         }
         if (json.recordSources && json.recordSources != opus.recordSources) {
             log.debug("Record sources:")
             opus.recordSources.each {log.debug("'${it}'")}
 
-            opus.recordSources.clear()
+            if (opus.recordSources) {
+                opus.recordSources.clear()
+            } else {
+                opus.recordSources = []
+            }
             opus.recordSources.addAll(json.recordSources)
         }
         if (json.logoUrl && json.logoUrl != opus.logoUrl) {
@@ -75,7 +93,13 @@ class OpusService extends BaseDataAccessService {
             opus.enableKeyUpload = json.enableKeyUpload as boolean
         }
 
-        save opus
+        boolean success = save opus
+
+        if (success) {
+            opus
+        } else {
+            null
+        }
     }
 
     boolean deleteOpus(String opusId) {
