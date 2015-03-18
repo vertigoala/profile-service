@@ -1,6 +1,9 @@
 @Grab(group = 'org.codehaus.groovy.modules.http-builder', module = 'http-builder', version = '0.7')
+@Grab('org.apache.commons:commons-lang3:3.3.2')
 
 import groovyx.net.http.RESTClient
+import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
+
 import static groovyx.net.http.ContentType.*
 
 class NSWImport {
@@ -43,7 +46,7 @@ class NSWImport {
         new File(DATA_FILE).eachLine { line ->
             if (count++ % 50 == 0) println "Processing line ${count}..."
 
-            def fields = line.split(DELIMITER)
+            def fields = clean(line).split(DELIMITER)
 
             List attributes = []
 
@@ -139,5 +142,9 @@ class NSWImport {
         } else {
             println "Import failed with HTTP ${resp.status}"
         }
+    }
+
+    static String clean(String str) {
+        unescapeHtml4(str)
     }
 }
