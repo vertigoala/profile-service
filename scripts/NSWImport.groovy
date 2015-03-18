@@ -41,6 +41,7 @@ class NSWImport {
         if (imageFile.exists()) {
             imageFile.delete()
             imageFile.createNewFile()
+            imageFile << "scientificName,associatedMedia\n"
         }
 
         new File(DATA_FILE).eachLine { line ->
@@ -55,9 +56,14 @@ class NSWImport {
             String contributor = fields[6]
             List<String> images = fields[24..33].findAll { it }
 
+            Set<String> seenImages = []
+
             if (images) {
                 images.each {
-                    imageFile << "${species},${NSW_FLORA_IMAGE_URL_PREFIX}${it}\n"
+                    if (!seenImages.contains(it)) {
+                        imageFile << "${species},${NSW_FLORA_IMAGE_URL_PREFIX}${it}\n"
+                        seenImages << it
+                    }
                 }
             }
 
