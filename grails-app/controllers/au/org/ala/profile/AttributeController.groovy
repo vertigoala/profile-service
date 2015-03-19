@@ -35,9 +35,13 @@ class AttributeController extends BaseController {
         } else {
             Attribute attribute = profileService.createAttribute(json.profileId, json)
 
-            response.setStatus(HttpStatus.SC_CREATED)
-            def result = [success: true, attributeId: attribute.uuid]
-            render result as JSON
+            if (attribute) {
+                response.setStatus(HttpStatus.SC_CREATED)
+                def result = [success: true, attributeId: attribute.uuid]
+                render result as JSON
+            } else {
+                saveFailed()
+            }
         }
     }
 

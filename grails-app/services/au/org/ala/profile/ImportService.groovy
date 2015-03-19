@@ -130,15 +130,15 @@ class ImportService extends BaseDataAccessService {
                     profile.attributes = []
 
                     if (parsed.habitat) {
-                        profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: habitatTerm, text: parsed.habitat)
+                        profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: habitatTerm, text: parsed.habitat, profile: profile)
                     }
                     if (parsed.description) {
-                        profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: descriptionTerm, text: parsed.description)
+                        profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: descriptionTerm, text: parsed.description, profile: profile)
                     }
 
                     parsed.distributions.each {
                         if (it) {
-                            profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: distributionTerm, text: it)
+                            profile.attributes << new Attribute(uuid: UUID.randomUUID().toString(), title: distributionTerm, text: it, profile: profile)
                         }
                     }
 
@@ -232,6 +232,7 @@ class ImportService extends BaseDataAccessService {
                             }
                         }
 
+                        attribute.profile = profile
                         profile.attributes << attribute
                     }
                 }

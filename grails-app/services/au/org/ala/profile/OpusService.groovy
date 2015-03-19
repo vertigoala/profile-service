@@ -80,17 +80,32 @@ class OpusService extends BaseDataAccessService {
         if (json.biocacheName && json.biocacheName != opus.biocacheName) {
             opus.biocacheName = json.biocacheName
         }
-        if (json.enablePhyloUpload && json.enablePhyloUpload != opus.enablePhyloUpload) {
+        if (json.has("enablePhyloUpload") && json.enablePhyloUpload != opus.enablePhyloUpload) {
             opus.enablePhyloUpload = json.enablePhyloUpload as boolean
         }
-        if (json.enableOccurrenceUpload && json.enableOccurrenceUpload != opus.enableOccurrenceUpload) {
+        if (json.has("enableOccurrenceUpload") && json.enableOccurrenceUpload != opus.enableOccurrenceUpload) {
             opus.enableOccurrenceUpload = json.enableOccurrenceUpload as boolean
         }
-        if (json.enableTaxaUpload && json.enableTaxaUpload != opus.enableTaxaUpload) {
+        if (json.has("enableTaxaUpload") && json.enableTaxaUpload != opus.enableTaxaUpload) {
             opus.enableTaxaUpload = json.enableTaxaUpload as boolean
         }
-        if (json.enableKeyUpload && json.enableKeyUpload != opus.enableKeyUpload) {
+        if (json.has("enableKeyUpload") && json.enableKeyUpload != opus.enableKeyUpload) {
             opus.enableKeyUpload = json.enableKeyUpload as boolean
+        }
+        if (json.has("showLinkedOpusAttributes") && json.showLinkedOpusAttributes != opus.showLinkedOpusAttributes) {
+            opus.showLinkedOpusAttributes = json.showLinkedOpusAttributes as boolean
+        }
+        if (json.has("allowCopyFromLinkedOpus") && json.allowCopyFromLinkedOpus != opus.allowCopyFromLinkedOpus) {
+            opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus as boolean
+        }
+        if (json.supportingOpuses != null) {
+            opus.supportingOpuses.clear()
+            json.supportingOpuses.each {
+                Opus supportingOpus = Opus.findByUuid(it.uuid);
+                if (supportingOpus) {
+                    opus.supportingOpuses << supportingOpus
+                }
+            }
         }
 
         boolean success = save opus

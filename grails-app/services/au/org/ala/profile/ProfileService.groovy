@@ -1,10 +1,12 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.listener.AuditEventType
 import grails.transaction.Transactional
 
 @Transactional
 class ProfileService extends BaseDataAccessService {
     VocabService vocabService
+    AuditService auditService
 
     List<String> saveBHLLinks(String profileId, Map json) {
         log.debug("Saving BHL links...")
@@ -82,11 +84,17 @@ class ProfileService extends BaseDataAccessService {
         log.debug("Creating new attribute for profile ${profileId} with data ${data}")
         Profile profile = Profile.findByUuid(profileId)
 
-        Contributor contributor = Contributor.findByUserId(data.userId)
-        if (!contributor) {
-            contributor = new Contributor(userId: data.userId, name: data.userDisplayName)
-            contributor.save(flush: true)
+        List<Contributor> creators = []
+        data.creators.each {
+            creators << getOrCreateContributor(it)
         }
+
+        List<Contributor> editors = []
+        data.editors.each {
+            editors << getOrCreateContributor(it)
+        }
+
+        creators << getOrCreateContributor(data.userDisplayName, data.userId)
 
         Attribute attribute = null
         if (profile) {
@@ -97,8 +105,15 @@ class ProfileService extends BaseDataAccessService {
                     title: titleTerm,
                     text: data.text
             )
-            attribute.creators = [contributor]
+            attribute.creators = creators
+            attribute.editors = editors
 
+            if (data.original) {
+                Attribute original = Attribute.findByUuid(data.original.uuid)
+                attribute.original = original
+            }
+
+            attribute.profile = profile
             profile.attributes.add(attribute)
 
             boolean success = save profile
@@ -108,6 +123,15 @@ class ProfileService extends BaseDataAccessService {
         }
 
         attribute
+    }
+
+    Contributor getOrCreateContributor(String name, String userId = null) {
+        Contributor contributor = userId ? Contributor.findByUserId(userId) : Contributor.findByName(name)
+        if (!contributor) {
+            contributor = new Contributor(userId: userId, name: name)
+            contributor.save(flush: true)
+        }
+        contributor
     }
 
     boolean updateAttribute(String attributeId, Map data) {
@@ -125,11 +149,7 @@ class ProfileService extends BaseDataAccessService {
             }
             attribute.text = data.text
 
-            def contributor = Contributor.findByUserId(data.userId)
-            if (!contributor) {
-                contributor = new Contributor(userId: data.userId, name: data.userDisplayName)
-                contributor.save(flush: true)
-            }
+            def contributor = getOrCreateContributor(data.userDisplayName, data.userId)
 
             if (!attribute.editors) {
                 attribute.editors = []

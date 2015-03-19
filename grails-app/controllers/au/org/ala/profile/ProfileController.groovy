@@ -5,6 +5,9 @@ import groovy.json.JsonSlurper
 
 class ProfileController extends BaseController {
 
+    static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 10
+    static final Integer DEFAULT_MAX_BROAD_SEARCH_RESULTS = 50
+
     def profileService
     def importService
 
@@ -42,29 +45,43 @@ class ProfileController extends BaseController {
      * @return
      */
     def search() {
+        if (!params.scientificName) {
+            badRequest "scientificName is a required parameter. opusId and useWildcard are optional."
+        }
+
+        List results
+
+        String wildcard = params.useWildcard == false ? "" : "%" // default to using a wildcard if the param is not set
+
+        if (params.opusId && params.opusId != "null") {
+            List<Opus> opusList = []
+            if (params.opusId.contains(",")) {
+                params.opusId.split(",").each {
+                    opusList << Opus.findByUuid(it)
+                }
+            } else {
+                opusList << Opus.findByUuid(params.opusId)
+            }
+
+            if (opusList) {
+                results = Profile.findAllByScientificNameIlikeAndOpusInList(params.scientificName + wildcard, opusList, [max: params.max ?: DEFAULT_MAX_OPUS_SEARCH_RESULTS])
+            }
+        } else {
+            results = Profile.findAllByScientificNameIlike(params.scientificName + "%", [max: params.max ?: DEFAULT_MAX_BROAD_SEARCH_RESULTS])
+        }
+
+        def toRender = []
+        results.each { tp ->
+            toRender << [
+                    "profileId"     : "${tp.uuid}",
+                    "guid"          : "${tp.guid}",
+                    "scientificName": "${tp.scientificName}",
+                    "opus"          : ["uuid": "${tp.opus.uuid}", "title": "${tp.opus.title}"]
+            ]
+        }
 
         response.setContentType("application/json")
-        def opus = Opus.findByUuid(params.opusId)
-        if (opus) {
-            def results = Profile.findAllByScientificNameIlikeAndOpus(params.scientificName + "%", opus, [max: 10])
-            def toRender = []
-            results.each { tp ->
-                toRender << [
-                        "profileId"     : "${tp.uuid}",
-                        "guid"          : "${tp.guid}",
-                        "scientificName": "${tp.scientificName}"
-                ]
-            }
-            response.setContentType("application/json")
-            if (params.callback) {
-                render "${params.callback}(${toRender as JSON})"
-            } else {
-                render toRender as JSON
-            }
-
-        } else {
-            response.sendError(400)
-        }
+        render toRender as JSON
     }
 
     def index() {

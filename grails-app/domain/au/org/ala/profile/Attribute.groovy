@@ -12,14 +12,14 @@ class Attribute {
     String uuid
     Term title
     String text // = "This animal lives...."
+    Attribute original // The original attribute this was copied from
 
     Date dateCreated
     Date lastUpdated
 
     static hasMany = [subAttributes: Attribute, creators: Contributor, editors: Contributor]
 
-    // The original attribute this was copied from
-    static belongsTo = [original: Attribute]
+    static belongsTo = [profile: Profile]
 
     static constraints = {
         original nullable: true

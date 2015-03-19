@@ -27,8 +27,10 @@ class Opus {
     Boolean enableOccurrenceUpload = false
     Boolean enableTaxaUpload = false
     Boolean enableKeyUpload = false
+    Boolean showLinkedOpusAttributes = false
+    Boolean allowCopyFromLinkedOpus = false
 
-    static hasMany = [additionalOccurrenceResources: OccurrenceResource, admins: Contributor, editors: Contributor]
+    static hasMany = [additionalOccurrenceResources: OccurrenceResource, admins: Contributor, editors: Contributor, supportingOpuses: Opus]
 
     static constraints = {
         logoUrl nullable: true
