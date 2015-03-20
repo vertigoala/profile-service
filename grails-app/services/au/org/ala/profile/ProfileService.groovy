@@ -1,14 +1,39 @@
 package au.org.ala.profile
 
-import au.org.ala.profile.listener.AuditEventType
 import grails.transaction.Transactional
 
 @Transactional
 class ProfileService extends BaseDataAccessService {
     VocabService vocabService
-    AuditService auditService
+    NameService nameService
 
-    List<String> saveBHLLinks(String profileId, Map json) {
+    Profile createProfile(String opusId, Map json) {
+        Opus opus = Opus.findByUuid(opusId)
+
+        Profile profile = new Profile(json)
+        profile.opus = opus
+
+        List<String> guidList = nameService.getGuidForName(profile.scientificName)
+        if (guidList && guidList.size() > 0) {
+            profile.guid = guidList[0]
+        }
+
+        boolean success = save profile, false
+
+        if (!success) {
+            profile = null
+        }
+
+        profile
+    }
+
+    boolean deleteProfile(String profileId) {
+        Profile profile = Profile.findByUuid(profileId);
+
+        delete profile
+    }
+
+    List<String> saveBHLLinks(String profileId, Map json, boolean flush = true) {
         log.debug("Saving BHL links...")
 
         Profile profile = Profile.findByUuid(profileId)
@@ -175,18 +200,10 @@ class ProfileService extends BaseDataAccessService {
         if (attr && profile) {
             log.debug("Removing attribute from Profile...")
             profile.removeFromAttributes(attr)
-            profile.save(flush: true)
 
-            attr.delete(flush: true)
+            save profile
 
-            if (attr.errors.allErrors.size() > 0) {
-                log.error("Failed to delete attribute with id ${attributeId}")
-                attr.errors.each { log.error(it) }
-                deleted = false
-            } else {
-                log.info("Attribute ${attributeId} deleted")
-                deleted = true
-            }
+            delete attr
         } else {
             log.error("Failed to find matching attribute for id ${attributeId} and/or profile for id ${profileId}")
         }

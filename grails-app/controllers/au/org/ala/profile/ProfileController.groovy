@@ -2,6 +2,7 @@ package au.org.ala.profile
 
 import grails.converters.JSON
 import groovy.json.JsonSlurper
+import org.apache.http.HttpStatus
 
 class ProfileController extends BaseController {
 
@@ -41,6 +42,7 @@ class ProfileController extends BaseController {
      * Basic search
      * TODO replace with a free text search index backed search.
      * http://grails.github.io/grails-data-mapping/mongodb/manual/guide/3.%20Mapping%20Domain%20Classes%20to%20MongoDB%20Collections.html#3.7%20Full%20Text%20Search
+     * https://blog.codecentric.de/en/2013/01/text-search-mongodb-stemming/
      *
      * @return
      */
@@ -51,7 +53,10 @@ class ProfileController extends BaseController {
 
         List results
 
-        String wildcard = params.useWildcard == false ? "" : "%" // default to using a wildcard if the param is not set
+        String wildcard = "%"
+        if (params.useWildcard && !params.useWildcard.toBoolean()) {
+            wildcard = ""
+        }
 
         if (params.opusId && params.opusId != "null") {
             List<Opus> opusList = []
@@ -67,7 +72,7 @@ class ProfileController extends BaseController {
                 results = Profile.findAllByScientificNameIlikeAndOpusInList(params.scientificName + wildcard, opusList, [max: params.max ?: DEFAULT_MAX_OPUS_SEARCH_RESULTS])
             }
         } else {
-            results = Profile.findAllByScientificNameIlike(params.scientificName + "%", [max: params.max ?: DEFAULT_MAX_BROAD_SEARCH_RESULTS])
+            results = Profile.findAllByScientificNameIlike(params.scientificName + wildcard, [max: params.max ?: DEFAULT_MAX_BROAD_SEARCH_RESULTS])
         }
 
         def toRender = []
@@ -128,6 +133,28 @@ class ProfileController extends BaseController {
         }
     }
 
+    def createProfile() {
+        def json = request.getJSON()
+
+        if (!json || !json.scientificName || !json.opusId) {
+            badRequest "A json body with at least the scientificName and an opus id is required"
+        } else {
+            Opus opus = Opus.findByUuid(json.opusId)
+            if (!opus) {
+                notFound "No matching opus can be found"
+            } else {
+                Profile profile = Profile.findByScientificNameAndOpus(json.scientificName, opus)
+
+                if (profile) {
+                    sendError HttpStatus.SC_NOT_ACCEPTABLE, "A profile already exists for ${json.scientificName}"
+                } else {
+                    profile = profileService.createProfile(json.opusId, json);
+                    render profile as JSON
+                }
+            }
+        }
+    }
+
     def getByUuid() {
         // TODO do this better
         log.debug("Fetching profile by profileId ${params.profileId}")
@@ -137,6 +164,16 @@ class ProfileController extends BaseController {
             respond tp, [formats: ['json', 'xml']]
         } else {
             notFound()
+        }
+    }
+
+    def deleteProfile() {
+        if (!params.profileId) {
+            badRequest "profileId is a required parameter"
+        } else {
+            boolean success = profileService.deleteProfile(params.profileId);
+
+            respond success, [formats: ["json", "xml"]]
         }
     }
 

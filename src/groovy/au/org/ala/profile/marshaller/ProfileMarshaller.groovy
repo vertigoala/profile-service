@@ -14,7 +14,7 @@ class ProfileMarshaller {
                 "opusId" : "${profile.opus.uuid}",
                 "opusName" : "${profile.opus.title}",
                 "scientificName" : "${profile.scientificName}",
-                "attributes": profile.attributes.sort { it.title.name.toLowerCase() },
+                "attributes": profile.attributes?.sort { it.title.name.toLowerCase() },
                 "links":profile.links,
                 "bhl":profile.bhlLinks
             ]

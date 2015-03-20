@@ -26,11 +26,13 @@ class Profile {
 
     static mapping = {
         version false
+        links cascade: "all-delete-orphan"
+        bhlLinks cascade: "all-delete-orphan"
+        attributes cascade: "all-delete-orphan"
     }
 
     def beforeValidate() {
         if (uuid == null) {
-            //mint an UUID
             uuid = UUID.randomUUID().toString()
         }
     }
