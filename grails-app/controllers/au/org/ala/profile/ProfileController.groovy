@@ -171,7 +171,7 @@ class ProfileController extends BaseController {
         if (!params.profileId) {
             badRequest "profileId is a required parameter"
         } else {
-            boolean success = profileService.deleteProfile(params.profileId);
+            boolean success = profileService.deleteProfile(params.profileId)
 
             respond success, [formats: ["json", "xml"]]
         }

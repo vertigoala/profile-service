@@ -30,7 +30,9 @@ class OpusController extends BaseController {
         if (!params.opusId) {
             badRequest "You must provide an opusId"
         } else {
-            respond opusService.deleteOpus(params.opusIs), [formats: ["json"]]
+            boolean success = opusService.deleteOpus(params.opusId)
+
+            respond success, [formats: ["json", "xml"]]
         }
     }
 

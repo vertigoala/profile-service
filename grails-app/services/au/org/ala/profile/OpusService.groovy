@@ -120,13 +120,6 @@ class OpusService extends BaseDataAccessService {
     boolean deleteOpus(String opusId) {
         Opus opus = Opus.findByUuid(opusId);
 
-        boolean deleted = false
-
-        if (opus) {
-            opus.delete(flush: true)
-            deleted = true
-        }
-
-        deleted
+        delete opus
     }
 }
