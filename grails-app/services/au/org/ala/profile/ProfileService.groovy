@@ -203,7 +203,7 @@ class ProfileService extends BaseDataAccessService {
 
             save profile
 
-            delete attr
+            deleted = delete attr
         } else {
             log.error("Failed to find matching attribute for id ${attributeId} and/or profile for id ${profileId}")
         }
