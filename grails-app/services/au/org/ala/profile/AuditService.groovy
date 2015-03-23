@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.listener.AuditEventType
+import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import org.grails.datastore.mapping.engine.event.AbstractPersistenceEvent
 import org.grails.datastore.mapping.engine.event.EventType
 import org.grails.datastore.mapping.mongo.MongoSession
@@ -10,6 +11,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 class AuditService {
 
     def userService
+    def grailsApplication
 
     static transactional = false
 
@@ -45,14 +47,9 @@ class AuditService {
             return
         }
 
-        def user = null
-        // TODO fix this
-        try {
-            user = userService.getCurrentUserDetails()
-        }catch (Exception e) {
-            log.error("Failed to fetch current user, using dummy value", e)
-        }
+        def user = userService.getCurrentUserDetails()
         def userId = user?.userId ?: '<anon>'   // if, for some reason, we don't have a user, probably should log anyway
+
         def username = user?.displayName ?: "Unknown"
         def auditEventType = getAuditEventTypeFromGormEventType(event.eventType)
         def entityId = entity.uuid
@@ -70,7 +67,30 @@ class AuditService {
             def map = entity.dbo ?: entity.properties
             map.keySet().each { key ->
                 if (!EXCLUDED_ENTITY_PROPERTIES.contains(key)) {
-                    props[key] = map[key]
+                    // the mongodb 'dbo' object is not populated during a PreInsert or PostInsert, and the
+                    // entity.properties approach returns a different structure for entity associations:
+                    // entity.dbo returns ['associationName': ID]
+                    // entity.properties returns ['associationName': <persistentObject>]
+                    // The audit service relies on having the ID, not the object. Therefore, if we have an instance of a
+                    // domain class or a collection of domain classes, just get the ID field(s)
+                    if (event.eventType == EventType.PreInsert || event.eventType == EventType.PostInsert) {
+                        def prop = map[key]
+                        if (prop?.class != null && grailsApplication.isDomainClass(prop?.class)) {
+                            props << [(key): prop.id]
+                        } else if (prop instanceof Set && prop.size() > 0 && grailsApplication.isDomainClass(prop[0]?.class)) {
+                            Set ids = []
+                            prop.each {
+                                if (it) {
+                                    ids << it.id
+                                }
+                            }
+                            props << [(key): ids]
+                        } else {
+                            props[key] = map[key]
+                        }
+                    } else {
+                        props[key] = map[key]
+                    }
                 }
             }
             message.entity = props

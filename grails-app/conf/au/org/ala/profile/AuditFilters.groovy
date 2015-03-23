@@ -15,7 +15,7 @@ class AuditFilters {
                 // userId is set from either the request param userId or failing that it tries to get it from
                 // the UserPrincipal
                 def userId = request.getHeader(grailsApplication.config.app.http.header.userId) ?: RequestContextHolder.currentRequestAttributes()?.getUserPrincipal()?.attributes?.userid
-                if(userId){
+                if (userId) {
                     def userDetails = userService.setCurrentUser(userId)
                     if (userDetails) {
                         // We set the current user details in the request scope because
