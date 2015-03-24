@@ -14,6 +14,7 @@ class Opus {
     List<String> recordSources         // a list of drs that are providing images we can include
     String logoUrl
     String bannerUrl
+    String thumbnailUrl
     String mapAttribution // e.g. AVH (CHAH)
     String mapPointColour = "FF9900"
     Float mapDefaultLatitude = -23.6
@@ -35,6 +36,7 @@ class Opus {
     static constraints = {
         logoUrl nullable: true
         bannerUrl nullable: true
+        thumbnailUrl nullable: true
         attributeVocabUuid nullable: true
         enablePhyloUpload nullable: true
         enableOccurrenceUpload nullable: true

@@ -15,6 +15,7 @@ class OpusMarshaller {
                     recordSources           : opus.recordSources ?: [],
                     logoUrl                 : opus.logoUrl,
                     bannerUrl               : opus.bannerUrl,
+                    thumbnailUrl            : opus.thumbnailUrl,
                     attributeVocabUuid      : opus.attributeVocabUuid,
                     enablePhyloUpload       : opus.enablePhyloUpload != null ? opus.enableKeyUpload : true,
                     enableOccurrenceUpload  : opus.enableOccurrenceUpload != null ? opus.enableKeyUpload : true,

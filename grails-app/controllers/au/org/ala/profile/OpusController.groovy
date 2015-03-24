@@ -32,7 +32,7 @@ class OpusController extends BaseController {
         } else {
             boolean success = opusService.deleteOpus(params.opusId)
 
-            respond success, [formats: ["json", "xml"]]
+            render ([success: success] as JSON)
         }
     }
 

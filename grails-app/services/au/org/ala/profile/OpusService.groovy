@@ -56,6 +56,9 @@ class OpusService extends BaseDataAccessService {
         if (json.bannerUrl && json.bannerUrl != opus.bannerUrl) {
             opus.bannerUrl = json.bannerUrl
         }
+        if (json.thumbnailUrl && json.thumbnailUrl != opus.thumbnailUrl) {
+            opus.thumbnailUrl = json.thumbnailUrl
+        }
         if (json.mapAttribution && json.mapAttribution != opus.mapAttribution) {
             opus.mapAttribution = json.mapAttribution
         }
