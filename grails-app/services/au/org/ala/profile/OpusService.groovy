@@ -147,6 +147,11 @@ class OpusService extends BaseDataAccessService {
     boolean deleteOpus(String opusId) {
         Opus opus = Opus.findByUuid(opusId);
 
+        List profiles = Profile.findAllByOpus(opus)
+        profiles?.each {
+            delete it
+        }
+
         delete opus
     }
 

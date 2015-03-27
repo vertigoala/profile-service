@@ -31,7 +31,7 @@ class Opus {
     Boolean showLinkedOpusAttributes = false
     Boolean allowCopyFromLinkedOpus = false
 
-    static hasMany = [additionalOccurrenceResources: OccurrenceResource, admins: Contributor, editors: Contributor, supportingOpuses: Opus, profiles: Profile]
+    static hasMany = [additionalOccurrenceResources: OccurrenceResource, admins: Contributor, editors: Contributor, supportingOpuses: Opus]
 
     static constraints = {
         logoUrl nullable: true
@@ -48,7 +48,6 @@ class Opus {
     }
 
     static mappings = {
-        profiles cascade: "all-delete-orphan"
     }
 
     def beforeValidate() {
