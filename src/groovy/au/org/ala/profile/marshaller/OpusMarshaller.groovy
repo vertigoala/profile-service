@@ -31,7 +31,9 @@ class OpusMarshaller {
                     biocacheName            : opus.biocacheName ?: 'Atlas',
                     supportingOpuses        : collectSupportingOpuses(opus),
                     allowCopyFromLinkedOpus : opus.allowCopyFromLinkedOpus != null ? opus.allowCopyFromLinkedOpus : false,
-                    showLinkedOpusAttributes: opus.showLinkedOpusAttributes != null ? opus.showLinkedOpusAttributes : false
+                    showLinkedOpusAttributes: opus.showLinkedOpusAttributes != null ? opus.showLinkedOpusAttributes : false,
+                    admins                  : opus.admins?.collect { [userId: it.userId, name: it.name] },
+                    editors                 : opus.editors?.collect { [userId: it.userId, name: it.name] }
             ]
         }
     }

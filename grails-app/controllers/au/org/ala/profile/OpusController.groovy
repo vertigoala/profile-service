@@ -58,6 +58,28 @@ class OpusController extends BaseController {
         }
     }
 
+    def updateUsers() {
+        if (!params.opusId) {
+            badRequest "You must provide an opusId"
+        } else {
+            Opus opus = Opus.findByUuid(params.opusId);
+
+            if (!opus) {
+                notFound()
+            } else {
+                def json = request.getJSON()
+
+                boolean updated = opusService.updateUsers(params.opusId, json);
+
+                if (!updated) {
+                    saveFailed()
+                } else {
+                    success([updated: true])
+                }
+            }
+        }
+    }
+
     def taxaUpload() {
         log.info("taxa upload invoked....")
         def file = request.getFile('taxaUploadFile')

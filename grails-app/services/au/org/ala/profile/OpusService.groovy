@@ -29,9 +29,6 @@ class OpusService extends BaseDataAccessService {
             opus.title = json.title
         }
         if (json.imageSources && json.imageSources != opus.imageSources) {
-            log.debug("Image sources:")
-            opus.imageSources.each {log.debug("'${it}'")}
-
             if (opus.imageSources) {
                 opus.imageSources.clear()
             } else {
@@ -40,9 +37,6 @@ class OpusService extends BaseDataAccessService {
             opus.imageSources.addAll(json.imageSources)
         }
         if (json.recordSources && json.recordSources != opus.recordSources) {
-            log.debug("Record sources:")
-            opus.recordSources.each {log.debug("'${it}'")}
-
             if (opus.recordSources) {
                 opus.recordSources.clear()
             } else {
@@ -120,9 +114,48 @@ class OpusService extends BaseDataAccessService {
         }
     }
 
+    boolean updateUsers(String opusId, Map json) {
+        Opus opus = Opus.findByUuid(opusId)
+
+        if (json.admins != opus.admins) {
+            if (opus.admins) {
+                opus.admins.clear()
+            } else {
+                opus.admins = []
+            }
+            json.admins?.each {
+                Contributor admin = getOrCreateContributor(it.displayName, it.userId)
+                opus.admins << admin
+            }
+        }
+
+        if (json.editors != opus.editors) {
+            if (opus.editors) {
+                opus.editors.clear()
+            } else {
+                opus.editors = []
+            }
+            json.editors?.each {
+                Contributor editor = getOrCreateContributor(it.displayName, it.userId)
+                opus.editors << editor
+            }
+        }
+
+        save opus
+    }
+
     boolean deleteOpus(String opusId) {
         Opus opus = Opus.findByUuid(opusId);
 
         delete opus
+    }
+
+    Contributor getOrCreateContributor(String name, String userId = null) {
+        Contributor contributor = userId ? Contributor.findByUserId(userId) : Contributor.findByName(name)
+        if (!contributor) {
+            contributor = new Contributor(userId: userId, name: name)
+            contributor.save(flush: true)
+        }
+        contributor
     }
 }

@@ -33,7 +33,7 @@ class ProfileService extends BaseDataAccessService {
         delete profile
     }
 
-    List<String> saveBHLLinks(String profileId, Map json, boolean flush = true) {
+    List<String> saveBHLLinks(String profileId, Map json) {
         log.debug("Saving BHL links...")
 
         Profile profile = Profile.findByUuid(profileId)

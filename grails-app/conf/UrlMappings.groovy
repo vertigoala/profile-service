@@ -23,6 +23,8 @@ class UrlMappings {
 
         "/opus/"(controller: "opus", action: [GET: "index", PUT: "create", POST: "create"])
 
+        "/opus/$opusId/updateUsers"(controller: "opus", action: [POST: "updateUsers"])
+
         "/opus/$opusId"(controller: "opus", action: [GET: "show", POST:"updateOpus", DELETE: "deleteOpus"])
 
         "/opus/taxaUpload"(controller: "opus", action: "taxaUpload")
