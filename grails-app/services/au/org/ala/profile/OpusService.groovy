@@ -152,6 +152,12 @@ class OpusService extends BaseDataAccessService {
             delete it
         }
 
+        List<Opus> linkedOpuses = Opus.findAllBySupportingOpuses(opus)
+        linkedOpuses?.each {
+            it.supportingOpuses.remove(opus)
+            save it
+        }
+
         delete opus
     }
 

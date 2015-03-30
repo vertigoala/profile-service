@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
 import org.xml.sax.SAXException
 
 
@@ -35,11 +36,9 @@ class ImportService extends BaseDataAccessService {
     }
 
     def cleanupText(str) {
-        if (str) {
-            str.replaceAll('<i>', '').replaceAll('</i>', '')
-        } else {
-            str
-        }
+        str = unescapeHtml4(str)
+        // preserve line breaks as new lines, remove all other html
+        str ? str.replaceAll(/<p\/?>|<br\/?>/, "\n").replaceAll(/<.+?>/, "") : str
     }
 
     Term getOrCreateTerm(String vocabId, String name) {
@@ -156,7 +155,7 @@ class ImportService extends BaseDataAccessService {
                     def oldFoaLink = new Link(
                             uuid: UUID.randomUUID().toString(),
                             title: parsed.scientificName,
-                            description: "Old Flora of Australia site page for " + parsed.scientificName,
+                            description: "Old Flora of Australia site page for ${parsed.scientificName}",
                             url: "http://www.anbg.gov.au/abrs/online-resources/flora/stddisplay.xsql?pnid=" + it.getName().replace(".xml", "")
                     )
 
@@ -215,7 +214,7 @@ class ImportService extends BaseDataAccessService {
                     if (it.title && it.text) {
                         Term term = getOrCreateTerm(opus.attributeVocabUuid, it.title)
 
-                        Attribute attribute = new Attribute(title: term, text: it.text)
+                        Attribute attribute = new Attribute(title: term, text: cleanupText(it.text))
                         attribute.uuid = UUID.randomUUID().toString()
 
                         if (it.creators) {
@@ -237,7 +236,7 @@ class ImportService extends BaseDataAccessService {
                     }
                 }
 
-                boolean success = save profile
+                boolean success = save profile, false
 
                 results << [(it.scientificName): success ? "Success" : "Invalid"]
             }

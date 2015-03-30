@@ -15,6 +15,9 @@ class OpusController extends BaseController {
     def show() {
         def result = Opus.findByUuid(params.opusId)
         if (result) {
+            int profiles = Profile.countByOpus(result)
+            result.profileCount = profiles
+
             respond result, [formats: ['json', 'xml']]
         } else {
             notFound()

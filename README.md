@@ -2,4 +2,6 @@
 profile-service
 ===============
 
-profile-service
+Profile Service
+
+Documentation for the Profile Service is included in the [README.md](https://github.com/AtlasOfLivingAustralia/profile-hub/blob/master/README.md) file for the related Profile Hub application.
