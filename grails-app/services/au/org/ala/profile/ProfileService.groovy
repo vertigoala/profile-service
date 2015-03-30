@@ -180,7 +180,7 @@ class ProfileService extends BaseDataAccessService {
                 attribute.editors = []
             }
 
-            if (!attribute.editors.contains(contributor)) {
+            if (!attribute.editors.contains(contributor) && data.significantEdit) {
                 attribute.editors << contributor
             }
 
