@@ -11,13 +11,13 @@ class NSWImport {
 
 
     static void main(args) {
-        def cli = new CliBuilder(usage: "groovy NSWImport -f <datafile> -o opusId -i <imagefile> -p <profileServiceBaseUrl> -d <delimiter default ~> -v <verbose>")
+        def cli = new CliBuilder(usage: "groovy NSWImport -f <datafile> -o opusId -i <imagefile> -p <profileServiceBaseUrl> -d <delimiter default ~> -r <reportfile>")
         cli.f(longOpt: "file", "source data file", required: true, args: 1)
         cli.o(longOpt: "opusId", "UUID of the NSW Flora Opus", required: true, args: 1)
         cli.p(longOpt: "profileServiceBaseUrl", "Base URL of the profile service", required: true, args: 1)
         cli.i(longOpt: "imageFile", "File to write image details to", required: true, args: 1)
         cli.d(longOpt: "delimiter", "Data file delimiter (defaults to ~)", required: false, args: 1)
-        cli.v(longOpt: "verbose", "Verbose output", required: false, args: 0)
+        cli.r(longOpt: "reportFile", "File to write the results of the import to", required: false, args: 1)
 
         OptionAccessor opt = cli.parse(args)
 
@@ -29,6 +29,7 @@ class NSWImport {
         String NSW_OPUS_ID = opt.o
         String DATA_FILE = opt.f
         String IMAGE_FILE = opt.i
+        String REPORT_FILE = opt.r ?: "report.txt"
         String PROFILE_SERVICE_IMPORT_URL = "${opt.p}/import/profile"
         String DELIMITER = opt.d ?: "~"
 
@@ -42,6 +43,15 @@ class NSWImport {
             imageFile.delete()
             imageFile.createNewFile()
             imageFile << "scientificName,associatedMedia\n"
+        }
+
+        Map<String, List<Integer>> scientificNames = [:]
+        Map<Integer, String> invalidLines = [:]
+
+        File report = new File(REPORT_FILE)
+        if (report.exists()) {
+            report.delete()
+            report.createNewFile()
         }
 
         new File(DATA_FILE).eachLine { line ->
@@ -120,9 +130,17 @@ class NSWImport {
                 attributes << [title: "Taxon Concept", text: taxonConcept, creators: [contributor]]
             }
 
-            Map profile = [scientificName: species ?: family, attributes: attributes]
+            String scientificName = species ?: family
 
-            profiles << profile
+            if (!scientificName) {
+                invalidLines[count] = "Unable to determine scientfic name: ${line.substring(0, Math.min(line.size(), 100))}..."
+            } else if (!scientificNames.containsKey(scientificName)) {
+                Map profile = [scientificName: scientificName, attributes: attributes]
+
+                profiles << profile
+            }
+
+            scientificNames.get(scientificName, []) << count
         }
 
         Map opus = [
@@ -131,23 +149,47 @@ class NSWImport {
         ]
 
         println "Importing..."
+
         def service = new RESTClient(PROFILE_SERVICE_IMPORT_URL)
         def resp = service.post(body: opus, requestContentType: JSON)
 
         if (resp.status == 200) {
+            if (invalidLines) {
+                report << "Invalid lines from source file:\n"
+                invalidLines.each {k, v ->
+                    report << "\tLine ${k}: ${v}\n"
+                }
+            }
+
+            if (scientificNames.any {k, v -> v.size() > 1 && k != null}) {
+                report << "\n\nDuplicate scientific names (only the first record will be imported): \n"
+                scientificNames.each { k, v ->
+                    if (v.size() > 1 && k) {
+                        report << "\t${k}, on lines ${v}. Line ${v.first()} was imported.\n"
+                    }
+                }
+            }
+
             int success = 0
+            int failed = 0
+            if (resp.data.any {k, v -> v != "Success"}) {
+                report << "\n\nRecords unable to be saved: \n"
+            }
             resp.data.each { k, v ->
                 if (v == "Success") {
                     success++
                 } else {
-                    println "\t${k} Failed: ${v}"
+                    report << "\t${k} Failed: ${v}\n"
+                    failed++
                 }
             }
 
-            println "Imported ${success} of ${count} profiles ${resp.status == 200 ? 'completed successfully' : ' failed'}"
+            report << "\n\nImported ${success} of ${count} profiles"
         } else {
             println "Import failed with HTTP ${resp.status}"
         }
+
+        println "Import finished. See ${report.absolutePath} for details"
     }
 
     static String clean(String str) {

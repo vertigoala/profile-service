@@ -1,12 +1,17 @@
 package au.org.ala.profile
 
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
+
+import static groovyx.gpars.GParsPool.*
+
 import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
 import org.xml.sax.SAXException
 
 
 class ImportService extends BaseDataAccessService {
 
-    // TODO secure ImportService!!
+    static final int IMPORT_THREAD_POOL_SIZE = 10
 
     def nameService
 
@@ -36,9 +41,12 @@ class ImportService extends BaseDataAccessService {
     }
 
     def cleanupText(str) {
-        str = unescapeHtml4(str)
-        // preserve line breaks as new lines, remove all other html
-        str ? str.replaceAll(/<p\/?>|<br\/?>/, "\n").replaceAll(/<.+?>/, "") : str
+        if (str) {
+            str = unescapeHtml4(str)
+            // preserve line breaks as new lines, remove all other html
+            str = str.replaceAll(/<p\/?>|<br\/?>/, "\n").replaceAll(/<.+?>/, "").trim()
+        }
+        return str
     }
 
     Term getOrCreateTerm(String vocabId, String name) {
@@ -182,65 +190,90 @@ class ImportService extends BaseDataAccessService {
     Map<String, String> importProfiles(String opusId, profilesJson) {
         Opus opus = Opus.findByUuid(opusId);
 
-        Map<String, String> results = [:]
+        Map<String, String> results = [:] as ConcurrentHashMap
 
-        profilesJson.each {
-            Profile profile = Profile.findByScientificNameAndOpus(it.scientificName, opus);
-            if (profile) {
-                log.info("Profile already exists in this opus for scientific name ${it.scientificName}")
-                results << [(it.scientificName): "Exists"]
-            } else {
-                List<String> guidList = nameService.getGuidForName(it.scientificName)
-                String guid = null
-                if (guidList && guidList.size() > 0) {
-                    guid = guidList[0]
-                }
+        AtomicInteger success = new AtomicInteger(0)
+        AtomicInteger index = new AtomicInteger(0)
+        int reportInterval = 0.05 * profilesJson.size() // log at 5% intervals
 
-                profile = new Profile(scientificName: it.scientificName, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: []);
+        withPool(IMPORT_THREAD_POOL_SIZE) {
+            profilesJson.eachParallel {
+                index.incrementAndGet()
+                Profile profile = Profile.findByScientificNameAndOpus(it.scientificName, opus);
+                if (profile) {
+                    log.info("Profile already exists in this opus for scientific name ${it.scientificName}")
+                    results << [(it.scientificName): "Already exists"]
+                } else {
+                    if (!it.scientificName) {
+                        results << [("Row${index}"): "Failed to import row ${index}, does not have a scientific name"]
+                    } else {
+                        List<String> guidList = nameService.getGuidForName(it.scientificName)
+                        String guid = null
+                        if (guidList && guidList.size() > 0) {
+                            guid = guidList[0]
+                        }
 
-                it.links.each {
-                    if (it) {
-                        profile.links << createLink(it)
-                    }
-                }
+                        profile = new Profile(scientificName: it.scientificName, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: []);
 
-                it.bhl.each {
-                    if (it) {
-                        profile.bhlLinks << createLink(it)
-                    }
-                }
-
-                it.attributes.each {
-                    if (it.title && it.text) {
-                        Term term = getOrCreateTerm(opus.attributeVocabUuid, it.title)
-
-                        Attribute attribute = new Attribute(title: term, text: cleanupText(it.text))
-                        attribute.uuid = UUID.randomUUID().toString()
-
-                        if (it.creators) {
-                            attribute.creators = []
-                            it.creators.each {
-                                attribute.creators << getOrCreateContributor(it, opus.dataResourceUid)
+                        it.links.each {
+                            if (it) {
+                                profile.links << createLink(it)
                             }
                         }
 
-                        if (it.editors) {
-                            attribute.editors = []
-                            it.editors.each {
-                                attribute.editors << getOrCreateContributor(it, opus.dataResourceUid)
+                        it.bhl.each {
+                            if (it) {
+                                profile.bhlLinks << createLink(it)
                             }
                         }
 
-                        attribute.profile = profile
-                        profile.attributes << attribute
+                        it.attributes.each {
+                            if (it.title && it.text) {
+                                Term term = getOrCreateTerm(opus.attributeVocabUuid, it.title)
+
+                                String text = cleanupText(it.text)
+                                if (text) {
+                                    Attribute attribute = new Attribute(title: term, text: text)
+                                    attribute.uuid = UUID.randomUUID().toString()
+
+                                    if (it.creators) {
+                                        attribute.creators = []
+                                        it.creators.each {
+                                            attribute.creators << getOrCreateContributor(it, opus.dataResourceUid)
+                                        }
+                                    }
+
+                                    if (it.editors) {
+                                        attribute.editors = []
+                                        it.editors.each {
+                                            attribute.editors << getOrCreateContributor(it, opus.dataResourceUid)
+                                        }
+                                    }
+
+                                    attribute.profile = profile
+                                    profile.attributes << attribute
+                                }
+                            }
+                        }
+
+                        profile.save(flush: true)
+
+                        if (profile.errors.allErrors.size() > 0) {
+                            log.error("Failed to save ${profile}")
+                            profile.errors.each { log.error(it) }
+                            results << [(it.scientificName): "Failed: ${profile.errors.allErrors.get(0)}"]
+                        } else {
+                            results << [(it.scientificName): "Success"]
+                            success.incrementAndGet()
+                            if (index % reportInterval == 0) {
+                                log.debug("Saved ${success} of ${profilesJson.size()}")
+                            }
+                        }
                     }
                 }
-
-                boolean success = save profile, false
-
-                results << [(it.scientificName): success ? "Success" : "Invalid"]
             }
         }
+        log.debug "${success} of ${profilesJson.size()} records imported"
 
         results
     }
