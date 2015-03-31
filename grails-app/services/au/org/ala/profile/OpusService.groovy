@@ -148,9 +148,7 @@ class OpusService extends BaseDataAccessService {
         Opus opus = Opus.findByUuid(opusId);
 
         List profiles = Profile.findAllByOpus(opus)
-        profiles?.each {
-            delete it
-        }
+        Profile.deleteAll(profiles)
 
         List<Opus> linkedOpuses = Opus.findAllBySupportingOpuses(opus)
         linkedOpuses?.each {
