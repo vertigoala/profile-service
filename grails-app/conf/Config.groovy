@@ -1,3 +1,4 @@
+import org.apache.log4j.Level
 
 def appName = 'profile-service'
 def ENV_NAME = "${appName.toUpperCase()}_CONFIG"
