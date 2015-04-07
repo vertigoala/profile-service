@@ -39,6 +39,10 @@ class UrlMappings {
 
         "/profile/bhl/$profileId"(controller: "profile", action: [POST:"saveBHLLinks"])
 
+        "/profile/publication/$profileId"(controller: "profile", action: [GET: "listPublications", POST:"savePublication"])
+        "/profile/publication/$publicationId/delete"(controller: "profile", action: [DELETE:"deletePublication"])
+        "/profile/publication/$publicationId/file"(controller: "profile", action: [GET:"getPublicationFile"])
+
         "/$controller/$action?/$id?(.$format)?"{
             constraints {
                 // apply constraints here

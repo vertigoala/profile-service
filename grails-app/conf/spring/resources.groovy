@@ -8,7 +8,8 @@ beans = {
             new AuditMessageMarshaller(),
             new AttributeMarshaller(),
             new OpusMarshaller(),
-            new ProfileMarshaller()
+            new ProfileMarshaller(),
+            new PublicationMarshaller()
         ]
     }
 }

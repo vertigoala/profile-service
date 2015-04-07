@@ -1,11 +1,16 @@
 package au.org.ala.profile
 
+import au.org.ala.web.AuthService
 import grails.transaction.Transactional
+import org.springframework.web.multipart.MultipartFile
+
+import java.text.SimpleDateFormat
 
 @Transactional
 class ProfileService extends BaseDataAccessService {
     VocabService vocabService
     NameService nameService
+    AuthService authService
 
     Profile createProfile(String opusId, Map json) {
         Opus opus = Opus.findByUuid(opusId)
@@ -103,6 +108,52 @@ class ProfileService extends BaseDataAccessService {
         }
 
         linkIds
+    }
+
+    Publication savePublication(String profileId, Map data, MultipartFile file) {
+        // todo how to handle the file?
+        Profile profile = Profile.findByUuid(profileId)
+
+        Publication publication = null
+
+        if (profile) {
+            publication = new Publication(data)
+            publication.publicationDate = new SimpleDateFormat("yyyy-MM-dd").parse(data.publicationDate)
+            publication.uploadDate = new Date()
+            publication.userId = authService.getUserId()
+            publication.uuid = UUID.randomUUID().toString()
+            profile.addToPublications(publication)
+            publication.profile = profile
+
+            save profile
+
+            publication.saveMongoFile(file)
+        }
+
+        publication
+    }
+
+    boolean deletePublication(String publicationId) {
+        Publication publication = Publication.findByUuid(publicationId);
+
+        Profile profile = publication.profile
+        profile.publications.remove(publication)
+
+        save publication
+
+        delete publication
+    }
+
+    def getPublicationFile(String publicationId) {
+        Publication publication = Publication.findByUuid(publicationId)
+
+        publication.getMongoFile()
+    }
+
+    Set<Publication> listPublications(String profileId) {
+        Profile profile = Profile.findByUuid(profileId)
+
+        profile?.publications
     }
 
     Attribute createAttribute(String profileId, Map data) {

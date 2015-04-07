@@ -1,8 +1,14 @@
 package au.org.ala.profile
 
+import com.mongodb.gridfs.GridFSDBFile
 import grails.converters.JSON
 import groovy.json.JsonSlurper
+import org.apache.commons.fileupload.FileItemIterator
+import org.apache.commons.fileupload.FileItemStream
+import org.apache.commons.fileupload.servlet.ServletFileUpload
 import org.apache.http.HttpStatus
+import org.springframework.web.multipart.MultipartFile
+import org.springframework.web.multipart.MultipartHttpServletRequest
 
 class ProfileController extends BaseController {
 
@@ -35,6 +41,56 @@ class ProfileController extends BaseController {
             List<String> linkIds = profileService.saveLinks(json.profileId, json)
 
             render linkIds as JSON
+        }
+    }
+
+    def savePublication() {
+        def publication
+        MultipartFile file
+        if (request instanceof MultipartHttpServletRequest) {
+            publication = new JsonSlurper().parseText(request.getParameter("data"))
+            file = request.getFile("file0")
+        }
+
+        // the publicationId may be blank (e.g. when creating a new publication), but the request should still have it
+        if (!file || !publication || !params.profileId) {
+            badRequest()
+        } else {
+            Publication pub = profileService.savePublication(params.profileId, publication, file)
+
+            render pub as JSON
+        }
+    }
+
+    def getPublicationFile() {
+        if (!params.publicationId) {
+            badRequest "publicationId is a required parameter"
+        } else {
+            GridFSDBFile file = profileService.getPublicationFile(params.publicationId)
+
+            response.setContentType("application/pdf")
+            response.setHeader("Content-disposition", "attachment;filename=publication.pdf")
+            file.writeTo(response.outputStream)
+        }
+    }
+
+    def deletePublication() {
+        if (!params.publicationId) {
+            badRequest "publicationId is a required parameter"
+        } else {
+            boolean success = profileService.deletePublication(params.publicationId)
+
+            respond success, [formats: ["json", "xml"]]
+        }
+    }
+
+    def listPublications() {
+        if (!params.profileId) {
+            badRequest()
+        } else {
+            Set<Publication> publications = profileService.listPublications(params.profileId as String)
+
+            render publications as JSON
         }
     }
 

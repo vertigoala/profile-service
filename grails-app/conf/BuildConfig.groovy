@@ -60,5 +60,6 @@ grails.project.dependency.resolution = {
         compile ':cache:1.1.6'
         runtime ":cors:1.1.6"
         compile ":quartz:1.0.2"
+        compile ":mongo-file:1.4.2"
     }
 }

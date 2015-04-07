@@ -16,7 +16,7 @@ class Profile {
     Date dateCreated
     Date lastUpdated
 
-    static hasMany = [links: Link, attributes: Attribute, bhlLinks: Link]
+    static hasMany = [links: Link, attributes: Attribute, bhlLinks: Link, publications: Publication]
 
     static belongsTo = [opus: Opus]
 
@@ -29,6 +29,7 @@ class Profile {
         links cascade: "all-delete-orphan"
         bhlLinks cascade: "all-delete-orphan"
         attributes cascade: "all-delete-orphan"
+        publications cascade: "all-delete-orphan"
     }
 
     def beforeValidate() {
