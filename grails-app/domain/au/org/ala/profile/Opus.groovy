@@ -30,6 +30,7 @@ class Opus {
     Boolean enableKeyUpload = false
     Boolean showLinkedOpusAttributes = false
     Boolean allowCopyFromLinkedOpus = false
+    Glossary glossary
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, admins: Contributor, editors: Contributor, supportingOpuses: Opus]
 
@@ -47,9 +48,6 @@ class Opus {
         biocacheName nullable: true
     }
 
-    static mappings = {
-    }
-
     def beforeValidate() {
         if (uuid == null) {
             //mint an UUID
@@ -59,5 +57,6 @@ class Opus {
 
     static mapping = {
         version false
+        glossary cascade: "all-delete-orphan"
     }
 }

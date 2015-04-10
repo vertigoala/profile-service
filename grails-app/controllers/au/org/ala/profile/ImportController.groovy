@@ -4,10 +4,11 @@ import grails.converters.JSON
 
 class ImportController extends BaseController {
 
-    static allowedMethods = [vocab: "POST", profile: "POST"]
+    static allowedMethods = [vocab: "POST", profile: "POST", glossary: "POST"]
 
     VocabService vocabService
     ImportService importService
+    OpusService opusService
 
     def vocab() {
         def json = request.getJSON()
@@ -17,6 +18,15 @@ class ImportController extends BaseController {
             Opus opus = Opus.findByUuid(json.opusId)
 
             vocabService.updateVocab(opus.attributeVocabUuid, json)
+        }
+    }
+
+    def glossary() {
+        def json = request.getJSON()
+        if (!json || (!json.glossaryId && !json.opusId)) {
+            badRequest(samples.glossary)
+        } else {
+            opusService.saveGlossaryItems(json)
         }
     }
 
@@ -39,6 +49,7 @@ class ImportController extends BaseController {
 
     Map samples = [
             vocab: """{"opusId": "", "strict": "true|false", "deleteExisting": "true|false", "terms": ["term1", "term2", "..."]}""",
+            glossary: """{"opusId|glossaryId": "", "items": [{"itemId": "", "term": "", "definition": "", "cf": ["term1","term2", "..."]}]}""",
             profile: """{
                     "opusId": "",
                     "profiles":[{

@@ -9,7 +9,8 @@ beans = {
             new AttributeMarshaller(),
             new OpusMarshaller(),
             new ProfileMarshaller(),
-            new PublicationMarshaller()
+            new PublicationMarshaller(),
+            new GlossaryMarshaller()
         ]
     }
 }

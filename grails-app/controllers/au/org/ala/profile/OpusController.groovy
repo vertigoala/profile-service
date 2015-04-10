@@ -83,6 +83,95 @@ class OpusController extends BaseController {
         }
     }
 
+    def getGlossary() {
+        Glossary glossary = null
+
+        if (!params.opusId && !params.glossaryId) {
+            badRequest "You must provide either an opusId or a glossaryId"
+        } else if (params.opusId) {
+            Opus opus = Opus.findByUuid(params.opusId)
+
+            if (!opus || !opus.glossary) {
+                notFound()
+            } else {
+                glossary = opus.glossary
+            }
+        } else {
+            glossary = Glossary.findByUuid(params.glossaryId)
+        }
+
+        if (!glossary) {
+            notFound()
+        } else {
+            List<GlossaryItem> items = GlossaryItem.findAllByGlossaryAndTermLike(glossary, "${params.prefix ?: ''}%")
+
+            glossary.items = items
+        }
+
+        render glossary as JSON
+    }
+
+    def saveGlossaryItems() {
+        def json = request.getJSON();
+        if (!json || (!json.opusId && !json.glossaryId)) {
+            badRequest()
+        } else {
+            boolean updated = opusService.saveGlossaryItems(json)
+
+            if (!updated) {
+                saveFailed()
+            } else {
+                success([updated: updated])
+            }
+        }
+    }
+
+    def deleteGlossaryItem() {
+        if (!params.glossaryItemId) {
+            badRequest()
+        } else {
+            boolean deleted = opusService.deleteGlossaryItem(params.glossaryItemId)
+
+            if (!deleted) {
+                saveFailed()
+            } else {
+                success([deleted: deleted])
+            }
+        }
+    }
+
+    def updateGlossaryItem() {
+        def json = request.getJSON();
+
+        if (!params.glossaryItemId || !json) {
+            badRequest()
+        } else {
+            boolean updated = opusService.updateGlossaryItem(params.glossaryItemId, json)
+
+            if (!updated) {
+                saveFailed()
+            } else {
+                success([updated: updated])
+            }
+        }
+    }
+
+    def createGlossaryItem() {
+        def json = request.getJSON();
+
+        if (!params.opusId || !json) {
+            badRequest()
+        } else {
+            GlossaryItem item = opusService.createGlossaryItem(params.opusId, json)
+
+            if (!item) {
+                saveFailed()
+            } else {
+                render item as JSON
+            }
+        }
+    }
+
     def taxaUpload() {
         log.info("taxa upload invoked....")
         def file = request.getFile('taxaUploadFile')

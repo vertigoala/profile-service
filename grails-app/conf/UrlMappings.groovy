@@ -9,6 +9,12 @@ class UrlMappings {
         
         "/classification"(controller: "profile", action: [GET:"classification"])
 
+        "/glossary/$opusId/item/"(controller:"opus", action: [PUT: "createGlossaryItem"])
+        "/glossary/$opusId/item/$glossaryItemId"(controller:"opus", action: [DELETE: "deleteGlossaryItem", POST: "updateGlossaryItem"])
+        "/glossary/$opusId"(controller: "opus", action: [GET: "getGlossary"])
+        "/glossary/$opusId/$prefix"(controller: "opus", action: [GET: "getGlossary"])
+        "/glossary"(controller: "opus", action: [POST: "saveGlossaryItems"])
+
         "/vocab/"(controller: "vocab", action: "index")
 
         "/vocab/$vocabId"(controller: "vocab", action: [GET: "show", POST: "update"])

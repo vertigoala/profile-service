@@ -14,6 +14,11 @@ class OpusService extends BaseDataAccessService {
 
         opus.attributeVocabUuid = vocab.uuid
 
+        Glossary glossary = new Glossary()
+        save glossary
+
+        opus.glossary = glossary
+
         boolean success = save opus
         if (success) {
             opus
@@ -150,6 +155,12 @@ class OpusService extends BaseDataAccessService {
         List profiles = Profile.findAllByOpus(opus)
         Profile.deleteAll(profiles)
 
+        GlossaryItem glossaryItems = GlossaryItem.findByGlossary(opus.glossary)
+        if (glossaryItems) {
+            GlossaryItem.deleteAll(glossaryItems)
+        }
+        delete opus.glossary
+
         List<Opus> linkedOpuses = Opus.findAllBySupportingOpuses(opus)
         linkedOpuses?.each {
             it.supportingOpuses.remove(opus)
@@ -166,5 +177,123 @@ class OpusService extends BaseDataAccessService {
             contributor.save(flush: true)
         }
         contributor
+    }
+
+    boolean deleteGlossaryItem(String glossaryItemId) {
+        GlossaryItem item =GlossaryItem.findByUuid(glossaryItemId);
+
+        boolean success = false
+
+        if (item) {
+            item.glossary.items.remove(item);
+
+            save item.glossary
+
+            success = delete item
+        }
+
+        return success
+    }
+
+    boolean updateGlossaryItem(String glossaryItemId, data) {
+        GlossaryItem item =GlossaryItem.findByUuid(glossaryItemId);
+
+        boolean success = false
+
+        if (item) {
+            updateItemDetails(item, data)
+
+            success = save item
+        }
+
+        return success
+    }
+
+    GlossaryItem createGlossaryItem(String opusId, data) {
+        Opus opus = Opus.findByUuid(opusId)
+
+        GlossaryItem item = new GlossaryItem();
+        item.uuid = UUID.randomUUID().toString()
+        updateItemDetails(item, data)
+
+        item.glossary = opus.glossary
+
+        opus.glossary.items << item
+
+        boolean success = save opus.glossary
+
+        if (!success) {
+            item = null
+        }
+
+        item
+    }
+
+    private updateItemDetails(GlossaryItem item, data) {
+        if (data.description && data.description != item.description) {
+            item.description = data.description
+        }
+        if (data.term && data.term != item.term) {
+            item.term = data.term
+        }
+        if (data.cf != null) {
+            item.cf.clear()
+
+            data.cf.each {
+                GlossaryItem cfItem = GlossaryItem.findByTerm(it)
+                if (cfItem) {
+                    item.cf << cfItem
+                } else {
+                    log.warn("Could find matching cf item ${it}. Ignoring.")
+                }
+            }
+        }
+    }
+
+    boolean saveGlossaryItems(Map json) {
+        Glossary glossary
+
+        if (json.glossaryId) {
+            glossary = Glossary.findByUuid(json.glossaryId)
+        } else if (json.opusId) {
+            Opus opus = Opus.findByUuid(json.opusId)
+
+            glossary = opus.glossary
+
+            if (!glossary) {
+                glossary = new Glossary()
+                save glossary
+
+                opus.glossary = glossary
+                save opus
+            }
+        } else {
+            throw new IllegalArgumentException("Could not find glossary or opus")
+        }
+
+
+        if (glossary.items) {
+            GlossaryItem.deleteAll(glossary.items)
+            glossary.items?.clear()
+        }
+
+        json.items.each {
+            GlossaryItem item
+            if (it["glossaryItemId"]) {
+                item = GlossaryItem.findByUuid(it.glossaryItemId)
+            } else {
+                item = new GlossaryItem()
+                item.uuid = UUID.randomUUID().toString()
+                item.glossary = glossary
+            }
+
+            if (item) {
+                updateItemDetails(item, it)
+
+                glossary.items << item
+            }
+        }
+
+        save glossary
     }
 }
