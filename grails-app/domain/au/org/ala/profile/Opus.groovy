@@ -12,6 +12,7 @@ class Opus {
     String dataResourceUid
     List<String> imageSources            // a list of drs that are providing images we can include
     List<String> recordSources         // a list of drs that are providing images we can include
+    List<String> approvedLists
     String logoUrl
     String bannerUrl
     String thumbnailUrl

@@ -41,6 +41,14 @@ class OpusService extends BaseDataAccessService {
             }
             opus.imageSources.addAll(json.imageSources)
         }
+        if (json.approvedLists && json.approvedLists != opus.approvedLists) {
+            if (opus.approvedLists) {
+                opus.approvedLists.clear()
+            } else {
+                opus.approvedLists = []
+            }
+            opus.approvedLists.addAll(json.approvedLists)
+        }
         if (json.recordSources && json.recordSources != opus.recordSources) {
             if (opus.recordSources) {
                 opus.recordSources.clear()

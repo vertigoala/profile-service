@@ -13,6 +13,7 @@ class OpusMarshaller {
                     title                   : "${opus.title}",
                     imageSources            : opus.imageSources ?: [],
                     recordSources           : opus.recordSources ?: [],
+                    approvedLists           : opus.approvedLists ?: [],
                     logoUrl                 : opus.logoUrl,
                     bannerUrl               : opus.bannerUrl,
                     thumbnailUrl            : opus.thumbnailUrl,
