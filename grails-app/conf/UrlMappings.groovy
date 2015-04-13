@@ -37,7 +37,7 @@ class UrlMappings {
 
         "/profile/search"(controller: "profile", action: "search")
 
-        "/profile/$profileId"(controller: "profile", action: [GET: "getByUuid", DELETE: "deleteProfile"])
+        "/profile/$profileId"(controller: "profile", action: [GET: "getByUuid", DELETE: "deleteProfile", POST: "updateProfile"])
 
         "/profile/"(controller: "profile", action: [GET: "index", PUT: "createProfile"])
 

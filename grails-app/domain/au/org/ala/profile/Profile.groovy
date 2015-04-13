@@ -13,6 +13,9 @@ class Profile {
     String guid                 //taxon GUID / LSID
     String scientificName
 
+    String primaryImage
+    List<String> excludedImages
+
     Date dateCreated
     Date lastUpdated
 
@@ -22,6 +25,8 @@ class Profile {
 
     static constraints = {
         guid nullable: true
+        primaryImage nullable: true
+        excludedImages nullable: true
     }
 
     static mapping = {

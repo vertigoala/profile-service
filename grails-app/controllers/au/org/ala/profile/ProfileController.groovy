@@ -211,6 +211,24 @@ class ProfileController extends BaseController {
         }
     }
 
+    def updateProfile() {
+        def json = request.getJSON()
+
+        if (!json || !params.profileId) {
+            badRequest()
+        } else {
+            Profile profile = Profile.findByUuid(params.profileId)
+
+            if (!profile) {
+                notFound()
+            } else {
+                profile = profileService.updateProfile(params.profileId, json)
+
+                render profile as JSON
+            }
+        }
+    }
+
     def getByUuid() {
         // TODO do this better
         log.debug("Fetching profile by profileId ${params.profileId}")

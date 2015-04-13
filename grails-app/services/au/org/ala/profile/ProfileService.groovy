@@ -38,6 +38,33 @@ class ProfileService extends BaseDataAccessService {
         delete profile
     }
 
+    Profile updateProfile(String profileId, Map json) {
+        Profile profile = Profile.findByUuid(profileId)
+
+        if (profile) {
+            if (json.primaryImage && json.primaryImage != profile.primaryImage) {
+                profile.primaryImage = json.primaryImage
+            }
+
+            if (json.excludedImages != profile.excludedImages) {
+                if (profile.excludedImages) {
+                    profile.excludedImages.clear()
+                } else {
+                    profile.excludedImages = []
+                }
+                profile.excludedImages.addAll(json.excludedImages)
+            }
+
+            boolean success = save profile
+
+            if (!success) {
+                profile = null
+            }
+        }
+
+        profile
+    }
+
     List<String> saveBHLLinks(String profileId, Map json) {
         log.debug("Saving BHL links...")
 
