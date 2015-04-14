@@ -188,7 +188,7 @@ class OpusService extends BaseDataAccessService {
     }
 
     boolean deleteGlossaryItem(String glossaryItemId) {
-        GlossaryItem item =GlossaryItem.findByUuid(glossaryItemId);
+        GlossaryItem item = GlossaryItem.findByUuid(glossaryItemId);
 
         boolean success = false
 
@@ -204,7 +204,7 @@ class OpusService extends BaseDataAccessService {
     }
 
     boolean updateGlossaryItem(String glossaryItemId, data) {
-        GlossaryItem item =GlossaryItem.findByUuid(glossaryItemId);
+        GlossaryItem item = GlossaryItem.findByUuid(glossaryItemId);
 
         boolean success = false
 
@@ -283,6 +283,8 @@ class OpusService extends BaseDataAccessService {
         if (glossary.items) {
             GlossaryItem.deleteAll(glossary.items)
             glossary.items?.clear()
+        } else if (glossary.items == null) {
+            glossary.items = []
         }
 
         json.items.each {
