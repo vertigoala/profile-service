@@ -46,13 +46,42 @@ class ProfileService extends BaseDataAccessService {
                 profile.primaryImage = json.primaryImage
             }
 
-            if (json.excludedImages != profile.excludedImages) {
+            if (json.has("excludedImages") && json.excludedImages != profile.excludedImages) {
                 if (profile.excludedImages) {
                     profile.excludedImages.clear()
                 } else {
                     profile.excludedImages = []
                 }
                 profile.excludedImages.addAll(json.excludedImages)
+            }
+
+            if (json.has("bibliography") && json.bibliography != profile.bibliography) {
+                if (!profile.bibliography) {
+                    profile.bibliography = []
+                }
+
+                Set retainedIds = []
+                List<Bibliography> incomingBibliographies = json.bibliography.collect {
+                    Bibliography bibliography
+                    if (it.uuid) {
+                        retainedIds << it.uuid
+                        bibliography = Bibliography.findByUuid(it.uuid)
+                        bibliography.order = it.order
+                    } else {
+                        bibliography = new Bibliography(text: it.text, uuid: UUID.randomUUID().toString(), order: it.order)
+                    }
+                    bibliography
+                }
+
+                profile.bibliography.each {
+                    if (!retainedIds.contains(it.uuid)) {
+                        delete it, false
+                    }
+                }
+
+                profile.bibliography.clear()
+
+                profile.bibliography.addAll(incomingBibliographies)
             }
 
             boolean success = save profile
