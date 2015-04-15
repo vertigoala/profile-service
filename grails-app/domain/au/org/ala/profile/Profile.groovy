@@ -15,6 +15,7 @@ class Profile {
 
     String primaryImage
     List<String> excludedImages
+    List<String> specimenIds
 
     Date dateCreated
     Date lastUpdated
@@ -27,6 +28,7 @@ class Profile {
         guid nullable: true
         primaryImage nullable: true
         excludedImages nullable: true
+        specimenIds nullable: true
     }
 
     static mapping = {

@@ -55,6 +55,15 @@ class ProfileService extends BaseDataAccessService {
                 profile.excludedImages.addAll(json.excludedImages)
             }
 
+            if (json.has("specimenIds") && json.specimenIds != profile.specimenIds) {
+                if (profile.specimenIds) {
+                    profile.specimenIds.clear()
+                } else {
+                    profile.specimenIds = []
+                }
+                profile.specimenIds.addAll(json.specimenIds)
+            }
+
             if (json.has("bibliography") && json.bibliography != profile.bibliography) {
                 if (!profile.bibliography) {
                     profile.bibliography = []

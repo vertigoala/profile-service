@@ -19,6 +19,7 @@ class ProfileMarshaller {
                     bhl            : profile.bhlLinks,
                     primaryImage   : profile.primaryImage,
                     excludedImages : profile.excludedImages ?: [],
+                    specimenIds    : profile.specimenIds ?: [],
                     bibliography   : profile.bibliography?.collect { [uuid: it.uuid, text: it.text, order: it.order] }?.sort { it.order }
             ]
         }
