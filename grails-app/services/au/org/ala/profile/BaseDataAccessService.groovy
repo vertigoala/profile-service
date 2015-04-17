@@ -1,9 +1,9 @@
 package au.org.ala.profile
 
-
 class BaseDataAccessService {
-
     boolean save(entity, flush = true) {
+        checkState entity
+
         entity.save(flush: flush)
 
         boolean saved
@@ -21,6 +21,8 @@ class BaseDataAccessService {
     }
 
     boolean delete(entity, flush = true) {
+        checkState entity
+
         boolean deleted
 
         entity.delete(flush: flush)
@@ -35,5 +37,29 @@ class BaseDataAccessService {
         }
 
         deleted
+    }
+
+    /**
+     * Throws an IllegalArgumentException if the provided argument is null or empty
+     *
+     * @param arg The argument to check
+     * @param an optional message to include in the IllegalArgumentException
+     */
+    void checkArgument(arg, message = "") {
+        if (arg == null || (arg.getMetaClass() && arg.getMetaClass().respondsTo(arg, "isEmpty") && arg.isEmpty())) {
+            throw new IllegalArgumentException(message)
+        }
+    }
+
+    /**
+     * Throws an IllegalStateException if the provided state evaluates to false with
+     *
+     * @param state The state to check
+     * @param message an optional message to include in the IllegalArgumentException
+     */
+    void checkState(state, message = "") {
+        if (!state) {
+            throw new IllegalStateException(message)
+        }
     }
 }

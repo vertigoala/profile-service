@@ -1,6 +1,6 @@
 package au.org.ala.profile
 
-import grails.transaction.Transactional
+import org.springframework.transaction.annotation.Transactional
 
 import javax.persistence.PersistenceException
 

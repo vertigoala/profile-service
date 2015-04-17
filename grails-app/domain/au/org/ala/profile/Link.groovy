@@ -19,6 +19,8 @@ class Link {
 
     static hasMany = [creators: Contributor]
 
+    static belongsTo = Profile
+
     def beforeValidate() {
         if (!uuid) {
             //mint an UUID

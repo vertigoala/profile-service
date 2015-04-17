@@ -49,13 +49,12 @@ class AttributeController extends BaseController {
      * Takes a JSON post supplying a attributeId (uuid), and then a title & text & contributor
      */
     def update() {
-        JsonSlurper jsonSlurper = new JsonSlurper()
-        def json = jsonSlurper.parse(request.getReader())
+        def json = request.getJSON()
 
-        if (!params.attributeId) {
+        if (!params.attributeId || !params.profileId || !json) {
             badRequest()
         } else {
-            boolean success = profileService.updateAttribute(params.attributeId, json)
+            boolean success = profileService.updateAttribute(params.attributeId, params.profileId, json)
 
             if (success) {
                 def result = [success: true, attributeId: params.attributeId]

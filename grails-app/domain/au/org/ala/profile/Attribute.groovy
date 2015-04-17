@@ -27,8 +27,6 @@ class Attribute {
 
     static mapping = {
         subAttributes cascade: "all-delete-orphan"
-        creators cascade: "all-delete-orphan"
-        editors cascade: "all-delete-orphan"
     }
 
     def beforeValidate() {

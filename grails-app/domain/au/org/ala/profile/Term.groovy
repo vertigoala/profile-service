@@ -1,5 +1,10 @@
 package au.org.ala.profile
 
+import groovy.transform.EqualsAndHashCode
+import groovy.transform.ToString
+
+@ToString
+@EqualsAndHashCode
 class Term {
 
     String uuid
