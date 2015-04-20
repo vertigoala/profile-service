@@ -33,7 +33,7 @@ class Opus {
     Boolean allowCopyFromLinkedOpus = false
     Glossary glossary
 
-    static hasMany = [additionalOccurrenceResources: OccurrenceResource, admins: Contributor, editors: Contributor, supportingOpuses: Opus]
+    static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, supportingOpuses: Opus]
 
     static constraints = {
         logoUrl nullable: true
@@ -59,5 +59,6 @@ class Opus {
     static mapping = {
         version false
         glossary cascade: "all-delete-orphan"
+        authorities cascade: "all-delete-orphan"
     }
 }

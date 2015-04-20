@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.security.Role
 import org.springframework.transaction.annotation.Transactional
 
 @Transactional
@@ -128,29 +129,24 @@ class OpusService extends BaseDataAccessService {
     }
 
     boolean updateUsers(String opusId, Map json) {
+        checkArgument opusId
+        checkArgument json
+
         Opus opus = Opus.findByUuid(opusId)
+        checkState opus
 
-        if (json.admins != opus.admins) {
-            if (opus.admins) {
-                opus.admins.clear()
+        if (json.containsKey("authorities")) {
+            if (opus.authorities) {
+                Authority.deleteAll(opus.authorities)
+                opus.authorities.clear()
             } else {
-                opus.admins = []
+                opus.authorities = []
             }
-            json.admins?.each {
-                Contributor admin = getOrCreateContributor(it.displayName, it.userId)
-                opus.admins << admin
-            }
-        }
 
-        if (json.editors != opus.editors) {
-            if (opus.editors) {
-                opus.editors.clear()
-            } else {
-                opus.editors = []
-            }
-            json.editors?.each {
-                Contributor editor = getOrCreateContributor(it.displayName, it.userId)
-                opus.editors << editor
+            json.authorities?.each {
+                Contributor user = getOrCreateContributor(it.name, it.userId)
+                Role role = Role.valueOf(it.role.toUpperCase())
+                opus.authorities << new Authority(user: user, role: role, notes: it.notes)
             }
         }
 
@@ -181,8 +177,11 @@ class OpusService extends BaseDataAccessService {
     Contributor getOrCreateContributor(String name, String userId = null) {
         Contributor contributor = userId ? Contributor.findByUserId(userId) : Contributor.findByName(name)
         if (!contributor) {
+            // name and userId are both required fields for a new Contributor, so do not attempt creation if they are not valid
+            checkArgument userId
+            checkArgument name
             contributor = new Contributor(userId: userId, name: name)
-            contributor.save(flush: true)
+            save contributor
         }
         contributor
     }
