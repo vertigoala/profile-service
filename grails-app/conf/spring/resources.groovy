@@ -10,7 +10,8 @@ beans = {
             new OpusMarshaller(),
             new ProfileMarshaller(),
             new PublicationMarshaller(),
-            new GlossaryMarshaller()
+            new GlossaryMarshaller(),
+            new CommentMarshaller()
         ]
     }
 }

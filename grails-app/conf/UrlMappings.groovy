@@ -48,6 +48,9 @@ class UrlMappings {
         "/profile/$profileId/publication/$publicationId/delete" controller: "profile", action: [DELETE:"deletePublication"]
         "/profile/$profileId/publication/$publicationId/file" controller: "profile", action: [GET:"getPublicationFile"]
 
+        "/profile/$profileId/comment" controller: "comment", action: [GET: "getComments", PUT: "addComment"]
+        "/profile/$profileId/comment/$commentId" controller: "comment", action: [GET: "getComment", POST: "updateComment", DELETE: "deleteComment"]
+
         "/$controller/$action?/$id?(.$format)?"{
             constraints {
                 // apply constraints here

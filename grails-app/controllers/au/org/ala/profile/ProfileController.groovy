@@ -3,9 +3,6 @@ package au.org.ala.profile
 import com.mongodb.gridfs.GridFSDBFile
 import grails.converters.JSON
 import groovy.json.JsonSlurper
-import org.apache.commons.fileupload.FileItemIterator
-import org.apache.commons.fileupload.FileItemStream
-import org.apache.commons.fileupload.servlet.ServletFileUpload
 import org.apache.http.HttpStatus
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.MultipartHttpServletRequest

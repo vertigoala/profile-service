@@ -62,4 +62,16 @@ class BaseDataAccessService {
             throw new IllegalStateException(message)
         }
     }
+
+    Contributor getOrCreateContributor(String name, String userId = null) {
+        Contributor contributor = userId ? Contributor.findByUserId(userId) : Contributor.findByName(name)
+        if (!contributor) {
+            // name and userId are both required fields for a new Contributor, so do not attempt creation if they are not valid
+            checkArgument userId
+            checkArgument name
+            contributor = new Contributor(userId: userId, name: name)
+            save contributor
+        }
+        contributor
+    }
 }
