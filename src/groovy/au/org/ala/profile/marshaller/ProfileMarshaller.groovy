@@ -13,6 +13,7 @@ class ProfileMarshaller {
                     dataResourceUid: profile.opus.dataResourceUid,
                     opusId         : profile.opus.uuid,
                     opusName       : profile.opus.title,
+                    privateMode    : profile.privateMode,
                     scientificName : profile.scientificName,
                     attributes     : profile.attributes?.sort { it.title.name.toLowerCase() },
                     links          : profile.links,

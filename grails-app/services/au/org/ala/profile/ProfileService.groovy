@@ -53,8 +53,11 @@ class ProfileService extends BaseDataAccessService {
         checkArgument json
 
         Profile profile = Profile.findByUuid(profileId)
-
         checkState profile
+
+        if (json.containsKey("privateMode")) {
+            profile.privateMode = json.privateMode
+        }
 
         saveImages(profileId, json)
 

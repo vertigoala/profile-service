@@ -12,6 +12,7 @@ class Profile {
     String uuid
     String guid                 //taxon GUID / LSID
     String scientificName
+    boolean privateMode = false
 
     String primaryImage
     List<String> excludedImages
