@@ -30,7 +30,7 @@ class VocabService extends BaseDataAccessService {
             } else {
                 // GRAILS-8061 beforeValidate does not get called on child records during a cascade save of the parent
                 // Therefore, we cannot rely on the beforeValidate method of Term, which usually creates the UUID.
-                Term term = new Term(uuid: UUID.randomUUID().toString(), name: item.name, order: vocab.terms.size() + 1)
+                Term term = new Term(uuid: UUID.randomUUID().toString(), name: item.name, order: item.order ?: vocab.terms.size() + 1)
                 term.vocab = vocab
                 vocab.terms << term
             }
