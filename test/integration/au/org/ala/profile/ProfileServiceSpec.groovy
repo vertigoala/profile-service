@@ -860,7 +860,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         service.vocabService = new VocabService()
 
         when:
-        service.createAttribute(profile.uuid, [title: "title", text: "updatedText", userId: "123", editors: ["bob"], original: [uuid: "1"]])
+        service.createAttribute(profile.uuid, [title: "title", text: "updatedText", userId: "123", editors: ["bob"]])
 
         then:
         Attribute.count() == 2
@@ -871,6 +871,37 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         a.editors.size() == 1
         a.editors[0].uuid == bob.uuid
         a.text == "updatedText"
+        a.original == null
+    }
+
+    def "createAttribute should not update the creator but should set the original attribute when there is an original attribute in the incoming data"() {
+        given:
+        Vocab vocab = new Vocab(name: "vocab1")
+        Term term = new Term(uuid: "1", name: "title")
+        vocab.addToTerms(term)
+        save vocab
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title", attributeVocabUuid: vocab.uuid)
+        save opus
+        Profile profile = new Profile(opus: opus, scientificName: "sciName")
+        save profile
+        Attribute attribute = new Attribute(uuid: "1", title: term, text: "text", profile: profile, contributors: [])
+        profile.addToAttributes(attribute)
+        save attribute
+        save profile
+        Contributor fred = new Contributor(userId: "123", name: "fred")
+        Contributor bob = new Contributor(userId: "987", name: "bob")
+        save fred
+        save bob
+
+        service.vocabService = new VocabService()
+
+        when:
+        service.createAttribute(profile.uuid, [title: "title", text: "updatedText", userId: "123", editors: ["bob"], original: [uuid: "1"]])
+
+        then:
+        Attribute.count() == 2
+        Attribute a = Attribute.list()[1]
+        a.creators.size() == 0 // the creator should not be set when there is an 'original' attribute (i.e. this attribute copied from another profile
         a.original == attribute
     }
 
