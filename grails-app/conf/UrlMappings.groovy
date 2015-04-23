@@ -37,7 +37,9 @@ class UrlMappings {
         "/profile/$profileId/bhl" controller: "profile", action: [POST:"saveBHLLinks"]
         
         "/profile/$profileId/images" controller: "profile", action: [POST: "saveImages"]
-        
+
+        "/profile/$profileId/authorship" controller: "profile", action: [POST: "saveAuthorship"]
+
         "/profile/$profileId/bibliography" controller: "profile", action: [POST: "saveBibliography"]
 
         "/profile/$profileId/specimen" controller: "profile", action: [POST: "saveSpecimens"]

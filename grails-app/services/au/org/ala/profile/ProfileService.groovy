@@ -29,6 +29,8 @@ class ProfileService extends BaseDataAccessService {
             profile.guid = guidList[0]
         }
 
+        profile.authorship = [new Authorship(category: "Author", text: authService.getUserForUserId(authService.getUserId()).displayName)]
+
         boolean success = save profile
 
         if (!success) {
@@ -60,6 +62,8 @@ class ProfileService extends BaseDataAccessService {
 
         saveBibliography(profileId, json)
 
+        saveAuthorship(profileId, json)
+
         boolean success = save profile
 
         if (!success) {
@@ -87,6 +91,30 @@ class ProfileService extends BaseDataAccessService {
 
         if (!deferSave) {
             save profile
+        }
+    }
+
+    boolean saveAuthorship(String profileId, Map json, boolean deferSave = false) {
+        checkArgument profileId
+        checkArgument json
+
+        if (json.containsKey('authorship')) {
+            Profile profile = Profile.findByUuid(profileId)
+            checkState profile
+
+            if (profile.authorship) {
+                profile.authorship.clear()
+            } else {
+                profile.authorship = []
+            }
+
+            json.authorship.each {
+                profile.authorship << new Authorship(it)
+            }
+
+            if (!deferSave) {
+                save profile
+            }
         }
     }
 

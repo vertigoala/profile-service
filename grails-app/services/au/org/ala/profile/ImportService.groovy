@@ -227,6 +227,7 @@ class ImportService extends BaseDataAccessService {
                             }
                         }
 
+                        Set<String> contributorNames = []
                         it.attributes.each {
                             if (it.title && it.text) {
                                 Term term = getOrCreateTerm(opus.attributeVocabUuid, it.title)
@@ -239,7 +240,9 @@ class ImportService extends BaseDataAccessService {
                                     if (it.creators) {
                                         attribute.creators = []
                                         it.creators.each {
-                                            attribute.creators << getOrCreateContributor(it, opus.dataResourceUid)
+                                            Contributor contrib = getOrCreateContributor(it, opus.dataResourceUid)
+                                            attribute.creators << contrib
+                                            contributorNames << contrib.name
                                         }
                                     }
 
@@ -255,6 +258,8 @@ class ImportService extends BaseDataAccessService {
                                 }
                             }
                         }
+
+                        profile.authorship = [new Authorship(category: "Author", text: contributorNames.join(", "))]
 
                         profile.save(flush: true)
 

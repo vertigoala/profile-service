@@ -16,9 +16,12 @@ class Profile {
     String primaryImage
     List<String> excludedImages
     List<String> specimenIds
+    List<Authorship> authorship
 
     Date dateCreated
     Date lastUpdated
+
+    static embedded = ['authorship']
 
     static hasMany = [links: Link, attributes: Attribute, bhlLinks: Link, publications: Publication, bibliography: Bibliography]
 

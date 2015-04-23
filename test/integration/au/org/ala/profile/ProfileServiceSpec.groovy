@@ -12,6 +12,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         service.nameService.getGuidForName(_) >> ["ABC"]
         service.authService = Mock(AuthService)
         service.authService.getUserId() >> "fred"
+        service.authService.getUserForUserId(_) >> [displayName: "Fred Bloggs"]
     }
 
     def "createProfile should expect both arguments to be provided"() {
@@ -61,6 +62,20 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         then:
         profile == null
         Profile.count() == 0
+    }
+
+    def "createProfile should default the 'author' authorship to the current user"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+
+        when:
+        Profile profile = service.createProfile(opus.uuid, [scientificName: "sciName"])
+
+        then:
+        profile.authorship.size() == 1
+        profile.authorship[0].category == "Author"
+        profile.authorship[0].text == "Fred Bloggs"
     }
 
     def "delete profile should remove the record"() {
@@ -900,5 +915,104 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         then:
         result.name == "jill"
         Contributor.count() == 3
+    }
+
+    def "saveAuthorship should not change the authorship if the incoming data does not have the authorship attribute"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Authorship auth1 = new Authorship(category: "Acknowledgement", text: "Fred, Jill")
+        Authorship auth2 = new Authorship(category: "Author", text: "Bob, Jane")
+        Profile profile = new Profile(opus: opus, scientificName: "sciName", authorship: [auth1, auth2])
+        save profile
+
+        when: "the incoming data does not have the attribute"
+        service.saveAuthorship(profile.uuid, [a: "bla"])
+
+        then: "there should be no change"
+        profile.authorship.contains(auth1) && profile.authorship.contains(auth2)
+    }
+
+    def "saveAuthorship should change the authorship the incoming data contains existing and new records"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Authorship auth1 = new Authorship(category: "Acknowledgement", text: "Fred, Jill")
+        Authorship auth2 = new Authorship(category: "Author", text: "Bob, Jane")
+        Profile profile = new Profile(opus: opus, scientificName: "sciName", authorship: [auth1, auth2])
+        save profile
+
+        when: "the incoming data contains existing and new records"
+        service.saveAuthorship(profile.uuid, [authorship: [[text: "Sarah", category: "Editor"], [category: "Author", text: "Fred, Jill"]]])
+
+        then: "the profile's list should be updated "
+        profile.authorship.each { it.text == auth1.text || it.text == "Sarah" }
+    }
+
+    def "saveAuthorship should change the authorship the incoming data contains different records"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Authorship auth1 = new Authorship(category: "Acknowledgement", text: "Fred, Jill")
+        Authorship auth2 = new Authorship(category: "Author", text: "Bob, Jane")
+        Profile profile = new Profile(opus: opus, scientificName: "sciName", authorship: [auth1, auth2])
+        save profile
+
+        when: "the incoming value is different"
+        service.saveAuthorship(profile.uuid, [authorship: [[text: "Sarah", category: "Author"]]])
+
+        then: "the profile should be replaced"
+        profile.authorship.size() == 1
+        profile.authorship[0].text == "Sarah"
+        profile.authorship[0].category == "Author"
+    }
+
+    def "saveAuthorship should not change the authorship if the incoming data contains the same records"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Authorship auth1 = new Authorship(category: "Acknowledgement", text: "Fred, Jill")
+        Authorship auth2 = new Authorship(category: "Author", text: "Bob, Jane")
+        Profile profile = new Profile(opus: opus, scientificName: "sciName", authorship: [auth1, auth2])
+        save profile
+
+        when: "the incoming data the same"
+        service.saveAuthorship(profile.uuid, [authorship: [[text: "Bob, Jane", category: "Author"], [text: "Fred, Jill", category: "Acknowledgement"]]])
+
+        then: "there should be no change"
+        profile.authorship.size() == 2
+        profile.authorship.every { it.text == auth1.text || it.text == auth2.text }
+    }
+
+    def "saveAuthorship should clear the authorship if the incoming data is empty"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Authorship auth1 = new Authorship(category: "Acknowledgement", text: "Fred, Jill")
+        Authorship auth2 = new Authorship(category: "Author", text: "Bob, Jane")
+        Profile profile = new Profile(opus: opus, scientificName: "sciName", authorship: [auth1, auth2])
+        save profile
+
+        when: "the incoming attribute is empty"
+        service.saveAuthorship(profile.uuid, [authorship: []])
+
+        then: "all existing authorship should be removed"
+        profile.authorship.isEmpty()
+    }
+
+    def "saveAuthorship should clear the authorship if the incoming data is null"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Authorship auth1 = new Authorship(category: "Acknowledgement", text: "Fred, Jill")
+        Authorship auth2 = new Authorship(category: "Author", text: "Bob, Jane")
+        Profile profile = new Profile(opus: opus, scientificName: "sciName", authorship: [auth1, auth2])
+        save profile
+
+        when: "the incoming attribute is empty"
+        service.saveAuthorship(profile.uuid, [authorship: null])
+
+        then: "all existing authorship should be removed"
+        profile.authorship.isEmpty()
     }
 }

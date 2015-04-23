@@ -41,6 +41,23 @@ class ProfileController extends BaseController {
         }
     }
 
+    def saveAuthorship() {
+        def json = request.getJSON()
+
+        if (!params.profileId || !json) {
+            badRequest()
+        } else {
+            boolean saved = profileService.saveAuthorship(params.profileId, json)
+
+            if (saved) {
+                Profile profile = Profile.findByUuid(params.profileId)
+                render profile.authorship as JSON
+            } else {
+                saveFailed()
+            }
+        }
+    }
+
     def savePublication() {
         def publication
         MultipartFile file
