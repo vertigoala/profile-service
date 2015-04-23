@@ -165,6 +165,12 @@ class OpusService extends BaseDataAccessService {
         }
         delete opus.glossary
 
+        if (opus.attributeVocabUuid) {
+            Vocab vocab = Vocab.findByUuid(opus.attributeVocabUuid)
+            Term.deleteAll(vocab.terms)
+            delete vocab
+        }
+
         List<Opus> linkedOpuses = Opus.findAllBySupportingOpuses(opus)
         linkedOpuses?.each {
             it.supportingOpuses.remove(opus)

@@ -11,6 +11,7 @@ class AttributeMarshaller {
             return [
                     uuid: "${attr.uuid}",
                     title: "${attr.title.name}",
+                    order: "${attr.title.order}",
                     text: "${attr.text}",
                     creators: attr.creators.collect{ it.name },
                     editors: attr.editors.collect{ it.name },

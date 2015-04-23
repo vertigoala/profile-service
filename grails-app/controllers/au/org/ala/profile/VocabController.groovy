@@ -24,14 +24,16 @@ class VocabController extends BaseController {
         def vocab = Vocab.findByUuid(params.vocabId)
         if (vocab) {
             def termsToRender = []
-            vocab.terms.each { term ->
+
+            vocab.terms.sort().eachWithIndex { term, index ->
                 termsToRender << [
-                        "name": "${term.name}",
-                        "termId": "${term.uuid}"
+                        name: term.name,
+                        termId: term.uuid,
+                        order: term.order == -1 ? index : term.order
                 ]
             }
 
-            def payload = [name: vocab.name, strict: vocab.strict ?: false, terms: termsToRender.sort { it.name.toLowerCase() }]
+            def payload = [name: vocab.name, strict: vocab.strict ?: false, terms: termsToRender.sort { [it.order, it.name.toLowerCase()] }]
             render payload as JSON
         } else {
             notFound()

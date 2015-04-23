@@ -5,7 +5,7 @@ import groovy.transform.ToString
 
 @EqualsAndHashCode
 @ToString
-class Attribute {
+class Attribute implements Comparable<Attribute> {
 
     static auditable = true
 
@@ -33,6 +33,14 @@ class Attribute {
         if (uuid == null) {
             //mint an UUID
             uuid = UUID.randomUUID().toString()
+        }
+    }
+
+    int compareTo(Attribute right) {
+        if (title.order == right.title.order) {
+            title.name.toLowerCase() <=> right.title.name.toLowerCase()
+        } else {
+            title.order <=> right.title.order
         }
     }
 }
