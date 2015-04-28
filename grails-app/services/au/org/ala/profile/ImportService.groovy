@@ -159,6 +159,7 @@ class ImportService extends BaseDataAccessService {
 
                     //associate the contributors with all attributes
                     def contribs = []
+                    List<String> contributorNames = []
                     contributors.each {
                         def retrieved = Contributor.findByName(it)
                         if (retrieved) {
@@ -166,7 +167,10 @@ class ImportService extends BaseDataAccessService {
                         } else {
                             contribs << new Contributor(uuid: UUID.randomUUID().toString(), name: it, dataResourceUid: foaOpus.dataResourceUid)
                         }
+                        contributorNames << it
                     }
+
+                    profile.authorship = [new Authorship(category: "Author", text: contributorNames.join(", "))]
 
                     def oldFoaLink = new Link(
                             uuid: UUID.randomUUID().toString(),
