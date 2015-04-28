@@ -13,6 +13,7 @@ class ImportService extends BaseDataAccessService {
 
     static final int IMPORT_THREAD_POOL_SIZE = 10
 
+    ProfileService profileService
     NameService nameService
 
     def foaOpusId = "2f75e6c9-7034-409b-b27c-3864326bee41"
@@ -77,14 +78,17 @@ class ImportService extends BaseDataAccessService {
                 enableKeyUpload       : false,
                 mapAttribution        : 'Australian Virtual Herbarium (CHAH)',
                 biocacheUrl           : 'http://avh.ala.org.au',
-                biocacheName          : 'Australian Virtual Herbarium'
+                biocacheName          : 'Australian Virtual Herbarium',
+                glossary              : new Glossary(uuid: UUID.randomUUID().toString())
         ]
 
         def foaOpus = Opus.findByDataResourceUid("dr382")
         if (!foaOpus) {
             foaOpus = new Opus(opusModel)
-            foaOpus.save(flush: true)
+            save foaOpus
         }
+
+        assert Opus.findByDataResourceUid("dr382") != null
 
         Vocab vocab = Vocab.findByUuid(FLORA_AUSTRALIA_VOCAB)
         if (!vocab) {
@@ -133,6 +137,10 @@ class ImportService extends BaseDataAccessService {
                             scientificName: parsed.scientificName,
                             opus          : foaOpus
                     ])
+
+                    if (profile.guid) {
+                        profileService.populateTaxonHierarchy(profile)
+                    }
 
                     profile.attributes = []
 
@@ -235,6 +243,10 @@ class ImportService extends BaseDataAccessService {
                         }
 
                         profile = new Profile(scientificName: it.scientificName, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: []);
+
+                        if (profile.guid) {
+                            profileService.populateTaxonHierarchy(profile)
+                        }
 
                         it.links.each {
                             if (it) {
@@ -351,7 +363,7 @@ class ImportService extends BaseDataAccessService {
         [vocab: vocab, contributors: contributors]
     }
 
-    private cleanName(String name) {
+    private static cleanName(String name) {
         name.replaceAll("\\(.*\\)", "").replaceAll(" +", " ").trim()
     }
 

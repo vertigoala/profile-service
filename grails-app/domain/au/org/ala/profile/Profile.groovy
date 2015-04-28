@@ -18,11 +18,12 @@ class Profile {
     List<String> excludedImages
     List<String> specimenIds
     List<Authorship> authorship
+    Classification classification
 
     Date dateCreated
     Date lastUpdated
 
-    static embedded = ['authorship']
+    static embedded = ['authorship', 'classification']
 
     static hasMany = [links: Link, attributes: Attribute, bhlLinks: Link, publications: Publication, bibliography: Bibliography]
 
@@ -33,6 +34,7 @@ class Profile {
         primaryImage nullable: true
         excludedImages nullable: true
         specimenIds nullable: true
+        classification nullable: true
     }
 
     static mapping = {

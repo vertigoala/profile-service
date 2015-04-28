@@ -23,7 +23,11 @@ class UrlMappings {
 
         "/opus/$opusId" controller: "opus", action: [GET: "show", POST:"updateOpus", DELETE: "deleteOpus"]
 
-        "/profile/search" controller: "profile", action: "search"
+        "/profile/search" controller: "search", action: "findByScientificName"
+        "/profile/search/scientificName" controller: "search", action: "findByScientificName"
+        "/profile/search/taxon/name" controller: "search", action: "findByNameAndTaxonLevel"
+        "/profile/search/taxon/level" controller: "search", action: "groupByTaxonLevel"
+        "/profile/search/taxon/levels" controller: "search", action: "getTaxonLevels"
 
         "/profile/" controller: "profile", action: [GET: "index", PUT: "createProfile"]
 

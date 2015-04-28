@@ -9,11 +9,9 @@ import org.springframework.web.multipart.MultipartHttpServletRequest
 
 class ProfileController extends BaseController {
 
-    static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 10
-    static final Integer DEFAULT_MAX_BROAD_SEARCH_RESULTS = 50
-
-    def profileService
-    def importService
+    ProfileService profileService
+    ImportService importService
+    BieService bieService
 
     def saveBHLLinks() {
         def jsonSlurper = new JsonSlurper()
@@ -108,57 +106,6 @@ class ProfileController extends BaseController {
         }
     }
 
-    /**
-     * Basic search
-     * TODO replace with a free text search index backed search.
-     * http://grails.github.io/grails-data-mapping/mongodb/manual/guide/3.%20Mapping%20Domain%20Classes%20to%20MongoDB%20Collections.html#3.7%20Full%20Text%20Search
-     * https://blog.codecentric.de/en/2013/01/text-search-mongodb-stemming/
-     *
-     * @return
-     */
-    def search() {
-        if (!params.scientificName) {
-            badRequest "scientificName is a required parameter. opusId and useWildcard are optional."
-        }
-
-        List results
-
-        String wildcard = "%"
-        if (params.useWildcard && !params.useWildcard.toBoolean()) {
-            wildcard = ""
-        }
-
-        if (params.opusId && params.opusId != "null") {
-            List<Opus> opusList = []
-            if (params.opusId.contains(",")) {
-                params.opusId.split(",").each {
-                    opusList << Opus.findByUuid(it)
-                }
-            } else {
-                opusList << Opus.findByUuid(params.opusId)
-            }
-
-            if (opusList) {
-                results = Profile.findAllByScientificNameIlikeAndOpusInList(params.scientificName + wildcard, opusList, [max: params.max ?: DEFAULT_MAX_OPUS_SEARCH_RESULTS])
-            }
-        } else {
-            results = Profile.findAllByScientificNameIlike(params.scientificName + wildcard, [max: params.max ?: DEFAULT_MAX_BROAD_SEARCH_RESULTS])
-        }
-
-        def toRender = []
-        results.each { tp ->
-            toRender << [
-                    "profileId"     : "${tp.uuid}",
-                    "guid"          : "${tp.guid}",
-                    "scientificName": "${tp.scientificName}",
-                    "opus"          : ["uuid": "${tp.opus.uuid}", "title": "${tp.opus.title}"]
-            ]
-        }
-
-        response.setContentType("application/json")
-        render toRender as JSON
-    }
-
     def index() {
         log.debug("ProfileController.index")
         def results = Profile.findAll([max: 100], {})
@@ -185,7 +132,7 @@ class ProfileController extends BaseController {
         } else {
             log.debug("Retrieving classification for ${params.guid} in opus ${params.opusId}")
             JsonSlurper js = new JsonSlurper()
-            def classification = js.parseText(new URL("${grailsApplication.config.bie.base.url}/ws/classification/${params.guid}").text)
+            def classification = bieService.getClassification(params.guid)
 
             Opus opus = Opus.findByUuid(params.opusId)
 
