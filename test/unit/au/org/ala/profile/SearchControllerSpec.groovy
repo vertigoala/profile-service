@@ -46,10 +46,10 @@ class SearchControllerSpec extends Specification {
         1 * searchService.findByScientificName("sciName", ["one", "two"], true, 666, 10)
     }
 
-    def "findByNameAndTaxonLevel should return 400 BAD REQUEST if no scientificName or taxon are provided"() {
+    def "findByTaxonNameAndLevel should return 400 BAD REQUEST if no scientificName or taxon are provided"() {
         when:
         params.scientificName = "sciName"
-        controller.findByNameAndTaxonLevel()
+        controller.findByTaxonNameAndLevel()
 
         then:
         response.status == HttpStatus.SC_BAD_REQUEST
@@ -57,7 +57,7 @@ class SearchControllerSpec extends Specification {
 
         when:
         params.taxon = "taxon"
-        controller.findByNameAndTaxonLevel()
+        controller.findByTaxonNameAndLevel()
 
         then:
         response.status == HttpStatus.SC_BAD_REQUEST
@@ -67,13 +67,13 @@ class SearchControllerSpec extends Specification {
         when:
         params.scientificName = "sciName"
         params.taxon = "taxon"
-        controller.findByNameAndTaxonLevel()
+        controller.findByTaxonNameAndLevel()
 
         then:
-        1 * searchService.findByNameAndTaxonLevel("taxon", "sciName", [], false, -1, 0)
+        1 * searchService.findByTaxonNameAndLevel("taxon", "sciName", [], false, -1, 0)
     }
 
-    def "findByNameAndTaxonLevel should use the provided values for the opus list, wildcard, max and offset parameters"() {
+    def "findByTaxonNameAndLevel should use the provided values for the opus list, wildcard, max and offset parameters"() {
         when:
         params.useWildcard = "true"
         params.offset = 10
@@ -81,10 +81,10 @@ class SearchControllerSpec extends Specification {
         params.max = 666
         params.scientificName = "sciName"
         params.taxon = "taxon"
-        controller.findByNameAndTaxonLevel()
+        controller.findByTaxonNameAndLevel()
 
         then:
-        1 * searchService.findByNameAndTaxonLevel("taxon", "sciName", ["one", "two"], true, 666, 10)
+        1 * searchService.findByTaxonNameAndLevel("taxon", "sciName", ["one", "two"], true, 666, 10)
     }
 
     def "getTaxonLevels should return a 400 BAD REQUEST if no opus id was provided"() {

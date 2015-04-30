@@ -37,7 +37,7 @@ class SearchController extends BaseController {
         }
     }
 
-    def findByNameAndTaxonLevel() {
+    def findByTaxonNameAndLevel() {
         if (!params.taxon || !params.scientificName) {
             badRequest "taxon (e.g. phylum, genus, species, etc) and scientificName are a required parameters. You can also optionally supply opusId (comma-separated list of opus ids), max (max records to return), offset (0 based index to start from)."
         } else {
@@ -47,7 +47,7 @@ class SearchController extends BaseController {
             int max = params.max ? params.max as int : -1
             int startFrom = params.offset ? params.offset as int : 0
 
-            List<Profile> profiles = searchService.findByNameAndTaxonLevel(params.taxon, params.scientificName, opusIds, useWildcard, max, startFrom)
+            List<Profile> profiles = searchService.findByTaxonNameAndLevel(params.taxon, params.scientificName, opusIds, useWildcard, max, startFrom)
 
             response.setContentType("application/json")
             render profiles.collect {

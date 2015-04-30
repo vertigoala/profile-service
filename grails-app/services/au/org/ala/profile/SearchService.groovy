@@ -8,7 +8,7 @@ class SearchService extends BaseDataAccessService {
     static final Integer DEFAULT_MAX_BROAD_SEARCH_RESULTS = 50
 
 
-    List<Profile> findByScientificName(String scientificName, List<String> opusIds, boolean useWildcard, int max = -1, int startFrom = 0) {
+    List<Profile> findByScientificName(String scientificName, List<String> opusIds, boolean useWildcard = true, int max = -1, int startFrom = 0) {
         checkArgument scientificName
 
         String wildcard = "%"
@@ -36,7 +36,7 @@ class SearchService extends BaseDataAccessService {
         }
     }
 
-    List<Profile> findByNameAndTaxonLevel(String taxon, String scientificName, List<String> opusIds, boolean useWildcard, int max = -1, int startFrom = 0) {
+    List<Profile> findByTaxonNameAndLevel(String taxon, String scientificName, List<String> opusIds, boolean useWildcard = true, int max = -1, int startFrom = 0) {
         checkArgument taxon
         checkArgument scientificName
 
@@ -83,7 +83,7 @@ class SearchService extends BaseDataAccessService {
         }
     }
 
-    Map<String, Integer> groupByTaxonLevel(String opusId, String taxon, int max, int startFrom) {
+    Map<String, Integer> groupByTaxonLevel(String opusId, String taxon, int max = -1, int startFrom = 0) {
         checkArgument opusId
         checkArgument taxon
 
