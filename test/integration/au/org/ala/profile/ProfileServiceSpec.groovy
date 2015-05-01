@@ -9,7 +9,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
     def setup() {
         service.nameService = Mock(NameService)
-        service.nameService.getGuidForName(_) >> ["ABC"]
+        service.nameService.getGuidForName(_) >> "ABC"
         service.authService = Mock(AuthService)
         service.authService.getUserId() >> "fred"
         service.authService.getUserForUserId(_) >> [displayName: "Fred Bloggs"]

@@ -25,10 +25,9 @@ class ProfileService extends BaseDataAccessService {
         Profile profile = new Profile(json)
         profile.opus = opus
 
-        List<String> guidList = nameService.getGuidForName(profile.scientificName)
-        if (guidList && guidList.size() > 0) {
-            profile.guid = guidList[0]
+        profile.guid = nameService.getGuidForName(profile.scientificName)
 
+        if (profile.guid) {
             populateTaxonHierarchy(profile)
         }
 
