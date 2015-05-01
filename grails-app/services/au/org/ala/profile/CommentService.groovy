@@ -14,7 +14,7 @@ class CommentService extends BaseDataAccessService {
 
         Comment comment = new Comment(json)
 
-        comment.author = getOrCreateContributor(authService.getDisplayName(), authService.getUserId())
+        comment.author = getOrCreateContributor(authService.getUserForUserId(authService.getUserId())?.displayName, authService.getUserId())
 
         boolean success
         if (json.parentCommentId) {

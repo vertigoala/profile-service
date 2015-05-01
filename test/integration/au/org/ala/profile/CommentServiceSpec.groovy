@@ -8,7 +8,7 @@ class CommentServiceSpec extends BaseIntegrationSpec {
 
     def setup() {
         service.authService = Mock(AuthService)
-        service.authService.getDisplayName() >> "fred"
+        service.authService.getUserForUserId(_) >> [displayName: "fred"]
         service.authService.getUserId() >> "1234"
     }
 

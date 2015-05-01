@@ -12,6 +12,7 @@ class ProfileService extends BaseDataAccessService {
     VocabService vocabService
     NameService nameService
     AuthService authService
+    BieService bieService
 
     Profile createProfile(String opusId, Map json) {
         checkArgument opusId
@@ -27,6 +28,8 @@ class ProfileService extends BaseDataAccessService {
         List<String> guidList = nameService.getGuidForName(profile.scientificName)
         if (guidList && guidList.size() > 0) {
             profile.guid = guidList[0]
+
+            populateTaxonHierarchy(profile)
         }
 
         profile.authorship = [new Authorship(category: "Author", text: authService.getUserForUserId(authService.getUserId()).displayName)]
@@ -38,6 +41,27 @@ class ProfileService extends BaseDataAccessService {
         }
 
         profile
+    }
+
+    void populateTaxonHierarchy(Profile profile) {
+        if (profile && profile.guid) {
+            def classificationJson = bieService.getClassification(profile.guid)
+
+            if (classificationJson) {
+                Map classification = classificationJson.collectEntries {
+                    if (it.rank == "class") {
+                        ["clazz": it.scientificName, "clazzGuid": it.guid]
+                    } else if (it.rank == "subclass") {
+                        ["subclazz": it.scientificName, "subclazzGuid": it.guid]
+                    } else {
+                        [(it.rank): it.scientificName, ("${it.rank}Guid"): it.guid]
+                    }
+                }
+                profile.classification = new Classification(classification)
+            } else {
+                log.info("Unable to find species classification for ${profile.scientificName}, with GUID ${profile.guid}")
+            }
+        }
     }
 
     boolean deleteProfile(String profileId) {

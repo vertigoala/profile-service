@@ -13,6 +13,8 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         service.authService = Mock(AuthService)
         service.authService.getUserId() >> "fred"
         service.authService.getUserForUserId(_) >> [displayName: "Fred Bloggs"]
+        service.bieService = Mock(BieService)
+        service.bieService.getClassification(_) >> null
     }
 
     def "createProfile should expect both arguments to be provided"() {

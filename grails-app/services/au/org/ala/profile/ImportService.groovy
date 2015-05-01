@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicInteger
 
 import static groovyx.gpars.GParsPool.*
@@ -8,12 +9,12 @@ import static groovyx.gpars.GParsPool.*
 import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
 import org.xml.sax.SAXException
 
-
 class ImportService extends BaseDataAccessService {
 
     static final int IMPORT_THREAD_POOL_SIZE = 10
 
-    def nameService
+    ProfileService profileService
+    NameService nameService
 
     def foaOpusId = "2f75e6c9-7034-409b-b27c-3864326bee41"
     def spongesOpusId = "e3e35631-d864-44ed-a0b1-2c707bbc6d61"
@@ -77,14 +78,17 @@ class ImportService extends BaseDataAccessService {
                 enableKeyUpload       : false,
                 mapAttribution        : 'Australian Virtual Herbarium (CHAH)',
                 biocacheUrl           : 'http://avh.ala.org.au',
-                biocacheName          : 'Australian Virtual Herbarium'
+                biocacheName          : 'Australian Virtual Herbarium',
+                glossary              : new Glossary(uuid: UUID.randomUUID().toString())
         ]
 
         def foaOpus = Opus.findByDataResourceUid("dr382")
         if (!foaOpus) {
             foaOpus = new Opus(opusModel)
-            foaOpus.save(flush: true)
+            save foaOpus
         }
+
+        assert Opus.findByDataResourceUid("dr382") != null
 
         Vocab vocab = Vocab.findByUuid(FLORA_AUSTRALIA_VOCAB)
         if (!vocab) {
@@ -134,6 +138,10 @@ class ImportService extends BaseDataAccessService {
                             opus          : foaOpus
                     ])
 
+                    if (profile.guid) {
+                        profileService.populateTaxonHierarchy(profile)
+                    }
+
                     profile.attributes = []
 
                     if (parsed.habitat) {
@@ -151,6 +159,7 @@ class ImportService extends BaseDataAccessService {
 
                     //associate the contributors with all attributes
                     def contribs = []
+                    List<String> contributorNames = []
                     contributors.each {
                         def retrieved = Contributor.findByName(it)
                         if (retrieved) {
@@ -158,7 +167,10 @@ class ImportService extends BaseDataAccessService {
                         } else {
                             contribs << new Contributor(uuid: UUID.randomUUID().toString(), name: it, dataResourceUid: foaOpus.dataResourceUid)
                         }
+                        contributorNames << it
                     }
+
+                    profile.authorship = [new Authorship(category: "Author", text: contributorNames.join(", "))]
 
                     def oldFoaLink = new Link(
                             uuid: UUID.randomUUID().toString(),
@@ -187,6 +199,22 @@ class ImportService extends BaseDataAccessService {
         }
     }
 
+    /**
+     * Profile import is a two-pass operation:
+     * 1.) Use multiple threads to loop through the provided data set to find all values that should be unique (e.g. attribute terms, contributors, etc)
+     * 1.1) Using a single thread, store them in the database and return a map of references.
+     * 2.) Use multiple threads to loop through the provided data set again to process each individual record, retrieving references to unique values from the maps from pass 1.
+     *
+     * Querying data from the database, and writing records if they don't exist, is the slowest part of the import process.
+     * Executing these 'get or create' actions concurrently results in race conditions and duplicated data.
+     * Synchronising the methods resolves this issue, but dramatically increases the execution time of the import.
+     *
+     * The two-pass approach ensures no duplicate records are created, and does not significantly impact performance.
+     *
+     * @param opusId
+     * @param profilesJson
+     * @return
+     */
     Map<String, String> importProfiles(String opusId, profilesJson) {
         Opus opus = Opus.findByUuid(opusId);
 
@@ -196,6 +224,11 @@ class ImportService extends BaseDataAccessService {
         AtomicInteger index = new AtomicInteger(0)
         int reportInterval = 0.05 * profilesJson.size() // log at 5% intervals
 
+        Map uniqueValues = findAndStoreUniqueValues(opus, profilesJson)
+        Map<String, Term> vocab = uniqueValues.vocab
+        Map<String, Contributor> contributors = uniqueValues.contributors
+
+        log.info "Importing profiles ..."
         withPool(IMPORT_THREAD_POOL_SIZE) {
             profilesJson.eachParallel {
                 index.incrementAndGet()
@@ -215,22 +248,26 @@ class ImportService extends BaseDataAccessService {
 
                         profile = new Profile(scientificName: it.scientificName, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: []);
 
+                        if (profile.guid) {
+                            profileService.populateTaxonHierarchy(profile)
+                        }
+
                         it.links.each {
                             if (it) {
-                                profile.links << createLink(it)
+                                profile.links << createLink(it, contributors)
                             }
                         }
 
                         it.bhl.each {
                             if (it) {
-                                profile.bhlLinks << createLink(it)
+                                profile.bhlLinks << createLink(it, contributors)
                             }
                         }
 
                         Set<String> contributorNames = []
                         it.attributes.each {
                             if (it.title && it.text) {
-                                Term term = getOrCreateTerm(opus.attributeVocabUuid, it.title)
+                                Term term = vocab.get(it.title.trim())
 
                                 String text = cleanupText(it.text)
                                 if (text) {
@@ -240,16 +277,26 @@ class ImportService extends BaseDataAccessService {
                                     if (it.creators) {
                                         attribute.creators = []
                                         it.creators.each {
-                                            Contributor contrib = getOrCreateContributor(it, opus.dataResourceUid)
-                                            attribute.creators << contrib
-                                            contributorNames << contrib.name
+                                            String name = cleanName(it)
+                                            if (name) {
+                                                Contributor contrib = contributors[name]
+                                                if (contrib) {
+                                                    attribute.creators << contrib
+                                                    contributorNames << contrib.name
+                                                } else {
+                                                    log.warn("Missing contributor for name '${name}'")
+                                                }
+                                            }
                                         }
                                     }
 
                                     if (it.editors) {
                                         attribute.editors = []
                                         it.editors.each {
-                                            attribute.editors << getOrCreateContributor(it, opus.dataResourceUid)
+                                            String name = cleanName(it)
+                                            if (name) {
+                                                attribute.editors << contributors[name]
+                                            }
                                         }
                                     }
 
@@ -283,18 +330,45 @@ class ImportService extends BaseDataAccessService {
         results
     }
 
-    Link createLink(data) {
-        Link link = new Link(data)
-        link.uuid = UUID.randomUUID().toString()
+    Map findAndStoreUniqueValues(Opus opus, profilesJson) {
+        Set<String> uniqueTerms = [] as ConcurrentSkipListSet
+        Set<String> uniqueContributors = [] as ConcurrentSkipListSet
 
-        if (data.creators) {
-            link.creators = []
-            data.creators.each {
-                link.creators << new Contributor(name: it)
+        log.info "Retrieving unique data..."
+        withPool(IMPORT_THREAD_POOL_SIZE) {
+            profilesJson.eachParallel {
+                it.attributes.each { attr ->
+                    if (attr.title) {
+                        uniqueTerms << attr.title.trim()
+                    }
+
+                    attr.editors?.each { name ->
+                        uniqueContributors << cleanName(name)
+                    }
+                    attr.creators?.each { name ->
+                        uniqueContributors << cleanName(name)
+                    }
+                }
             }
         }
 
-        link
+        log.info "Storing unique vocabulary (${uniqueTerms.size()} terms) ..."
+        Map<String, Term> vocab = [:]
+        uniqueTerms.each {
+            vocab[it] = getOrCreateTerm(opus.attributeVocabUuid, it)
+        }
+
+        log.info "Storing unique contributors (${uniqueContributors.size()} names) ..."
+        Map<String, Contributor> contributors = [:]
+        uniqueContributors.each {
+            contributors[it] = getOrCreateContributor(it, opus.dataResourceUid)
+        }
+
+        [vocab: vocab, contributors: contributors]
+    }
+
+    private static cleanName(String name) {
+        name.replaceAll("\\(.*\\)", "").replaceAll(" +", " ").trim()
     }
 
     Contributor getOrCreateContributor(String name, String opusDataResourceId) {
@@ -305,4 +379,20 @@ class ImportService extends BaseDataAccessService {
         contributor
     }
 
+    Link createLink(data, contributors) {
+        Link link = new Link(data)
+        link.uuid = UUID.randomUUID().toString()
+
+        if (data.creators) {
+            link.creators = []
+            data.creators.each {
+                String name = cleanName(it)
+                if (name) {
+                    link.creators << contributors[name]
+                }
+            }
+        }
+
+        link
+    }
 }
