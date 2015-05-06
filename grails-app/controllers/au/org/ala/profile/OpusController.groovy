@@ -1,19 +1,17 @@
 package au.org.ala.profile
 
-import au.com.bytecode.opencsv.CSVReader
 import grails.converters.JSON
 
 class OpusController extends BaseController {
 
     OpusService opusService
-    NameService nameService
 
     def index() {
         respond Opus.findAll(), [formats: ['json', 'xml']]
     }
 
     def show() {
-        def result = Opus.findByUuid(params.opusId)
+        def result = getOpus()
         if (result) {
             int profiles = Profile.countByOpus(result)
             result.profileCount = profiles
@@ -33,9 +31,15 @@ class OpusController extends BaseController {
         if (!params.opusId) {
             badRequest "You must provide an opusId"
         } else {
-            boolean success = opusService.deleteOpus(params.opusId)
+            Opus opus = getOpus()
 
-            render ([success: success] as JSON)
+            if (!opus) {
+                notFound()
+            } else {
+                boolean success = opusService.deleteOpus(opus.uuid)
+
+                render([success: success] as JSON)
+            }
         }
     }
 
@@ -43,14 +47,14 @@ class OpusController extends BaseController {
         if (!params.opusId) {
             badRequest "You must provide an opusId"
         } else {
-            Opus opus = Opus.findByUuid(params.opusId);
+            Opus opus = getOpus()
 
             if (!opus) {
                 notFound()
             } else {
                 def json = request.getJSON()
 
-                boolean updated = opusService.updateOpus(params.opusId, json);
+                boolean updated = opusService.updateOpus(opus.uuid, json)
 
                 if (!updated) {
                     saveFailed()
@@ -65,14 +69,14 @@ class OpusController extends BaseController {
         if (!params.opusId) {
             badRequest "You must provide an opusId"
         } else {
-            Opus opus = Opus.findByUuid(params.opusId);
+            Opus opus = getOpus()
 
             if (!opus) {
                 notFound()
             } else {
                 def json = request.getJSON()
 
-                boolean updated = opusService.updateUsers(params.opusId, json);
+                boolean updated = opusService.updateUsers(opus.uuid, json)
 
                 if (!updated) {
                     saveFailed()
@@ -89,7 +93,7 @@ class OpusController extends BaseController {
         if (!params.opusId && !params.glossaryId) {
             badRequest "You must provide either an opusId or a glossaryId"
         } else if (params.opusId) {
-            Opus opus = Opus.findByUuid(params.opusId)
+            Opus opus = getOpus()
 
             if (!opus || !opus.glossary) {
                 notFound()
@@ -162,61 +166,18 @@ class OpusController extends BaseController {
         if (!params.opusId || !json) {
             badRequest()
         } else {
-            GlossaryItem item = opusService.createGlossaryItem(params.opusId, json)
-
-            if (!item) {
-                saveFailed()
+            Opus opus = getOpus()
+            if (!opus) {
+                notFound()
             } else {
-                render item as JSON
-            }
-        }
-    }
+                GlossaryItem item = opusService.createGlossaryItem(opus.uuid, json)
 
-    def taxaUpload() {
-        log.info("taxa upload invoked....")
-        def file = request.getFile('taxaUploadFile')
-        def opus = Opus.findByUuid(params.opusId)
-
-        if (file) {
-            log.info("files provided")
-            def tmpFile = new File("/tmp/taxa-upload.txt")
-            file.transferTo(tmpFile)
-            def reader = new CSVReader(new FileReader(tmpFile))
-            def columnHeaders = (reader.readNext() as List).collect { it.trim().toLowerCase() }
-            def currentLine
-            def taxaCreated = 0
-            def linesSkipped = 0
-            def alreadyExists = 0
-            if (columnHeaders.contains("scientificname")) {
-                def columnIdx = columnHeaders.indexOf("scientificname")
-                while ((currentLine = reader.readNext()) != null) {
-                    if (currentLine.length > columnIdx) {
-                        def scientificName = currentLine[columnIdx]
-                        if (scientificName && scientificName.trim()) {
-                            def profile = Profile.findByOpusAndScientificName(opus, scientificName)
-                            if (profile) {
-                                alreadyExists++
-                            } else {
-                                profile = new Profile([
-                                        scientificName: scientificName,
-                                        guid          : nameService.getGuidForName(scientificName) ?: "",
-                                        opus          : opus
-                                ])
-                                profile.save(flush: true)
-                                taxaCreated++
-                            }
-
-                        } else {
-                            linesSkipped++
-                        }
-                    }
+                if (!item) {
+                    saveFailed()
+                } else {
+                    render item as JSON
                 }
             }
-            response.setContentType("application/json")
-            def model = [taxaCreated: taxaCreated, linesSkipped: linesSkipped, alreadyExists: alreadyExists]
-            render model as JSON
-        } else {
-            log.info("No file received")
         }
     }
 }

@@ -8,6 +8,7 @@ import groovy.transform.ToString
 class Opus {
 
     String uuid
+    String shortName
     String title
     String dataResourceUid
     List<String> imageSources            // a list of drs that are providing images we can include
@@ -36,6 +37,7 @@ class Opus {
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, supportingOpuses: Opus]
 
     static constraints = {
+        shortName nullable: true
         logoUrl nullable: true
         bannerUrl nullable: true
         thumbnailUrl nullable: true

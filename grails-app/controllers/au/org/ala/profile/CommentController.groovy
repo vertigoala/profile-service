@@ -12,12 +12,12 @@ class CommentController extends BaseController {
         if (!params.profileId || !json) {
             badRequest()
         } else {
-            Profile profile = Profile.findByUuid(params.profileId)
+            Profile profile = getProfile()
 
             if (!profile) {
-                notFound()
+                notFound "Profile ${params.profileId} not found"
             } else {
-                Comment comment = commentService.createComment(params.profileId, json)
+                Comment comment = commentService.createComment(profile.uuid, json)
 
                 render comment as JSON
             }
@@ -46,12 +46,12 @@ class CommentController extends BaseController {
         if (!params.profileId) {
             badRequest()
         } else {
-            Profile profile = Profile.findByUuid(params.profileId)
+            Profile profile = getProfile()
 
             if (!profile) {
-                notFound()
+                notFound "Profile ${params.profileId} not found"
             } else {
-                List<Comment> comments = commentService.getCommentsForProfile(params.profileId)
+                List<Comment> comments = commentService.getCommentsForProfile(profile.uuid)
 
                 render comments as JSON
             }
@@ -62,10 +62,10 @@ class CommentController extends BaseController {
         if (!params.profileId || !params.commentId) {
             badRequest()
         } else {
-            Profile profile = Profile.findByUuid(params.profileId)
+            Profile profile = getProfile()
 
             if (!profile) {
-                notFound()
+                notFound "Profile ${params.profileId} not found"
             } else {
                 Comment comment = Comment.findByUuid(params.commentId)
 
@@ -79,7 +79,6 @@ class CommentController extends BaseController {
             badRequest()
         } else {
             boolean deleted = commentService.deleteComment(params.commentId)
-
 
             success([deleted: deleted])
         }

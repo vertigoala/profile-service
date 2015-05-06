@@ -16,7 +16,7 @@ class SearchService extends BaseDataAccessService {
             wildcard = ""
         }
 
-        List<Opus> opusList = opusIds?.collect{ Opus.findByUuid(it) }?.dropWhile { it == null }
+        List<Opus> opusList = opusIds?.collect{ Opus.findByUuidOrShortName(it, it) }?.dropWhile { it == null }
 
         if (max == -1) {
             max = opusList ? DEFAULT_MAX_OPUS_SEARCH_RESULTS : DEFAULT_MAX_BROAD_SEARCH_RESULTS
@@ -45,7 +45,7 @@ class SearchService extends BaseDataAccessService {
             wildcard = ""
         }
 
-        List<Opus> opusList = opusIds?.collect{ Opus.findByUuid(it) }?.dropWhile { it == null }
+        List<Opus> opusList = opusIds?.collect{ Opus.findByUuidOrShortName(it, it) }?.dropWhile { it == null }
 
         if (max == -1) {
             max = opusList ? DEFAULT_MAX_OPUS_SEARCH_RESULTS : DEFAULT_MAX_BROAD_SEARCH_RESULTS

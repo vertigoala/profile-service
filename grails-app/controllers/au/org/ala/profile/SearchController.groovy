@@ -31,7 +31,7 @@ class SearchController extends BaseController {
                         profileId     : it.uuid,
                         guid          : it.guid,
                         scientificName: it.scientificName,
-                        opus          : [uuid: it.opus.uuid, title: it.opus.title]
+                        opus          : [uuid: it.opus.uuid, title: it.opus.title, shortName: it.opus.shortName]
                 ]
             } as JSON
         }
@@ -55,7 +55,7 @@ class SearchController extends BaseController {
                         profileId     : it.uuid,
                         guid          : it.guid,
                         scientificName: it.scientificName,
-                        opus          : [uuid: it.opus.uuid, title: it.opus.title]
+                        opus          : [uuid: it.opus.uuid, title: it.opus.title, shortName: it.opus.shortName]
                 ]
             } as JSON
         }
@@ -64,10 +64,12 @@ class SearchController extends BaseController {
     def getTaxonLevels() {
         if (!params.opusId) {
             badRequest "opusId is a required parameter"
-        }
+        } else {
+            Opus opus = getOpus()
 
-        Map<String, Integer> result = searchService.getTaxonLevels(params.opusId)
-        render result as JSON
+            Map<String, Integer> result = searchService.getTaxonLevels(opus?.uuid)
+            render result as JSON
+        }
     }
 
     def groupByTaxonLevel() {
@@ -77,7 +79,9 @@ class SearchController extends BaseController {
             int max = params.max ? params.max as int : -1
             int startFrom = params.offset ? params.offset as int : 0
 
-            Map<String, Integer> result = searchService.groupByTaxonLevel(params.opusId, params.taxon, max, startFrom)
+            Opus opus = getOpus()
+
+            Map<String, Integer> result = searchService.groupByTaxonLevel(opus?.uuid, params.taxon, max, startFrom)
 
             render result as JSON
         }

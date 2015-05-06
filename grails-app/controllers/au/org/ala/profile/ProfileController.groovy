@@ -48,7 +48,7 @@ class ProfileController extends BaseController {
             boolean saved = profileService.saveAuthorship(params.profileId, json)
 
             if (saved) {
-                Profile profile = Profile.findByUuid(params.profileId)
+                Profile profile = getProfile()
                 render profile.authorship as JSON
             } else {
                 saveFailed()
@@ -68,9 +68,14 @@ class ProfileController extends BaseController {
         if (!file || !publication || !params.profileId) {
             badRequest()
         } else {
-            Publication pub = profileService.savePublication(params.profileId, publication, file)
+            Profile profile = getProfile()
+            if (!profile) {
+                notFound "Profile ${params.profileId} not found"
+            } else {
+                Publication pub = profileService.savePublication(profile.uuid, publication, file)
 
-            render pub as JSON
+                render pub as JSON
+            }
         }
     }
 
@@ -100,9 +105,14 @@ class ProfileController extends BaseController {
         if (!params.profileId) {
             badRequest()
         } else {
-            Set<Publication> publications = profileService.listPublications(params.profileId as String)
+            Profile profile = getProfile()
+            if (!profile) {
+                notFound "Profile ${params.profileId} not found"
+            } else {
+                Set<Publication> publications = profileService.listPublications(profile.uuid)
 
-            render publications as JSON
+                render publications as JSON
+            }
         }
     }
 
@@ -131,10 +141,10 @@ class ProfileController extends BaseController {
             badRequest "GUID and OpusId are required parameters"
         } else {
             log.debug("Retrieving classification for ${params.guid} in opus ${params.opusId}")
-            JsonSlurper js = new JsonSlurper()
+
             def classification = bieService.getClassification(params.guid)
 
-            Opus opus = Opus.findByUuid(params.opusId)
+            Opus opus = getOpus()
 
             if (!opus) {
                 notFound "No matching Opus was found"
@@ -156,7 +166,7 @@ class ProfileController extends BaseController {
         if (!json || !json.scientificName || !json.opusId) {
             badRequest "A json body with at least the scientificName and an opus id is required"
         } else {
-            Opus opus = Opus.findByUuid(json.opusId)
+            Opus opus = getOpus()
             if (!opus) {
                 notFound "No matching opus can be found"
             } else {
@@ -165,7 +175,7 @@ class ProfileController extends BaseController {
                 if (profile) {
                     sendError HttpStatus.SC_NOT_ACCEPTABLE, "A profile already exists for ${json.scientificName}"
                 } else {
-                    profile = profileService.createProfile(json.opusId, json);
+                    profile = profileService.createProfile(opus.uuid, json);
                     render profile as JSON
                 }
             }
@@ -178,7 +188,7 @@ class ProfileController extends BaseController {
         if (!json || !params.profileId) {
             badRequest()
         } else {
-            Profile profile = Profile.findByUuid(params.profileId)
+            Profile profile = getProfile()
 
             if (!profile) {
                 notFound()
@@ -193,7 +203,7 @@ class ProfileController extends BaseController {
     def getByUuid() {
         // TODO do this better
         log.debug("Fetching profile by profileId ${params.profileId}")
-        Profile tp = Profile.findByUuidOrGuidOrScientificName(params.profileId, params.profileId, params.profileId)
+        Profile tp = getProfile()//Profile.findByUuidOrGuidOrScientificName(params.profileId, params.profileId, params.profileId)
 
         if (tp) {
             respond tp, [formats: ['json', 'xml']]
@@ -206,9 +216,14 @@ class ProfileController extends BaseController {
         if (!params.profileId) {
             badRequest "profileId is a required parameter"
         } else {
-            boolean success = profileService.deleteProfile(params.profileId)
+            Profile profile = getProfile()
+            if (!profile) {
+                notFound "Profile ${params.profileId} not found"
+            } else {
+                boolean success = profileService.deleteProfile(profile.uuid)
 
-            respond success, [formats: ["json", "xml"]]
+                respond success, [formats: ["json", "xml"]]
+            }
         }
     }
 
