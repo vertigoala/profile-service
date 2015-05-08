@@ -37,7 +37,7 @@ class ImportController extends BaseController {
         } else {
             Opus opus = Opus.findByUuid(json.opusId)
             if (!opus) {
-                notFound "Opus ${json.opusid} does not exist."
+                notFound "Opus ${json.opusId} does not exist."
             } else {
                 Map<String, String> results = importService.importProfiles(json.opusId, json.profiles)
 
