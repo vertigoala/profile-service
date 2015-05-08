@@ -29,33 +29,33 @@ class UrlMappings {
         "/profile/search/taxon/level" controller: "search", action: "groupByTaxonLevel"
         "/profile/search/taxon/levels" controller: "search", action: "getTaxonLevels"
 
-        "/profile/" controller: "profile", action: [GET: "index", PUT: "createProfile"]
+        "/opus/$opusId/profile/" controller: "profile", action: [GET: "index", PUT: "createProfile"]
 
-        "/profile/$profileId" controller: "profile", action: [GET: "getByUuid", DELETE: "deleteProfile", POST: "updateProfile"]
+        "/opus/$opusId/profile/$profileId" controller: "profile", action: [GET: "getByUuid", DELETE: "deleteProfile", POST: "updateProfile"]
 
-        "/profile/$profileId/attribute/" controller: "attribute", action: [GET:"index", PUT:"create",  POST:"create"]
-        "/profile/$profileId/attribute/$attributeId" controller: "attribute", action: [GET:"show", PUT:"update", DELETE:"delete", POST:"update"]
+        "/opus/$opusId/profile/$profileId/attribute/" controller: "attribute", action: [GET:"index", PUT:"create",  POST:"create"]
+        "/opus/$opusId/profile/$profileId/attribute/$attributeId" controller: "attribute", action: [GET:"show", PUT:"update", DELETE:"delete", POST:"update"]
 
-        "/profile/$profileId/links" controller: "profile", action: [POST:"saveLinks"]
+        "/opus/$opusId/profile/$profileId/links" controller: "profile", action: [POST:"saveLinks"]
 
-        "/profile/$profileId/bhl" controller: "profile", action: [POST:"saveBHLLinks"]
+        "/opus/$opusId/profile/$profileId/bhl" controller: "profile", action: [POST:"saveBHLLinks"]
         
-        "/profile/$profileId/images" controller: "profile", action: [POST: "saveImages"]
+        "/opus/$opusId/profile/$profileId/images" controller: "profile", action: [POST: "saveImages"]
 
-        "/profile/$profileId/authorship" controller: "profile", action: [POST: "saveAuthorship"]
+        "/opus/$opusId/profile/$profileId/authorship" controller: "profile", action: [POST: "saveAuthorship"]
 
-        "/profile/$profileId/bibliography" controller: "profile", action: [POST: "saveBibliography"]
+        "/opus/$opusId/profile/$profileId/bibliography" controller: "profile", action: [POST: "saveBibliography"]
 
-        "/profile/$profileId/specimen" controller: "profile", action: [POST: "saveSpecimens"]
+        "/opus/$opusId/profile/$profileId/specimen" controller: "profile", action: [POST: "saveSpecimens"]
 
-        "/profile/$profileId/classification" controller: "profile", action: [GET:"classification"]
+        "/opus/$opusId/profile/$profileId/classification" controller: "profile", action: [GET:"classification"]
 
-        "/profile/$profileId/publication" controller: "profile", action: [GET: "listPublications", POST:"savePublication"]
-        "/profile/$profileId/publication/$publicationId/delete" controller: "profile", action: [DELETE:"deletePublication"]
-        "/profile/$profileId/publication/$publicationId/file" controller: "profile", action: [GET:"getPublicationFile"]
+        "/opus/$opusId/profile/$profileId/publication" controller: "profile", action: [GET: "listPublications", POST:"savePublication"]
+        "/opus/$opusId/profile/$profileId/publication/$publicationId/delete" controller: "profile", action: [DELETE:"deletePublication"]
+        "/opus/$opusId/profile/$profileId/publication/$publicationId/file" controller: "profile", action: [GET:"getPublicationFile"]
 
-        "/profile/$profileId/comment" controller: "comment", action: [GET: "getComments", PUT: "addComment"]
-        "/profile/$profileId/comment/$commentId" controller: "comment", action: [GET: "getComment", POST: "updateComment", DELETE: "deleteComment"]
+        "/opus/$opusId/profile/$profileId/comment" controller: "comment", action: [GET: "getComments", PUT: "addComment"]
+        "/opus/$opusId/profile/$profileId/comment/$commentId" controller: "comment", action: [GET: "getComment", POST: "updateComment", DELETE: "deleteComment"]
 
         "/$controller/$action?/$id?(.$format)?"{
             constraints {

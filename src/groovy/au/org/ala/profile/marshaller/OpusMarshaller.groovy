@@ -8,9 +8,10 @@ class OpusMarshaller {
     void register() {
         JSON.registerObjectMarshaller(Opus) { Opus opus ->
             return [
-                    uuid                    : "${opus.uuid}",
-                    dataResourceUid         : "${opus.dataResourceUid}",
-                    title                   : "${opus.title}",
+                    uuid                    : opus.uuid,
+                    dataResourceUid         : opus.dataResourceUid,
+                    title                   : opus.title,
+                    shortName               : opus.shortName,
                     imageSources            : opus.imageSources ?: [],
                     recordSources           : opus.recordSources ?: [],
                     approvedLists           : opus.approvedLists ?: [],

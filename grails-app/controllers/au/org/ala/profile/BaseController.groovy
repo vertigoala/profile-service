@@ -6,6 +6,11 @@ import static org.apache.http.HttpStatus.*
 
 class BaseController {
     public static final String CONTEXT_TYPE_JSON = "application/json"
+    public static final String UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+    boolean isUuid(String str) {
+        str =~ UUID_REGEX
+    }
 
     def notFound = {String message = null ->
         sendError(SC_NOT_FOUND, message ?: "")
@@ -28,5 +33,26 @@ class BaseController {
     def sendError = {int status, String msg = null ->
         response.status = status
         response.sendError(status, msg)
+    }
+
+    Profile getProfile() {
+        Profile profile
+        if (isUuid(params.profileId)) {
+            profile = Profile.findByUuid(params.profileId)
+        } else {
+            Opus opus = getOpus()
+            profile = Profile.findByOpusAndScientificNameIlike(opus, params.profileId)
+        }
+        profile
+    }
+
+    Opus getOpus() {
+        Opus opus
+        if (isUuid(params.opusId)) {
+            opus = Opus.findByUuid(params.opusId)
+        } else {
+            opus = Opus.findByShortName(params.opusId.toLowerCase())
+        }
+        opus
     }
 }

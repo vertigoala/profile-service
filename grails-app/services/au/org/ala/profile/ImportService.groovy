@@ -240,11 +240,7 @@ class ImportService extends BaseDataAccessService {
                     if (!it.scientificName) {
                         results << [("Row${index}"): "Failed to import row ${index}, does not have a scientific name"]
                     } else {
-                        List<String> guidList = nameService.getGuidForName(it.scientificName)
-                        String guid = null
-                        if (guidList && guidList.size() > 0) {
-                            guid = guidList[0]
-                        }
+                        String guid = nameService.getGuidForName(it.scientificName)
 
                         profile = new Profile(scientificName: it.scientificName, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: []);
 

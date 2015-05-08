@@ -28,12 +28,12 @@ class AttributeController extends BaseController {
         def jsonSlurper = new JsonSlurper()
         def json = jsonSlurper.parse(request.getReader())
 
-        Profile profile = Profile.findByUuid(json.profileId)
+        Profile profile = getProfile()
 
         if (!profile) {
             notFound()
         } else {
-            Attribute attribute = profileService.createAttribute(json.profileId, json)
+            Attribute attribute = profileService.createAttribute(profile.uuid, json)
 
             if (attribute) {
                 response.setStatus(HttpStatus.SC_CREATED)
@@ -54,13 +54,18 @@ class AttributeController extends BaseController {
         if (!params.attributeId || !params.profileId || !json) {
             badRequest()
         } else {
-            boolean success = profileService.updateAttribute(params.attributeId, params.profileId, json)
-
-            if (success) {
-                def result = [success: true, attributeId: params.attributeId]
-                render result as JSON
+            Profile profile = getProfile()
+            if (!profile) {
+                notFound "Profile ${params.profileId} not found"
             } else {
-                notFound()
+                boolean success = profileService.updateAttribute(params.attributeId, profile.uuid, json)
+
+                if (success) {
+                    def result = [success: true, attributeId: params.attributeId]
+                    render result as JSON
+                } else {
+                    notFound()
+                }
             }
         }
     }
@@ -68,13 +73,18 @@ class AttributeController extends BaseController {
     def delete() {
         log.debug("Deleting attribute ${params.attributeId} from profile ${params.profileId}")
 
-        boolean success = profileService.deleteAttribute(params.attributeId, params.profileId)
-
-        if (success) {
-            response.setStatus(HttpStatus.SC_OK)
-            render([success: true] as JSON)
+        Profile profile = getProfile()
+        if (!profile) {
+            notFound "Profile ${params.profileId} not found"
         } else {
-            saveFailed()
+            boolean success = profileService.deleteAttribute(params.attributeId, profile.uuid)
+
+            if (success) {
+                response.setStatus(HttpStatus.SC_OK)
+                render([success: true] as JSON)
+            } else {
+                saveFailed()
+            }
         }
     }
 }
