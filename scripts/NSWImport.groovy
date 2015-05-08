@@ -61,8 +61,21 @@ class NSWImport {
 
             List attributes = []
 
+            String cl = (fields[0] == "{cl}" && fields.length >= 36) ? fields[35] : ""
             String family = fields[1]
+            String subFamily = (fields[0] == "{sf}" && fields.length >= 42) ? fields[41] : ""
             String species = fields[2..4].join(" ").trim()
+
+            if (!species && subFamily) {
+                species = subFamily
+            }
+            if (!species && family) {
+                species = family
+            }
+            if (!species && cl) {
+                species = cl
+            }
+
             String contributor = fields[6]
             List<String> images = fields[24..33].findAll { it }
 
@@ -130,7 +143,7 @@ class NSWImport {
                 attributes << [title: "Taxon Concept", text: taxonConcept, creators: [contributor]]
             }
 
-            String scientificName = species ?: family
+            String scientificName = species
 
             if (!scientificName) {
                 invalidLines[count] = "Unable to determine scientfic name: ${line.substring(0, Math.min(line.size(), 100))}..."
