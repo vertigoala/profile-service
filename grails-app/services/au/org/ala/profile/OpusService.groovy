@@ -112,6 +112,9 @@ class OpusService extends BaseDataAccessService {
         if (json.has("allowCopyFromLinkedOpus") && json.allowCopyFromLinkedOpus != opus.allowCopyFromLinkedOpus) {
             opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus as boolean
         }
+        if (json.has("allowFineGrainedAttribution") && json.allowFineGrainedAttribution != opus.allowFineGrainedAttribution) {
+            opus.allowFineGrainedAttribution = json.allowFineGrainedAttribution as boolean
+        }
         if (json.supportingOpuses != null) {
             opus.supportingOpuses.clear()
             json.supportingOpuses.each {

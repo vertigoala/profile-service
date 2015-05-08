@@ -32,6 +32,7 @@ class Opus {
     Boolean enableKeyUpload = false
     Boolean showLinkedOpusAttributes = false
     Boolean allowCopyFromLinkedOpus = false
+    Boolean allowFineGrainedAttribution = true
     Glossary glossary
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, supportingOpuses: Opus]
