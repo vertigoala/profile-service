@@ -35,7 +35,7 @@ class OpusService extends BaseDataAccessService {
             opus.title = json.title
         }
         if (json.containsKey("shortName") && json.shortName != opus.shortName) {
-            opus.shortName = json.shortName?.toLowerCase()
+            opus.shortName = json.shortName ? json.shortName.toLowerCase() : null
         }
         if (json.imageSources && json.imageSources != opus.imageSources) {
             if (opus.imageSources) {
@@ -93,6 +93,12 @@ class OpusService extends BaseDataAccessService {
         }
         if (json.biocacheName && json.biocacheName != opus.biocacheName) {
             opus.biocacheName = json.biocacheName
+        }
+        if (json.keybaseProjectId && json.keybaseProjectId != opus.keybaseProjectId) {
+            opus.keybaseProjectId = json.keybaseProjectId
+        }
+        if (json.keybaseKeyId && json.keybaseKeyId != opus.keybaseKeyId) {
+            opus.keybaseKeyId = json.keybaseKeyId
         }
         if (json.has("enablePhyloUpload") && json.enablePhyloUpload != opus.enablePhyloUpload) {
             opus.enablePhyloUpload = json.enablePhyloUpload as boolean

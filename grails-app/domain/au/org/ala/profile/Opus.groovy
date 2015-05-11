@@ -34,6 +34,8 @@ class Opus {
     Boolean allowCopyFromLinkedOpus = false
     Boolean allowFineGrainedAttribution = true
     Glossary glossary
+    String keybaseProjectId
+    String keybaseKeyId
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, supportingOpuses: Opus]
 
@@ -50,6 +52,8 @@ class Opus {
         mapAttribution nullable: true
         biocacheUrl nullable: true
         biocacheName nullable: true
+        keybaseProjectId nullable: true
+        keybaseKeyId nullable: true
     }
 
     def beforeValidate() {

@@ -17,6 +17,8 @@ class OpusMarshaller {
                     approvedLists              : opus.approvedLists ?: [],
                     logoUrl                    : opus.logoUrl,
                     bannerUrl                  : opus.bannerUrl,
+                    keybaseProjectId           : opus.keybaseProjectId,
+                    keybaseKeyId               : opus.keybaseKeyId,
                     thumbnailUrl               : opus.thumbnailUrl,
                     attributeVocabUuid         : opus.attributeVocabUuid,
                     glossaryUuid               : opus.glossary?.uuid,
