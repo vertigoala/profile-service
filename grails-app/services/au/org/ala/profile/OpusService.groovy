@@ -94,10 +94,10 @@ class OpusService extends BaseDataAccessService {
         if (json.biocacheName && json.biocacheName != opus.biocacheName) {
             opus.biocacheName = json.biocacheName
         }
-        if (json.keybaseProjectId && json.keybaseProjectId != opus.keybaseProjectId) {
+        if (json.containsKey("keybaseProjectId") && json.keybaseProjectId != opus.keybaseProjectId) {
             opus.keybaseProjectId = json.keybaseProjectId
         }
-        if (json.keybaseKeyId && json.keybaseKeyId != opus.keybaseKeyId) {
+        if (json.containsKey("keybaseKeyId") && json.keybaseKeyId != opus.keybaseKeyId) {
             opus.keybaseKeyId = json.keybaseKeyId
         }
         if (json.has("enablePhyloUpload") && json.enablePhyloUpload != opus.enablePhyloUpload) {
