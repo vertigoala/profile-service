@@ -140,6 +140,7 @@ class ImportService extends BaseDataAccessService {
 
                     if (profile.guid) {
                         profileService.populateTaxonHierarchy(profile)
+                        profile.nslNameIdentifier = nameService.getNSLNameIdentifier(guid)
                     }
 
                     profile.attributes = []
@@ -231,6 +232,7 @@ class ImportService extends BaseDataAccessService {
         log.info "Importing profiles ..."
         withPool(IMPORT_THREAD_POOL_SIZE) {
             profilesJson.eachParallel {
+                boolean nameMatched = true
                 index.incrementAndGet()
                 Profile profile = Profile.findByScientificNameAndOpus(it.scientificName, opus);
                 if (profile) {
@@ -246,6 +248,9 @@ class ImportService extends BaseDataAccessService {
 
                         if (profile.guid) {
                             profileService.populateTaxonHierarchy(profile)
+                            profile.nslNameIdentifier = nameService.getNSLNameIdentifier(profile.guid)
+                        } else {
+                            nameMatched = false
                         }
 
                         it.links.each {
@@ -311,7 +316,7 @@ class ImportService extends BaseDataAccessService {
                             profile.errors.each { log.error(it) }
                             results << [(it.scientificName): "Failed: ${profile.errors.allErrors.get(0)}"]
                         } else {
-                            results << [(it.scientificName): "Success"]
+                            results << [(it.scientificName): nameMatched ? "Success" : "Success (Unmatched name)"]
                             success.incrementAndGet()
                             if (index % reportInterval == 0) {
                                 log.debug("Saved ${success} of ${profilesJson.size()}")

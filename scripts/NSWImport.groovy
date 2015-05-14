@@ -189,7 +189,7 @@ class NSWImport {
                 report << "\n\nRecords unable to be saved: \n"
             }
             resp.data.each { k, v ->
-                if (v == "Success") {
+                if (v.startsWith("Success")) {
                     success++
                 } else {
                     report << "\t${k} Failed: ${v}\n"

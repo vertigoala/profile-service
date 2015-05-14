@@ -15,4 +15,15 @@ class BieService {
             null
         }
     }
+
+    def getSpeciesProfile(String guid) {
+        try {
+            String resp = new URL("${grailsApplication.config.bie.base.url}/ws/species/${guid}").text
+            JsonSlurper jsonSlurper = new JsonSlurper()
+            jsonSlurper.parseText(resp)
+        } catch (Exception e) {
+            log.error(e.getMessage())
+            null
+        }
+    }
 }

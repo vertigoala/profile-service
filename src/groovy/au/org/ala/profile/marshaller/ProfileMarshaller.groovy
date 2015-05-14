@@ -10,6 +10,7 @@ class ProfileMarshaller {
             return [
                     uuid: profile.uuid,
                     guid: profile.guid && profile.guid != "null" ? "${profile.guid}" : "",
+                    nslNameIdentifier: profile.nslNameIdentifier,
                     dataResourceUid: profile.opus.dataResourceUid,
                     opusId: profile.opus.uuid,
                     opusName: profile.opus.title,

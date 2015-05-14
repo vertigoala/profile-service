@@ -29,6 +29,7 @@ class ProfileService extends BaseDataAccessService {
 
         if (profile.guid) {
             populateTaxonHierarchy(profile)
+            profile.nslNameIdentifier = nameService.getNSLNameIdentifier(profile.guid)
         }
 
         profile.authorship = [new Authorship(category: "Author", text: authService.getUserForUserId(authService.getUserId()).displayName)]
