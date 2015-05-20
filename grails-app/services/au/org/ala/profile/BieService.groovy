@@ -7,11 +7,11 @@ class BieService {
 
     def getClassification(String guid) {
         try {
-            String resp = new URL("${grailsApplication.config.bie.base.url}/ws/classification/${guid}").text
+                String resp = new URL("${grailsApplication.config.bie.base.url}/ws/classification/${guid}").text
             JsonSlurper jsonSlurper = new JsonSlurper()
             jsonSlurper.parseText(resp)
         } catch (Exception e) {
-            log.error(e.getMessage())
+            log.error("Failed to retrieve classification for ${guid}", e)
             null
         }
     }
@@ -22,7 +22,7 @@ class BieService {
             JsonSlurper jsonSlurper = new JsonSlurper()
             jsonSlurper.parseText(resp)
         } catch (Exception e) {
-            log.error(e.getMessage())
+            log.error("Failed to retrieve species profile for ${guid}", e)
             null
         }
     }

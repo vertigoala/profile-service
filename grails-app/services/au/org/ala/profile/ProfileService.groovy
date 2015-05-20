@@ -48,16 +48,13 @@ class ProfileService extends BaseDataAccessService {
             def classificationJson = bieService.getClassification(profile.guid)
 
             if (classificationJson) {
-                Map classification = classificationJson.collectEntries {
-                    if (it.rank == "class") {
-                        ["clazz": it.scientificName, "clazzGuid": it.guid]
-                    } else if (it.rank == "subclass") {
-                        ["subclazz": it.scientificName, "subclazzGuid": it.guid]
-                    } else {
-                        [(it.rank): it.scientificName, ("${it.rank}Guid"): it.guid]
-                    }
+                profile.classification = classificationJson.collect {
+                    // the classifications returned from the BIE service are in descending order, so the last one will be
+                    // the rank for the profile
+                    profile.rank = it.rank
+
+                    new Classification(rank: it.rank, guid: it.guid, name: it.scientificName)
                 }
-                profile.classification = new Classification(classification)
             } else {
                 log.info("Unable to find species classification for ${profile.scientificName}, with GUID ${profile.guid}")
             }

@@ -12,6 +12,7 @@ class Profile {
     String uuid
     String guid                 //taxon GUID / LSID
     String scientificName
+    String rank
     String nslNameIdentifier
     boolean privateMode = false
 
@@ -19,7 +20,7 @@ class Profile {
     List<String> excludedImages
     List<String> specimenIds
     List<Authorship> authorship
-    Classification classification
+    List<Classification> classification
 
     Date dateCreated
     Date lastUpdated
@@ -37,6 +38,7 @@ class Profile {
         specimenIds nullable: true
         classification nullable: true
         nslNameIdentifier nullable: true
+        rank nullable: true
     }
 
     static mapping = {
