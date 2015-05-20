@@ -105,6 +105,9 @@ class ImportService extends BaseDataAccessService {
             try {
                 def foaProfile = new XmlParser().parseText(it.text)
 
+                if (!foaProfile.ROWSET.ROW) {
+                    return
+                }
                 def contributors = []
 
                 foaProfile.ROWSET.ROW.CONTRIBUTORS?.CONTRIBUTORS_ITEM?.each {
@@ -118,6 +121,7 @@ class ImportService extends BaseDataAccessService {
 
                 def parsed = [
                         scientificName: foaProfile.ROWSET.ROW.TAXON_NAME?.text(),
+                        nameAuthor    : foaProfile.ROWSET.ROW?.AUTHOR?.text(),
                         habitat       : cleanupText(foaProfile.ROWSET.ROW?.HABITAT?.text()),
                         source        : cleanupText(foaProfile.ROWSET.ROW.SOURCE.text()),
                         description   : cleanupText(foaProfile.ROWSET.ROW.DESCRIPTION?.text()),
@@ -135,6 +139,7 @@ class ImportService extends BaseDataAccessService {
                             profileId     : UUID.randomUUID().toString(),
                             guid          : guid,
                             scientificName: parsed.scientificName,
+                            nameAuthor    : parsed.nameAuthor,
                             opus          : foaOpus
                     ])
 
@@ -244,7 +249,7 @@ class ImportService extends BaseDataAccessService {
                     } else {
                         String guid = nameService.getGuidForName(it.scientificName)
 
-                        profile = new Profile(scientificName: it.scientificName, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: []);
+                        profile = new Profile(scientificName: it.scientificName, nameAuthor: it.nameAuthor, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: []);
 
                         if (profile.guid) {
                             profileService.populateTaxonHierarchy(profile)

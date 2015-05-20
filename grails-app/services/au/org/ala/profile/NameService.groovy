@@ -34,7 +34,7 @@ class NameService {
             def speciesProfile = bieService.getSpeciesProfile(guid)
 
             if (speciesProfile) {
-                String name = URLEncoder.encode("${speciesProfile.taxonConcept.nameString} ${speciesProfile.taxonConcept.author}", CHAR_ENCODING)
+                String name = URLEncoder.encode("${speciesProfile.taxonConcept.nameString} ${speciesProfile.taxonConcept.author ?: ""}", CHAR_ENCODING)
                 // the NSL service can't handle spaces encoded as +, so have to change them to %20
                 name = name.replaceAll("\\+", "%20")
                 String resp = new URL("${grailsApplication.config.nsl.name.match.url.prefix}${name}.json").text

@@ -65,6 +65,7 @@ class NSWImport {
             String family = fields[1]
             String subFamily = (fields[0] == "{sf}" && fields.length >= 42) ? fields[41] : ""
             String species = fields[2..4].join(" ").trim()
+            String nameAuthor = fields[22]
 
             if (!species && subFamily) {
                 species = subFamily
@@ -143,12 +144,12 @@ class NSWImport {
                 attributes << [title: "Taxon Concept", text: taxonConcept, creators: [contributor]]
             }
 
-            String scientificName = species
+            String scientificName = "${species}".trim()
 
             if (!scientificName) {
                 invalidLines[count] = "Unable to determine scientfic name: ${line.substring(0, Math.min(line.size(), 100))}..."
             } else if (!scientificNames.containsKey(scientificName)) {
-                Map profile = [scientificName: scientificName, attributes: attributes]
+                Map profile = [scientificName: scientificName, nameAuthor: nameAuthor, attributes: attributes]
 
                 profiles << profile
             }

@@ -16,6 +16,7 @@ class ProfileMarshaller {
                     opusName: profile.opus.title,
                     privateMode: profile.privateMode,
                     scientificName: profile.scientificName,
+                    nameAuthor: profile.nameAuthor,
                     classification: profile.classification,
                     attributes: profile.attributes?.sort(),
                     links: profile.links,

@@ -12,6 +12,7 @@ class Profile {
     String uuid
     String guid                 //taxon GUID / LSID
     String scientificName
+    String nameAuthor
     String rank
     String nslNameIdentifier
     boolean privateMode = false
@@ -32,6 +33,7 @@ class Profile {
     static belongsTo = [opus: Opus]
 
     static constraints = {
+        nameAuthor nullable: true
         guid nullable: true
         primaryImage nullable: true
         excludedImages nullable: true
