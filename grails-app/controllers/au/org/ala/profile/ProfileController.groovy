@@ -85,9 +85,13 @@ class ProfileController extends BaseController {
         } else {
             GridFSDBFile file = profileService.getPublicationFile(params.publicationId)
 
-            response.setContentType("application/pdf")
-            response.setHeader("Content-disposition", "attachment;filename=publication.pdf")
-            file.writeTo(response.outputStream)
+            if (!file) {
+                notFound "The requested file could not be found"
+            } else {
+                response.setContentType("application/pdf")
+                response.setHeader("Content-disposition", "attachment;filename=publication.pdf")
+                file.writeTo(response.outputStream)
+            }
         }
     }
 

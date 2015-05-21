@@ -36,6 +36,7 @@ class Opus {
     Glossary glossary
     String keybaseProjectId
     String keybaseKeyId
+    String aboutHtml
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, supportingOpuses: Opus]
 
@@ -54,6 +55,7 @@ class Opus {
         biocacheName nullable: true
         keybaseProjectId nullable: true
         keybaseKeyId nullable: true
+        aboutHtml nullable: true
     }
 
     def beforeValidate() {

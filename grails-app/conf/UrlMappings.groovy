@@ -12,6 +12,7 @@ class UrlMappings {
         "/opus/$opusId/glossary/$prefix" controller: "opus", action: [GET: "getGlossary"]
         "/opus/$opusId/glossary" controller: "opus", action: [POST: "saveGlossaryItems"]
 
+        "/opus/$opusId/about/" controller: "opus", action: [GET: "about", PUT: "updateAboutHtml"]
         "/opus/$opusId/vocab/" controller: "vocab", action: "index"
         "/opus/$opusId/vocab/$vocabId" controller: "vocab", action: [GET: "show", POST: "update"]
         "/opus/$opusId/vocab/usages/find" controller: "vocab", action: "findUsagesOfTerm"
