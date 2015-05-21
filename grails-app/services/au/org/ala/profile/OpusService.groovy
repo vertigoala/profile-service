@@ -171,11 +171,13 @@ class OpusService extends BaseDataAccessService {
         List profiles = Profile.findAllByOpus(opus)
         Profile.deleteAll(profiles)
 
-        GlossaryItem glossaryItems = GlossaryItem.findByGlossary(opus.glossary)
-        if (glossaryItems) {
-            GlossaryItem.deleteAll(glossaryItems)
+        if (opus.glossary) {
+            GlossaryItem glossaryItems = GlossaryItem.findByGlossary(opus.glossary)
+            if (glossaryItems) {
+                GlossaryItem.deleteAll(glossaryItems)
+            }
+            delete opus.glossary
         }
-        delete opus.glossary
 
         if (opus.attributeVocabUuid) {
             Vocab vocab = Vocab.findByUuid(opus.attributeVocabUuid)
