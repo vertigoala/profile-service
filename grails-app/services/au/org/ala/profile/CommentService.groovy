@@ -13,6 +13,7 @@ class CommentService extends BaseDataAccessService {
         checkState Profile.findByUuid(profileId)
 
         Comment comment = new Comment(json)
+        comment.profileUuid = profileId
 
         comment.author = getOrCreateContributor(authService.getUserForUserId(authService.getUserId())?.displayName, authService.getUserId())
 
