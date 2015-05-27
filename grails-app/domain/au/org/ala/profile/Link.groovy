@@ -15,11 +15,6 @@ class Link {
     String edition
     String publisherName
     String fullTitle
-    String userId
-
-    static hasMany = [creators: Contributor]
-
-    static belongsTo = Profile
 
     def beforeValidate() {
         if (!uuid) {
@@ -33,6 +28,5 @@ class Link {
         edition nullable: true
         publisherName nullable: true
         fullTitle nullable: true
-        userId nullable: true
     }
 }

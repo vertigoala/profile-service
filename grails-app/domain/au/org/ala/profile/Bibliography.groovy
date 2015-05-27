@@ -11,16 +11,4 @@ class Bibliography {
     String text
     int order
 
-    static belongsTo = [Profile]
-
-    def beforeValidate() {
-        if (!uuid) {
-            //mint an UUID
-            uuid = UUID.randomUUID().toString()
-        }
-    }
-
-    static constraints = {
-
-    }
 }

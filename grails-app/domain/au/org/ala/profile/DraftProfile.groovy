@@ -2,20 +2,17 @@ package au.org.ala.profile
 
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
-import org.bson.types.ObjectId
 
 @EqualsAndHashCode
 @ToString
-class Profile {
+class DraftProfile {
 
-    ObjectId id
     String uuid
     String guid                 //taxon GUID / LSID
     String scientificName
     String nameAuthor
     String rank
     String nslNameIdentifier
-    boolean privateMode = false
 
     String primaryImage
     List<String> excludedImages
@@ -24,40 +21,19 @@ class Profile {
     List<Classification> classification
     List<Link> links
     List<Link> bhlLinks
-    List<Bibliography> bibliography
+    List<Attribute> attributes
     List<Publication> publications
+    List<Bibliography> bibliography
 
     Date dateCreated
-    Date lastUpdated
 
-    DraftProfile draft
-
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography']
-
-    static hasMany = [attributes: Attribute]
-
-    static belongsTo = [opus: Opus]
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'attributes']
 
     static constraints = {
         nameAuthor nullable: true
         guid nullable: true
         primaryImage nullable: true
-        excludedImages nullable: true
-        specimenIds nullable: true
-        classification nullable: true
         nslNameIdentifier nullable: true
         rank nullable: true
-        draft nullable: true
-    }
-
-    static mapping = {
-        version false
-        attributes cascade: "all-delete-orphan"
-    }
-
-    def beforeValidate() {
-        if (uuid == null) {
-            uuid = UUID.randomUUID().toString()
-        }
     }
 }

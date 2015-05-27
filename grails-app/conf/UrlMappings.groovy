@@ -1,13 +1,13 @@
 class UrlMappings {
 
-	static mappings = {
+    static mappings = {
 
-        "/audit/object/$entityId" controller: "audit", action: [GET:"auditTrailForObject"]
+        "/audit/object/$entityId" controller: "audit", action: [GET: "auditTrailForObject"]
 
-        "/audit/user/$userId" controller: "audit", action: [GET:"auditTrailForUser"]
+        "/audit/user/$userId" controller: "audit", action: [GET: "auditTrailForUser"]
 
-        "/opus/$opusId/glossary/item/" controller:"opus", action: [PUT: "createGlossaryItem"]
-        "/opus/$opusId/glossary/item/$glossaryItemId" controller:"opus", action: [DELETE: "deleteGlossaryItem", POST: "updateGlossaryItem"]
+        "/opus/$opusId/glossary/item/" controller: "opus", action: [PUT: "createGlossaryItem"]
+        "/opus/$opusId/glossary/item/$glossaryItemId" controller: "opus", action: [DELETE: "deleteGlossaryItem", POST: "updateGlossaryItem"]
         "/opus/$opusId/glossary" controller: "opus", action: [GET: "getGlossary"]
         "/opus/$opusId/glossary/$prefix" controller: "opus", action: [GET: "getGlossary"]
         "/opus/$opusId/glossary" controller: "opus", action: [POST: "saveGlossaryItems"]
@@ -22,7 +22,7 @@ class UrlMappings {
 
         "/opus/$opusId/updateUsers" controller: "opus", action: [POST: "updateUsers"]
 
-        "/opus/$opusId" controller: "opus", action: [GET: "show", POST:"updateOpus", DELETE: "deleteOpus"]
+        "/opus/$opusId" controller: "opus", action: [GET: "show", POST: "updateOpus", DELETE: "deleteOpus"]
 
         "/profile/search" controller: "search", action: "findByScientificName"
         "/profile/search/scientificName" controller: "search", action: "findByScientificName"
@@ -34,13 +34,16 @@ class UrlMappings {
 
         "/opus/$opusId/profile/$profileId" controller: "profile", action: [GET: "getByUuid", DELETE: "deleteProfile", POST: "updateProfile"]
 
-        "/opus/$opusId/profile/$profileId/attribute/" controller: "attribute", action: [GET:"index", PUT:"create",  POST:"create"]
-        "/opus/$opusId/profile/$profileId/attribute/$attributeId" controller: "attribute", action: [GET:"show", PUT:"update", DELETE:"delete", POST:"update"]
+        "/opus/$opusId/profile/$profileId/toggleDraftMode/" controller: "profile", action: [POST: "toggleDraftMode"]
+        "/opus/$opusId/profile/$profileId/discardDraftChanges/" controller: "profile", action: [POST: "discardDraftChanges"]
 
-        "/opus/$opusId/profile/$profileId/links" controller: "profile", action: [POST:"saveLinks"]
+        "/opus/$opusId/profile/$profileId/attribute/" controller: "attribute", action: [GET: "index", PUT: "create", POST: "create"]
+        "/opus/$opusId/profile/$profileId/attribute/$attributeId" controller: "attribute", action: [GET: "show", PUT: "update", DELETE: "delete", POST: "update"]
 
-        "/opus/$opusId/profile/$profileId/bhl" controller: "profile", action: [POST:"saveBHLLinks"]
-        
+        "/opus/$opusId/profile/$profileId/links" controller: "profile", action: [POST: "saveLinks"]
+
+        "/opus/$opusId/profile/$profileId/bhl" controller: "profile", action: [POST: "saveBHLLinks"]
+
         "/opus/$opusId/profile/$profileId/images" controller: "profile", action: [POST: "saveImages"]
 
         "/opus/$opusId/profile/$profileId/authorship" controller: "profile", action: [POST: "saveAuthorship"]
@@ -49,28 +52,28 @@ class UrlMappings {
 
         "/opus/$opusId/profile/$profileId/specimen" controller: "profile", action: [POST: "saveSpecimens"]
 
-        "/opus/$opusId/profile/$profileId/classification" controller: "profile", action: [GET:"classification"]
+        "/opus/$opusId/profile/$profileId/classification" controller: "profile", action: [GET: "classification"]
 
-        "/opus/$opusId/profile/$profileId/publication" controller: "profile", action: [GET: "listPublications", POST:"savePublication"]
-        "/opus/$opusId/profile/$profileId/publication/$publicationId/delete" controller: "profile", action: [DELETE:"deletePublication"]
-        "/opus/$opusId/profile/$profileId/publication/$publicationId/file" controller: "profile", action: [GET:"getPublicationFile"]
+        "/opus/$opusId/profile/$profileId/publication" controller: "profile", action: [GET: "listPublications", POST: "savePublication"]
+        "/opus/$opusId/profile/$profileId/publication/$publicationId/delete" controller: "profile", action: [DELETE: "deletePublication"]
+        "/opus/$opusId/profile/$profileId/publication/$publicationId/file" controller: "profile", action: [GET: "getPublicationFile"]
 
         "/opus/$opusId/profile/$profileId/comment" controller: "comment", action: [GET: "getComments", PUT: "addComment"]
         "/opus/$opusId/profile/$profileId/comment/$commentId" controller: "comment", action: [GET: "getComment", POST: "updateComment", DELETE: "deleteComment"]
 
-        "/$controller/$action?/$id?(.$format)?"{
+        "/$controller/$action?/$id?(.$format)?" {
             constraints {
                 // apply constraints here
             }
         }
 
-        "/" view:"/index"
-        "500" view:'/error'
+        "/" view: "/index"
+        "500" view: '/error'
 
         // TODO remove these importXYZ and test mappings
         "/importFOA" controller: "profile", action: "importFOA"
         "/importSponges" controller: "profile", action: "importSponges"
         "/createTestOccurrenceSource" controller: 'profile', action: 'createTestOccurrenceSource'
 
-	}
+    }
 }

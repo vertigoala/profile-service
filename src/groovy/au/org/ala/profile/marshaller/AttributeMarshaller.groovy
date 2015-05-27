@@ -20,7 +20,7 @@ class AttributeMarshaller {
                     creators : attr.creators.collect { it.name },
                     editors  : attr.editors.collect { it.name },
                     original : attr.original,
-                    profile  : marshalProfile(attr.profile)
+                    profile  : attr.profile ? marshalProfile(attr.profile) : null
             ]
         }
     }

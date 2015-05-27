@@ -17,7 +17,7 @@ class Attribute implements Comparable<Attribute> {
     Date dateCreated
     Date lastUpdated
 
-    static hasMany = [subAttributes: Attribute, creators: Contributor, editors: Contributor]
+    static hasMany = [creators: Contributor, editors: Contributor]
 
     static belongsTo = [profile: Profile]
 
@@ -26,7 +26,6 @@ class Attribute implements Comparable<Attribute> {
     }
 
     static mapping = {
-        subAttributes cascade: "all-delete-orphan"
     }
 
     def beforeValidate() {
@@ -38,7 +37,11 @@ class Attribute implements Comparable<Attribute> {
 
     int compareTo(Attribute right) {
         if (title.order == right.title.order) {
-            title.name.toLowerCase() <=> right.title.name.toLowerCase()
+            if (title.name.equalsIgnoreCase(right.title.name)) {
+                text <=> right.text
+            } else {
+                title.name.toLowerCase() <=> right.title.name.toLowerCase()
+            }
         } else {
             title.order <=> right.title.order
         }

@@ -15,8 +15,6 @@ class Publication {
     String userId
     String authors
 
-    static belongsTo = [profile: Profile]
-
     def beforeValidate() {
         if (!uuid) {
             uuid = UUID.randomUUID().toString()
