@@ -13,6 +13,7 @@ class Attribute implements Comparable<Attribute> {
     Term title
     String text // = "This animal lives...."
     Attribute original // The original attribute this was copied from
+    String source
 
     Date dateCreated
     Date lastUpdated
@@ -23,6 +24,7 @@ class Attribute implements Comparable<Attribute> {
 
     static constraints = {
         original nullable: true
+        source nullable: true
     }
 
     static mapping = {

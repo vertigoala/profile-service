@@ -1,7 +1,6 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.listener.AuditEventType
-import org.codehaus.groovy.grails.commons.GrailsDomainClass
 import org.grails.datastore.mapping.engine.event.AbstractPersistenceEvent
 import org.grails.datastore.mapping.engine.event.EventType
 import org.grails.datastore.mapping.mongo.MongoSession

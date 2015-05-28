@@ -16,6 +16,7 @@ class AttributeMarshaller {
                     title    : attr.title.name,
                     order    : attr.title.order,
                     text     : attr.text,
+                    source   : attr.source,
                     plainText: cleanupText(attr.text),
                     creators : attr.creators.collect { it.name },
                     editors  : attr.editors.collect { it.name },

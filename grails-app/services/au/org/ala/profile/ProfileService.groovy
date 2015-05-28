@@ -419,6 +419,7 @@ class ProfileService extends BaseDataAccessService {
             attribute.title = titleTerm
         }
         attribute.text = data.text
+        attribute.source = data.source
 
         def contributor = getOrCreateContributor(data.userDisplayName, data.userId)
 
