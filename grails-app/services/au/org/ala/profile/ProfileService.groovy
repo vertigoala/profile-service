@@ -351,7 +351,13 @@ class ProfileService extends BaseDataAccessService {
 
         // only add the current user as the creator if the attribute was not copied from another profile
         if (!data.original) {
-            creators << getOrCreateContributor(data.userDisplayName, data.userId)
+            def contributor
+            if (data.attributeTo) {
+                contributor = getOrCreateContributor(data.attributeTo)
+            } else {
+                contributor = getOrCreateContributor(data.userDisplayName, data.userId)
+            }
+            creators << contributor
         }
 
         Term titleTerm = vocabService.getOrCreateTerm(data.title, profile.opus.attributeVocabUuid)
@@ -421,7 +427,12 @@ class ProfileService extends BaseDataAccessService {
         attribute.text = data.text
         attribute.source = data.source
 
-        def contributor = getOrCreateContributor(data.userDisplayName, data.userId)
+        def contributor
+        if (data.attributeTo) {
+            contributor = getOrCreateContributor(data.attributeTo)
+        } else {
+            contributor = getOrCreateContributor(data.userDisplayName, data.userId)
+        }
 
         if (!attribute.editors) {
             attribute.editors = []
