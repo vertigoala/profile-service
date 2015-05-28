@@ -15,6 +15,7 @@ class ProfileMarshaller {
                     opusId: profile.opus?.uuid,
                     opusName: profile.opus?.title,
                     privateMode: profile.privateMode,
+                    rank: profile.rank,
                     scientificName: profile.scientificName,
                     nameAuthor: profile.nameAuthor,
                     classification: profile.classification,

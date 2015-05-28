@@ -133,6 +133,7 @@ class DraftUtil {
         clone.uuid = source.uuid
         clone.text = source.text
         clone.id = source.id
+        clone.source = source.source
 
         // title, original, creators & editors are not cloned - copy by reference, not value
         clone.title = source.title

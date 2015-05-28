@@ -32,6 +32,7 @@ class SearchController extends BaseController {
                         guid          : it.guid,
                         scientificName: it.scientificName,
                         nameAuthor    : it.nameAuthor,
+                        rank          : it.rank,
                         opus          : [uuid: it.opus.uuid, title: it.opus.title, shortName: it.opus.shortName]
                 ]
             } as JSON
@@ -56,6 +57,7 @@ class SearchController extends BaseController {
                         profileId     : it.uuid,
                         guid          : it.guid,
                         scientificName: it.scientificName,
+                        rank          : it.rank,
                         opus          : [uuid: it.opus.uuid, title: it.opus.title, shortName: it.opus.shortName]
                 ]
             } as JSON
