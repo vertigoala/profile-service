@@ -5,8 +5,6 @@ import au.org.ala.web.AuthService
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 
-import java.text.SimpleDateFormat
-
 @Transactional
 class ProfileService extends BaseDataAccessService {
 
@@ -14,6 +12,8 @@ class ProfileService extends BaseDataAccessService {
     NameService nameService
     AuthService authService
     BieService bieService
+    DoiService doiService
+    def grailsApplication
 
     Profile createProfile(String opusId, Map json) {
         checkArgument opusId
@@ -270,9 +270,8 @@ class ProfileService extends BaseDataAccessService {
         }
     }
 
-    Publication savePublication(String profileId, Map data, MultipartFile file) {
+    Publication savePublication(String profileId, MultipartFile file) {
         checkArgument profileId
-        checkArgument data
         checkArgument file
 
         Profile profile = Profile.findByUuid(profileId)
@@ -283,44 +282,30 @@ class ProfileService extends BaseDataAccessService {
             profileOrDraft(profile).publications = []
         }
 
-        Publication publication = new Publication(data)
-        publication.publicationDate = new SimpleDateFormat("yyyy-MM-dd").parse(data.publicationDate)
-        publication.uploadDate = new Date()
+        Publication publication = new Publication()
+        publication.title = profile.scientificName
+        publication.authors = profile.authorship.find { it.category == "Author" }?.text
+        publication.doi = doiService.mintDOI(publication)
+        publication.publicationDate = new Date()
         publication.userId = authService.getUserId()
         publication.uuid = UUID.randomUUID().toString()
         profileOrDraft(profile).publications << publication
 
-        publication.saveMongoFile(file)
+        String fileName = "${grailsApplication.config.snapshot.directory}/${publication.uuid}.pdf"
+
+        file.transferTo(new File(fileName))
 
         save profile
 
         publication
     }
 
-    boolean deletePublication(String profileId, String publicationId) {
-        checkArgument profileId
+    File getPublicationFile(String publicationId) {
         checkArgument publicationId
 
-        Profile profile = Profile.findByUuid(profileId)
-        checkState profile
+        String fileName = "${grailsApplication.config.snapshot.directory}/${publicationId}.pdf"
 
-        Publication publication = profileOrDraft(profile).publications?.find {it.uuid == publicationId }
-        checkState publication
-
-        profileOrDraft(profile).publications.remove(publication)
-
-        save profile
-        if (!profile.draft) {
-            delete publication
-        }
-    }
-
-    def getPublicationFile(String publicationId) {
-        checkArgument publicationId
-
-        Publication publication = Publication.findByUuid(publicationId)
-
-        publication.getMongoFile()
+        new File(fileName)
     }
 
     Set<Publication> listPublications(String profileId) {

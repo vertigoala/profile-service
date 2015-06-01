@@ -116,10 +116,8 @@ class DraftUtil {
     static Publication clonePublication(Publication source) {
         Publication clone = new Publication()
         clone.uuid = source.uuid
-        clone.uploadDate = source.uploadDate
         clone.publicationDate = source.publicationDate
         clone.title = source.title
-        clone.description = source.description
         clone.doi = source.doi
         clone.userId = source.userId
         clone.authors = source.authors

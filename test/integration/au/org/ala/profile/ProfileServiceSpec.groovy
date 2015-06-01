@@ -1,6 +1,5 @@
 package au.org.ala.profile
 
-import au.org.ala.profile.util.DraftUtil
 import au.org.ala.web.AuthService
 import org.springframework.web.multipart.MultipartFile
 
@@ -16,6 +15,9 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         service.authService.getUserForUserId(_) >> [displayName: "Fred Bloggs"]
         service.bieService = Mock(BieService)
         service.bieService.getClassification(_) >> null
+        service.doiService = Mock(DoiService)
+        service.doiService.mintDOI(_) >> "1234"
+        service.grailsApplication = [config: [snapshot:[directory: "bla"]]]
     }
 
     def "createProfile should expect both arguments to be provided"() {
@@ -600,21 +602,15 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.draft.links.every {it.url == "three" || it.url == "four"}
     }
 
-    def "savePublication should throw an IllegalArgumentException if no profile id or data are provided"() {
+    def "savePublication should throw an IllegalArgumentException if no profile id or file are provided"() {
         when:
-        service.savePublication(null, [a: "b"], Mock(MultipartFile))
+        service.savePublication(null, Mock(MultipartFile))
 
         then:
         thrown IllegalArgumentException
 
         when:
-        service.savePublication("a", [:], Mock(MultipartFile))
-
-        then:
-        thrown IllegalArgumentException
-
-        when:
-        service.savePublication("a", [a: "b"], null)
+        service.savePublication("a", null)
 
         then:
         thrown IllegalArgumentException
@@ -622,7 +618,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
     def "savePublication should throw IllegalStateException if the profile does not exist"() {
         when:
-        service.savePublication("unknown", [a:"b"], Mock(MultipartFile))
+        service.savePublication("unknown", Mock(MultipartFile))
 
         then:
         thrown IllegalStateException
@@ -634,81 +630,14 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         save opus
         Profile profile = new Profile(opus: opus, scientificName: "sciName")
         save profile
-
-        boolean fileSaved = false
-        Publication.metaClass.saveMongoFile = { MultipartFile file, String fieldName = "" -> fileSaved = true}
+        MultipartFile mockFile = Mock(MultipartFile)
 
         when:
-        service.savePublication(profile.uuid, [publicationDate: "2015-02-02", description: "desc", title: "title", authors : "bob"], Mock(MultipartFile))
+        service.savePublication(profile.uuid, mockFile)
 
         then:
         Profile.list().get(0).publications.size() == 1
-        fileSaved
-    }
-
-    def "savePublication should update the profile draft if one exists"() {
-        given:
-        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
-        save opus
-        Profile profile = new Profile(opus: opus, scientificName: "sciName", draft: [uuid: "123", scientificName: "sciName"])
-        save profile
-
-        boolean fileSaved = false
-        Publication.metaClass.saveMongoFile = { MultipartFile file, String fieldName = "" -> fileSaved = true}
-
-        when:
-        service.savePublication(profile.uuid, [publicationDate: "2015-02-02", description: "desc", title: "title", authors : "bob"], Mock(MultipartFile))
-
-        then:
-        Publication.count == 0
-        Profile.list().get(0).publications == null || Profile.list().get(0).publications.size() == 0
-        Profile.list().get(0).draft.publications.size() == 1
-        fileSaved
-    }
-
-    def "deletePublication should remove the publication record"() {
-        given:
-        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
-        save opus
-        Profile profile = new Profile(opus: opus, scientificName: "sciName")
-        save profile
-        Publication pub = new Publication(publicationDate: new Date(), description: "desc", title: "title", authors : "bob", userId: "fred", profile: profile, uploadDate: new Date())
-        save pub
-        profile.publications = [pub]
-        save profile
-
-        expect:
-        profile.publications.size() == 1
-
-        when:
-        service.deletePublication(profile.uuid, pub.uuid)
-
-        then:
-        profile.publications.isEmpty()
-    }
-
-    def "deletePublication should update the profile draft if one exists"() {
-        given:
-        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
-        save opus
-        Profile profile = new Profile(opus: opus, scientificName: "sciName", draft: [uuid: "123", scientificName: "sciName"])
-        save profile
-        Publication pub = new Publication(publicationDate: new Date(), description: "desc", title: "title", authors : "bob", userId: "fred", profile: profile, uploadDate: new Date())
-        save pub
-        profile.publications = [pub]
-        profile.draft.publications = [pub]
-        save profile
-
-        expect:
-        profile.publications.size() == 1
-
-        when:
-        service.deletePublication(profile.uuid, pub.uuid)
-
-        then:
-        Publication.count == 1
-        profile.publications.size() == 1
-        profile.draft.publications.isEmpty()
+        1 * mockFile.transferTo(_)
     }
 
     def "deleteAttribute should throw IllegalStateException if no attributeId or profileId are provided"() {

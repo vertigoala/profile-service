@@ -7,10 +7,9 @@ import groovy.transform.ToString
 @ToString
 class Publication {
     String uuid
-    Date uploadDate
     Date publicationDate
     String title
-    String description
+    Integer version
     String doi
     String userId
     String authors

@@ -54,22 +54,19 @@ class ProfileController extends BaseController {
     }
 
     def savePublication() {
-        def publication
-        MultipartFile file
+        MultipartFile file = null
         if (request instanceof MultipartHttpServletRequest) {
-            publication = new JsonSlurper().parseText(request.getParameter("data"))
             file = request.getFile("file0")
         }
 
-        // the publicationId may be blank (e.g. when creating a new publication), but the request should still have it
-        if (!file || !publication || !params.profileId) {
+        if (!file || !params.profileId) {
             badRequest()
         } else {
             Profile profile = getProfile()
             if (!profile) {
                 notFound "Profile ${params.profileId} not found"
             } else {
-                Publication pub = profileService.savePublication(profile.uuid, publication, file)
+                Publication pub = profileService.savePublication(profile.uuid, file)
 
                 render pub as JSON
             }
@@ -80,29 +77,14 @@ class ProfileController extends BaseController {
         if (!params.publicationId) {
             badRequest "publicationId is a required parameter"
         } else {
-            GridFSDBFile file = profileService.getPublicationFile(params.publicationId)
+            File file = profileService.getPublicationFile(params.publicationId)
 
             if (!file) {
                 notFound "The requested file could not be found"
             } else {
                 response.setContentType("application/pdf")
                 response.setHeader("Content-disposition", "attachment;filename=publication.pdf")
-                file.writeTo(response.outputStream)
-            }
-        }
-    }
-
-    def deletePublication() {
-        if (!params.profileId || !params.publicationId) {
-            badRequest "profileId and publicationId are required parameters"
-        } else {
-            Profile profile = getProfile()
-            if (!profile) {
-                notFound()
-            } else {
-                boolean success = profileService.deletePublication(profile.uuid, params.publicationId)
-
-                render ([success: success] as JSON)
+                response.outputStream << file.newInputStream()
             }
         }
     }
