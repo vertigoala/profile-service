@@ -37,6 +37,7 @@ class Opus {
     String keybaseProjectId
     String keybaseKeyId
     String aboutHtml
+    String copyrightText
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, supportingOpuses: Opus]
 
@@ -56,6 +57,7 @@ class Opus {
         keybaseProjectId nullable: true
         keybaseKeyId nullable: true
         aboutHtml nullable: true
+        copyrightText nullable: true
     }
 
     def beforeValidate() {

@@ -41,6 +41,7 @@ class OpusMarshaller {
                     authorities                : opus.authorities?.collect {
                         [userId: it.user.userId, name: it.user.name, role: it.role.toString(), notes: it.notes]
                     },
+                    copyrightText              : opus.copyrightText,
                     hasAboutPage               : opus.aboutHtml != null,
                     profileCount               : opus.profileCount
             ]

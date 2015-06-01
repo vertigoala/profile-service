@@ -61,6 +61,9 @@ class OpusService extends BaseDataAccessService {
             }
             opus.recordSources.addAll(json.recordSources)
         }
+        if (json.copyrightText != opus.copyrightText) {
+            opus.copyrightText = json.copyrightText
+        }
         if (json.logoUrl && json.logoUrl != opus.logoUrl) {
             opus.logoUrl = json.logoUrl
         }
