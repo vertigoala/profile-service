@@ -343,6 +343,10 @@ class ProfileService extends BaseDataAccessService {
                 contributor = getOrCreateContributor(data.userDisplayName, data.userId)
             }
             creators << contributor
+        } else {
+            if (data.attributeTo && data.significantEdit) {
+                editors << getOrCreateContributor(data.attributeTo)
+            }
         }
 
         Term titleTerm = vocabService.getOrCreateTerm(data.title, profile.opus.attributeVocabUuid)
@@ -350,7 +354,8 @@ class ProfileService extends BaseDataAccessService {
         Attribute attribute = new Attribute(
                 uuid: UUID.randomUUID().toString(),
                 title: titleTerm,
-                text: data.text
+                text: data.text,
+                source: data.source
         )
         attribute.creators = creators
         attribute.editors = editors
