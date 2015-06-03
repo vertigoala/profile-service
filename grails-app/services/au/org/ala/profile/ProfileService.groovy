@@ -343,10 +343,17 @@ class ProfileService extends BaseDataAccessService {
                 contributor = getOrCreateContributor(data.userDisplayName, data.userId)
             }
             creators << contributor
-        } else {
-            if (data.attributeTo && data.significantEdit) {
-                editors << getOrCreateContributor(data.attributeTo)
+        }
+
+        // if we're copying the attribute from another collection and the significant edit flag is set, then add the user as an editor
+        if (data.original && data.significantEdit) {
+            def contributor
+            if (data.attributeTo) {
+                contributor = getOrCreateContributor(data.attributeTo)
+            } else {
+                contributor = getOrCreateContributor(data.userDisplayName, data.userId)
             }
+            editors << contributor
         }
 
         Term titleTerm = vocabService.getOrCreateTerm(data.title, profile.opus.attributeVocabUuid)
