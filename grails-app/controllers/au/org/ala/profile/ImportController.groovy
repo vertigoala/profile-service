@@ -80,6 +80,10 @@ class ImportController extends BaseController {
                                     "editors": [""],
                                     "title": "",
                                     "text": ""
+                                    }],
+                            "authorship": [{
+                                    "category": "",
+                                    "text": ""
                                     }]
                         }]
                      }"""

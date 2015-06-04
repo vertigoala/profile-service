@@ -243,40 +243,4 @@ class ProfileController extends BaseController {
             }
         }
     }
-
-    def importFOA() {
-        importService.importFOA()
-        render "done"
-    }
-
-    def createTestOccurrenceSource() {
-        def opus = Opus.findByUuid(profileService.spongesOpusId)
-
-        def testResources = [
-                new OccurrenceResource(
-                        name: "Test resource 1",
-                        webserviceUrl: "http://sandbox.ala.org.au/biocache-service",
-                        uiUrl: "http://sandbox.ala.org.au/ala-hub",
-                        dataResourceUid: "drt123",
-                        pointColour: "CCFF00"
-                ),
-                new OccurrenceResource(
-                        name: "Test resource 2",
-                        webserviceUrl: "http://sandbox.ala.org.au/biocache-service",
-                        uiUrl: "http://sandbox.ala.org.au/ala-hub",
-                        dataResourceUid: "drt125",
-                        pointColour: "FFCC00"
-                )
-        ]
-
-        opus.additionalOccurrenceResources = testResources
-        opus.save(flush: true)
-    }
-
-    def importFloraBase() {}
-
-    def importSponges() {
-        importService.importSponges()
-        render "done"
-    }
 }
