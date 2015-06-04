@@ -61,6 +61,8 @@ class NSWImport {
             report.createNewFile()
         }
 
+        Map<String, String> volumes = loadVolumes()
+
         Map<Integer, String> attributeTitles = loadAttributeTitles()
 
         Map<Integer, Map<String, List<String>>> taxaAttributes = loadAttributes(attributeTitles)
@@ -68,6 +70,11 @@ class NSWImport {
         Map<Integer, String> contributors = loadContributors()
 
         Map<Integer, List<String>> taxaContributors = loadTaxaContributors(contributors)
+
+        Map<Integer, List<Map<String, String>>> images = loadImages()
+        Map<Integer, List<String>> maps = loadMaps()
+
+        List<String> seenImages = []
 
         def csv = parseCsv(new File("${DATA_DIR}/taxa.csv").newReader("utf-8"))
         csv.each { line ->
@@ -88,6 +95,25 @@ class NSWImport {
                     if (v) {
                         attributes << [title: k, text: v.join("<p/>"), creators: [], stripHtml: false]
                     }
+                }
+            }
+
+            List<Map<String, String>> imgs = images.get(id)
+            imgs?.each {
+                String url = "http://anbg.gov.au/abrs-archive/Flora_Australia_Online/web_images/vol${volumes[line.VOLUME_ID]}/${it.fileName}"
+                String imgLine = "${scientificName},${url}"
+                if (!seenImages.contains(imgLine)) {
+                    imageFile << "${imgLine}\n"
+                    seenImages << imgLine
+                }
+            }
+            List<String> mapList = maps.get(id)
+            mapList?.each {
+                String url = "http://anbg.gov.au/abrs-archive/Flora_Australia_Online/web_images/vol${volumes[line.VOLUME_ID]}/${it}"
+                String imgLine = "${scientificName},${url}"
+                if (!seenImages.contains(imgLine)) {
+                    imageFile << "${imgLine}\n"
+                    seenImages << imgLine
                 }
             }
 
@@ -226,4 +252,59 @@ class NSWImport {
         taxaContributors
     }
 
+    static Map<Integer, List<Map<String, String>>> loadImages() {
+        Map<Integer, Map<String, String>> images = [:]
+
+        def csv = parseCsv(new File("${DATA_DIR}/figures.csv").newReader("utf-8"))
+        csv.each { line ->
+            try {
+                images << [(line.ID as Integer): [fileName: line.FILE_NAME, title: line.TITLE, caption: line.CAPTION, illustrator: line.ILLUSTRATOR]]
+            } catch (e) {
+                println "Failed to extract figure from line [${line}]"
+            }
+        }
+
+        Map<Integer, List<Map<String, String>>> taxaImages = [:]
+
+        csv = parseCsv(new File("${DATA_DIR}/taxa_figures.csv").newReader("utf-8"))
+        csv.each { line ->
+            try {
+                taxaImages.get(line.TAXON_ID as Integer, []) << images[line.FIGURE_ID as Integer]
+            } catch (e) {
+                println "Failed to extract figure from line [${line}]"
+            }
+        }
+
+        taxaImages
+    }
+
+    static Map<Integer, List<String>> loadMaps() {
+        Map<Integer, List<String>> maps = [:]
+
+        def csv = parseCsv(new File("${DATA_DIR}/distribution_maps.csv").newReader("utf-8"))
+        csv.each { line ->
+            try {
+                maps.get(line.TAXON_ID as Integer, []) << line.FILE_NAME
+            } catch (e) {
+                println "Failed to extract figure from line [${line}]"
+            }
+        }
+
+        maps
+    }
+
+    static Map<String, String> loadVolumes() {
+        Map<String, String> volumes = [:]
+
+        def csv = parseCsv(new File("${DATA_DIR}/volumes.csv").newReader("utf-8"))
+        csv.each { line ->
+            try {
+                volumes << [(line.ID): line.NUM]
+            } catch (e) {
+                println "Failed to extract volume from line [${line}]"
+            }
+        }
+
+        volumes
+    }
 }

@@ -84,64 +84,65 @@ class NSWImport {
 
             if (images) {
                 images.each {
-                    if (!seenImages.contains(it)) {
-                        imageFile << "${species},${NSW_FLORA_IMAGE_URL_PREFIX}${it}\n"
-                        seenImages << it
+                    String imageLine = "${species},${NSW_FLORA_IMAGE_URL_PREFIX}${it}"
+                    if (!seenImages.contains(imageLine)) {
+                        imageFile << "${imageLine}\n"
+                        seenImages << imageLine
                     }
                 }
             }
 
             String suppliedTaxonomy = fields[1..4].join("\n").trim()
-            attributes << [title: "Supplied Taxonomy", text: suppliedTaxonomy, creators: [contributor]]
+            attributes << [title: "Supplied Taxonomy", text: suppliedTaxonomy, creators: [contributor], stripHtml: true]
 
             String commonName = fields[5]
             if (commonName) {
-                attributes << [title: "Common Name", text: commonName, creators: [contributor]]
+                attributes << [title: "Common Name", text: commonName, creators: [contributor], stripHtml: true]
             }
 
             String description = fields[7]
             if (description) {
-                attributes << [title: "Description", text: description, creators: [contributor]]
+                attributes << [title: "Description", text: description, creators: [contributor], stripHtml: true]
             }
 
             String leaves = fields[8]
             if (leaves) {
-                attributes << [title: "Leaves", text: leaves, creators: [contributor]]
+                attributes << [title: "Leaves", text: leaves, creators: [contributor], stripHtml: true]
             }
 
             String flowers = fields[9]
             if (flowers) {
-                attributes << [title: "Flowers", text: flowers, creators: [contributor]]
+                attributes << [title: "Flowers", text: flowers, creators: [contributor], stripHtml: true]
             }
 
             String fruit = fields[10]
             if (fruit) {
-                attributes << [title: "Fruit", text: fruit, creators: [contributor]]
+                attributes << [title: "Fruit", text: fruit, creators: [contributor], stripHtml: true]
             }
 
             String flowering = fields[11]
             if (flowering) {
-                attributes << [title: "Flowering", text: flowering, creators: [contributor]]
+                attributes << [title: "Flowering", text: flowering, creators: [contributor], stripHtml: true]
             }
 
             String occurrence = fields[12..15].join("\n").trim()
             if (occurrence) {
-                attributes << [title: "Occurrence", text: occurrence, creators: [contributor]]
+                attributes << [title: "Occurrence", text: occurrence, creators: [contributor], stripHtml: true]
             }
 
             String otherNotes = fields[18..21].join("\n").trim()
             if (otherNotes) {
-                attributes << [title: "Notes", text: otherNotes, creators: [contributor]]
+                attributes << [title: "Notes", text: otherNotes, creators: [contributor], stripHtml: true]
             }
 
             String synonyms = fields[17]
             if (synonyms) {
-                attributes << [title: "Synonyms", text: synonyms, creators: [contributor]]
+                attributes << [title: "Synonyms", text: synonyms, creators: [contributor], stripHtml: true]
             }
 
             String taxonConcept = fields[23]
             if (taxonConcept) {
-                attributes << [title: "Taxon Concept", text: taxonConcept, creators: [contributor]]
+                attributes << [title: "Taxon Concept", text: taxonConcept, creators: [contributor], stripHtml: true]
             }
 
             String scientificName = "${species}".trim()
