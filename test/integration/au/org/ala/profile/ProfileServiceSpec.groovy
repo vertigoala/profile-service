@@ -15,6 +15,9 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         service.authService.getUserForUserId(_) >> [displayName: "Fred Bloggs"]
         service.bieService = Mock(BieService)
         service.bieService.getClassification(_) >> null
+        service.doiService = Mock(DoiService)
+        service.doiService.mintDOI(_) >> "1234"
+        service.grailsApplication = [config: [snapshot:[directory: "bla"]]]
     }
 
     def "createProfile should expect both arguments to be provided"() {
@@ -161,7 +164,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         save profile
 
         when: "the incoming data does not have a primaryImage attribute"
-        service.saveImages(profile.uuid, [a: "bla"])
+        service.saveImages(profile, [a: "bla"])
 
         then: "there should be no change"
         profile.primaryImage == "12345"
@@ -176,7 +179,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         when: "the incoming primary image is null"
         profile = new Profile(opus: opus, scientificName: "sciName", primaryImage: "12345")
         save profile
-        service.saveImages(profile.uuid, [primaryImage: null])
+        service.saveImages(profile, [primaryImage: null])
 
         then: "there should be no change"
         profile.primaryImage == "12345"
@@ -184,7 +187,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         when: "the incoming primary image is different"
         profile = new Profile(opus: opus, scientificName: "sciName", primaryImage: "12345")
         save profile
-        service.saveImages(profile.uuid, [primaryImage: "09876"])
+        service.saveImages(profile, [primaryImage: "09876"])
 
         then: "the profile should be updated"
         profile.primaryImage == "09876"
@@ -192,7 +195,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         when: "the incoming data does not have a primaryImage attribute"
         profile = new Profile(opus: opus, scientificName: "sciName", primaryImage: "12345")
         save profile
-        service.saveImages(profile.uuid, [a: "bla"])
+        service.saveImages(profile, [a: "bla"])
 
         then: "there should be no change"
         profile.primaryImage == "12345"
@@ -207,7 +210,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         when: "the incoming value is different"
         profile = new Profile(opus: opus, scientificName: "sciName", excludedImages: ["1", "2", "3"])
         save profile
-        service.saveImages(profile.uuid, [excludedImages: ["4", "5", "6"]])
+        service.saveImages(profile, [excludedImages: ["4", "5", "6"]])
 
         then: "the profile should be replaced"
         profile.excludedImages == ["4", "5", "6"]
@@ -215,7 +218,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         when: "the incoming data does not have the attribute"
         profile = new Profile(opus: opus, scientificName: "sciName", excludedImages: ["1", "2", "3"])
         save profile
-        service.saveImages(profile.uuid, [a: "bla"])
+        service.saveImages(profile, [a: "bla"])
 
         then: "there should be no change"
         profile.excludedImages == ["1", "2", "3"]
@@ -223,7 +226,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         when: "the incoming attribute is empty"
         profile = new Profile(opus: opus, scientificName: "sciName", excludedImages: ["1", "2", "3"])
         save profile
-        service.saveImages(profile.uuid, [excludedImages: []])
+        service.saveImages(profile, [excludedImages: []])
 
         then: "all existing excluded images should be removed"
         profile.excludedImages == []
@@ -231,7 +234,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         when: "the incoming attribute is null"
         profile = new Profile(opus: opus, scientificName: "sciName", excludedImages: ["1", "2", "3"])
         save profile
-        service.saveImages(profile.uuid, [excludedImages: null])
+        service.saveImages(profile, [excludedImages: null])
 
         then: "all existing excluded images should be removed"
         profile.excludedImages == []
@@ -246,7 +249,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         when: "the incoming data does not have the attribute"
         profile = new Profile(opus: opus, scientificName: "sciName", specimenIds: ["1", "2", "3"])
         save profile
-        service.saveSpecimens(profile.uuid, [a: "bla"])
+        service.saveSpecimens(profile, [a: "bla"])
 
         then: "there should be no change"
         profile.specimenIds == ["1", "2", "3"]
@@ -254,7 +257,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         when: "the incoming attribute is empty"
         profile = new Profile(opus: opus, scientificName: "sciName", specimenIds: ["1", "2", "3"])
         save profile
-        service.saveSpecimens(profile.uuid, [specimenIds: []])
+        service.saveSpecimens(profile, [specimenIds: []])
 
         then: "all existing specimens should be removed"
         profile.specimenIds == []
@@ -262,7 +265,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         when: "the incoming value is different"
         profile = new Profile(opus: opus, scientificName: "sciName", specimenIds: ["1", "2", "3"])
         save profile
-        service.saveSpecimens(profile.uuid, [specimenIds: ["4", "5", "6"]])
+        service.saveSpecimens(profile, [specimenIds: ["4", "5", "6"]])
 
         then: "the profile should be replaced"
         profile.specimenIds == ["4", "5", "6"]
@@ -270,11 +273,27 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         when: "the incoming attribute is null"
         profile = new Profile(opus: opus, scientificName: "sciName", specimenIds: ["1", "2", "3"])
         save profile
-        service.saveSpecimens(profile.uuid, [specimenIds: null])
+        service.saveSpecimens(profile, [specimenIds: null])
 
         then: "all existing ss should be removed"
         profile.specimenIds == []
 
+    }
+
+    def "saveSpecimens should save changes to the profile draft if one exists"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Profile profile
+
+        when:
+        profile = new Profile(opus: opus, scientificName: "sciName", specimenIds: ["1", "2", "3"], draft: [uuid: "asd", scientificName: "sciName", specimenIds: ["1", "2", "3"]])
+        save profile
+        service.saveSpecimens(profile, [specimenIds: ["4", "5", "6"]])
+
+        then: "there should be no change"
+        profile.specimenIds == ["1", "2", "3"]
+        profile.draft.specimenIds == ["4", "5", "6"]
     }
 
     def "saveBibliography should not change the bibliography if the incoming data does not have the bibliography attribute"() {
@@ -287,7 +306,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         save profile
 
         when: "the incoming data does not have the attribute"
-        service.saveBibliography(profile.uuid, [a: "bla"])
+        service.saveBibliography(profile, [a: "bla"])
 
         then: "there should be no change"
         profile.bibliography.contains(bib1) && profile.bibliography.contains(bib2)
@@ -303,26 +322,10 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         save profile
 
         when: "the incoming data the same"
-        service.saveBibliography(profile.uuid, [bibliography: [[uuid: "1", text: "one", order: 1], [uuid: "2", text: "two", order: 2]]])
+        service.saveBibliography(profile, [bibliography: [[uuid: "1", text: "one", order: 1], [uuid: "2", text: "two", order: 2]]])
 
         then: "there should be no change"
         profile.bibliography.each { it.id == bib1.id || it.id == bib2.id }
-    }
-
-    def "saveBibliography should throw an IllegalStateException if the incoming data contains UUIDs that do not exist"() {
-        given:
-        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
-        save opus
-        Bibliography bib1 = new Bibliography(uuid: "1", text: "one")
-        Bibliography bib2 = new Bibliography(uuid: "2", text: "two")
-        Profile profile = new Profile(opus: opus, scientificName: "sciName", bibliography: [bib1, bib2])
-        save profile
-
-        when: "the incoming data has an unrecognised UUID"
-        service.saveBibliography(profile.uuid, [bibliography: [[uuid: "unknown", text: "one", order: 1]]])
-
-        then: "there an exception should be thrown"
-        thrown(IllegalStateException)
     }
 
     def "saveBibliography should change the bibliography the incoming data contains existing and new records"() {
@@ -335,7 +338,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         save profile
 
         when: "the incoming data contains existing and new records"
-        service.saveBibliography(profile.uuid, [bibliography: [[text: "four"], [uuid: "1", text: "one"]]])
+        service.saveBibliography(profile, [bibliography: [[text: "four"], [uuid: "1", text: "one"]]])
 
         then: "the profile's list should be updated "
         profile.bibliography.each { it.id == bib1.id || it.text == "four" }
@@ -351,7 +354,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         save profile
 
         when: "the incoming value is different"
-        service.saveBibliography(profile.uuid, [bibliography: [[text: "four"]]])
+        service.saveBibliography(profile, [bibliography: [[text: "four"]]])
 
         then: "the profile should be replaced"
         profile.bibliography.size() == 1
@@ -368,7 +371,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         save profile
 
         when: "the incoming data the same"
-        service.saveBibliography(profile.uuid, [bibliography: [[uuid: "1", text: "one", order: 1], [uuid: "2", text: "two", order: 2]]])
+        service.saveBibliography(profile, [bibliography: [[uuid: "1", text: "one", order: 1], [uuid: "2", text: "two", order: 2]]])
 
         then: "there should be no change"
         profile.bibliography.every { it.id == bib1.id || it.id == bib2.id }
@@ -384,7 +387,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         save profile
 
         when: "the incoming attribute is empty"
-        service.saveBibliography(profile.uuid, [bibliography: []])
+        service.saveBibliography(profile, [bibliography: []])
 
         then: "all existing bibliography should be removed"
         profile.bibliography.isEmpty()
@@ -400,10 +403,27 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         save profile
 
         when: "the incoming attribute is empty"
-        service.saveBibliography(profile.uuid, [bibliography: null])
+        service.saveBibliography(profile, [bibliography: null])
 
         then: "all existing bibliography should be removed"
         profile.bibliography.isEmpty()
+    }
+
+    def "saveBibliography should update the profile draft if one exists"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Bibliography bib1 = new Bibliography(uuid: "1", text: "one")
+        Bibliography bib2 = new Bibliography(uuid: "2", text: "two")
+        Profile profile = new Profile(opus: opus, scientificName: "sciName", bibliography: [bib1, bib2], draft: [uuid: "123", scientificName: "asd", bibliography: [bib1, bib2]])
+        save profile
+
+        when: "the incoming data the same"
+        service.saveBibliography(profile, [bibliography: [[uuid: "3", text: "three", order: 1], [uuid: "4", text: "four", order: 2]]])
+
+        then: "there should be no change"
+        profile.bibliography.every { it.id == bib1.id || it.id == bib2.id }
+        profile.draft.bibliography.every { it.text == "three" || it.text == "four" }
     }
 
     def "saveBHLLinks should throw an IllegalArgumentException if the profile id or data are not provided"() {
@@ -459,7 +479,6 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
         then:
         profile.bhlLinks.every {it.url == "three" || it.url == "four"}
-        Link.count() == 2
     }
 
     def "saveBHLLinks should combine all links if the incoming list contains new and existing elements"() {
@@ -476,7 +495,23 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
         then:
         profile.bhlLinks.every {it.url == "one" || it.url == "four"}
-        Link.count() == 2
+    }
+
+    def "saveBHLLinks should update the profile draft if one exists"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Link link1 = new Link(uuid: "1", url: "one", description: "desc", title: "title")
+        Link link2 = new Link(uuid: "2", url: "two", description: "desc", title: "title")
+        Profile profile = new Profile(opus: opus, scientificName: "sciName", bhlLinks: [link1, link2], draft: [uuid: "123",scientificName: "sciName", bhlLinks: [link1, link2]])
+        save profile
+
+        when:
+        service.saveBHLLinks(profile.uuid, [links: [[url: "three"], [url: "four"]]])
+
+        then:
+        profile.bhlLinks.every {it.url == "one" || it.url == "two"}
+        profile.draft.bhlLinks.every {it.url == "three" || it.url == "four"}
     }
 
     def "saveLinks should throw an IllegalArgumentException if the profile id or data are not provided"() {
@@ -532,7 +567,6 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
         then:
         profile.links.every {it.url == "three" || it.url == "four"}
-        Link.count() == 2
     }
 
     def "saveLinks should combine all links if the incoming list contains new and existing elements"() {
@@ -549,24 +583,34 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
         then:
         profile.links.every {it.url == "one" || it.url == "four"}
-        Link.count() == 2
     }
 
-    def "savePublication should throw an IllegalArgumentException if no profile id or data are provided"() {
+    def "saveLinks should update the profile draft if one exists"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Link link1 = new Link(uuid: "1", url: "one", description: "desc", title: "title")
+        Link link2 = new Link(uuid: "2", url: "two", description: "desc", title: "title")
+        Profile profile = new Profile(opus: opus, scientificName: "sciName", links: [link1, link2], draft: [uuid: "123", scientificName: "sciName", links: [link1, link2]])
+        save profile
+
         when:
-        service.savePublication(null, [a: "b"], Mock(MultipartFile))
+        service.saveLinks(profile.uuid, [links: [[url: "three"], [url: "four"]]])
+
+        then:
+        profile.links.every {it.url == "one" || it.url == "two"}
+        profile.draft.links.every {it.url == "three" || it.url == "four"}
+    }
+
+    def "savePublication should throw an IllegalArgumentException if no profile id or file are provided"() {
+        when:
+        service.savePublication(null, Mock(MultipartFile))
 
         then:
         thrown IllegalArgumentException
 
         when:
-        service.savePublication("a", [:], Mock(MultipartFile))
-
-        then:
-        thrown IllegalArgumentException
-
-        when:
-        service.savePublication("a", [a: "b"], null)
+        service.savePublication("a", null)
 
         then:
         thrown IllegalArgumentException
@@ -574,7 +618,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
     def "savePublication should throw IllegalStateException if the profile does not exist"() {
         when:
-        service.savePublication("unknown", [a:"b"], Mock(MultipartFile))
+        service.savePublication("unknown", Mock(MultipartFile))
 
         then:
         thrown IllegalStateException
@@ -586,55 +630,14 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         save opus
         Profile profile = new Profile(opus: opus, scientificName: "sciName")
         save profile
-
-        boolean fileSaved = false
-        Publication.metaClass.saveMongoFile = { MultipartFile file, String fieldName = "" -> fileSaved = true}
+        MultipartFile mockFile = Mock(MultipartFile)
 
         when:
-        service.savePublication(profile.uuid, [publicationDate: "2015-02-02", description: "desc", title: "title", authors : "bob"], Mock(MultipartFile))
+        service.savePublication(profile.uuid, mockFile)
 
         then:
-        Publication.count() == 1
-        fileSaved
-    }
-
-    def "deletePublication should throw IllegalArgumentException if no publicationId is provided"() {
-        when:
-        service.deletePublication(null)
-
-        then:
-        thrown IllegalArgumentException
-    }
-
-    def "deletePublication should throw IllegalStateException if the publication does not exsit"() {
-        when:
-        service.deletePublication("unknown")
-
-        then:
-        thrown IllegalStateException
-    }
-
-    def "deletePublication should remove the publication record"() {
-        given:
-        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
-        save opus
-        Profile profile = new Profile(opus: opus, scientificName: "sciName")
-        save profile
-        Publication pub = new Publication(publicationDate: new Date(), description: "desc", title: "title", authors : "bob", userId: "fred", profile: profile, uploadDate: new Date())
-        save pub
-        profile.addToPublications(pub)
-        save profile
-
-        expect:
-        Publication.count() == 1
-        profile.publications.size() == 1
-
-        when:
-        service.deletePublication(pub.uuid)
-
-        then:
-        profile.publications.isEmpty()
-        Publication.count() == 0
+        Profile.list().get(0).publications.size() == 1
+        1 * mockFile.transferTo(_)
     }
 
     def "deleteAttribute should throw IllegalStateException if no attributeId or profileId are provided"() {
@@ -710,6 +713,35 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
         then:
         Attribute.count() == 0
+    }
+
+    def "deleteAttribute should update the profile draft if one exists"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Profile profile = new Profile(opus: opus, scientificName: "sciName", draft: [uuid: "123", scientificName: "sciName"])
+        save profile
+        Vocab vocab = new Vocab(name: "vocab1")
+        Term term = new Term(uuid: "1", name: "title")
+        vocab.addToTerms(term)
+        save vocab
+        Attribute attribute = new Attribute(uuid: "1", title: term, text: "text", profile: profile)
+        profile.addToAttributes(attribute)
+        profile.draft.attributes = [new Attribute(uuid: "1", title: term, text: "text")]
+        save attribute
+        save profile
+
+        expect:
+        Attribute.count() == 1
+        profile.attributes.size() == 1
+
+        when:
+        service.deleteAttribute(attribute.uuid, profile.uuid)
+
+        then:
+        Attribute.count() == 1
+        profile.attributes.size() == 1
+        profile.draft.attributes.size() == 0
     }
 
     def "updateAttribute should throw IllegalArgumentException if no attribute id, profile id or data are provided"() {
@@ -807,6 +839,34 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         a.editors == [contributor] as Set
     }
 
+    def "updateAttribute should update profile draft if one exists"() {
+        given:
+        Vocab vocab = new Vocab(name: "vocab1")
+        Term term1 = new Term(uuid: "1", name: "title1")
+        Term term2 = new Term(uuid: "2", name: "title2")
+        vocab.addToTerms(term1)
+        vocab.addToTerms(term2)
+        save vocab
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title", attributeVocabUuid: vocab.uuid)
+        save opus
+        Profile profile = new Profile(opus: opus, scientificName: "sciName", draft: [uuid: "123", scientificName: "sciName"])
+        save profile
+        Attribute attribute = new Attribute(uuid: "1", title: term1, text: "text", profile: profile)
+        profile.addToAttributes(attribute)
+        profile.draft.attributes = [new Attribute(uuid: "1", title: term1, text: "text")]
+        save attribute
+        save profile
+
+        service.vocabService = new VocabService()
+
+        when:
+        service.updateAttribute(attribute.uuid, profile.uuid, [text: "updatedText"])
+
+        then:
+        Attribute.list()[0].text == "text"
+        profile.draft.attributes[0].text == "updatedText"
+    }
+
     def "createAttribute should throw IllegalArgumentException if no profile id or data are provided"() {
         when:
         service.createAttribute(null, [a: "b"])
@@ -874,6 +934,29 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         a.editors[0].uuid == bob.uuid
         a.text == "updatedText"
         a.original == null
+    }
+
+    def "createAttribute should update the profile draft if one exists"() {
+        given:
+        Vocab vocab = new Vocab(name: "vocab1")
+        Term term = new Term(uuid: "1", name: "title")
+        vocab.addToTerms(term)
+        save vocab
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title", attributeVocabUuid: vocab.uuid)
+        save opus
+        Profile profile = new Profile(opus: opus, scientificName: "sciName", draft: [uuid: "123", scientificName: "sciName"])
+        save profile
+
+        service.vocabService = new VocabService()
+
+        when:
+        service.createAttribute(profile.uuid, [title: "title", text: "text", userId: "123", editors: ["bob"]])
+
+        then:
+        Attribute.count() == 0 // should not be persisted while in draft
+        profile.attributes == null || profile.attributes.size() == 0
+        profile.draft.attributes.size() == 1
+        profile.draft.attributes[0].text == "text"
     }
 
     def "createAttribute should not update the creator but should set the original attribute when there is an original attribute in the incoming data"() {
@@ -1047,5 +1130,97 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
         then: "all existing authorship should be removed"
         profile.authorship.isEmpty()
+    }
+
+    def "saveAuthorship should update the profile draft if one exists"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Authorship auth1 = new Authorship(category: "Author", text: "Bob, Jane")
+        Profile profile = new Profile(opus: opus, scientificName: "sciName", authorship: [auth1], draft: [uuid: "123", scientificName: "sciName", authorship: [auth1]])
+        save profile
+
+        when: "the incoming value is different"
+        service.saveAuthorship(profile.uuid, [authorship: [[text: "Sarah", category: "Author"]]])
+
+        then: "the profile should be replaced"
+        profile.authorship.size() == 1
+        profile.authorship[0].text == "Bob, Jane"
+        profile.authorship[0].category == "Author"
+        profile.draft.authorship.size() == 1
+        profile.draft.authorship[0].text == "Sarah"
+        profile.draft.authorship[0].category == "Author"
+    }
+
+    def "toggleDraftMode should create a new draft Profile if one does not exist"() {
+        given:
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        Profile profile = save new Profile(opus: opus, scientificName: "sciName")
+
+        expect:
+        Profile.count == 1
+
+        when:
+        service.toggleDraftMode(profile.uuid)
+
+        then:
+        Profile.count == 1
+        profile.draft != null
+        profile.draft != profile
+        profile.draft.id != profile.id
+        profile.draft.uuid == profile.uuid
+    }
+
+    def "toggleDraftMode should update the current Profile record with the draft Profile's details if one exists"() {
+        given:
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        Profile profile = save new Profile(uuid: "uuid1", opus: opus, scientificName: "sciName", draft: new DraftProfile(opus: opus, scientificName: "sciNameDraft", uuid: "uuid1"))
+
+        expect:
+        Profile.count == 1
+
+        when:
+        service.toggleDraftMode(profile.uuid)
+
+        then:
+        Profile.count == 1
+        Profile newProfile = Profile.list().get(0)
+        newProfile.draft == null
+        newProfile.id == profile.id
+        newProfile.uuid == profile.uuid
+        newProfile.scientificName == "sciNameDraft"
+    }
+
+    def "toggleDraftModel should delete attributes that exist on the profile but not in the draft"() {
+        // i.e. they have been deleted from the draft
+        given:
+        Vocab vocab = new Vocab(name: "vocab1")
+        Term term1 = new Term(uuid: "1", name: "title1")
+        Term term2 = new Term(uuid: "2", name: "title2")
+        vocab.addToTerms(term1)
+        vocab.addToTerms(term2)
+        save vocab
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title", attributeVocabUuid: vocab.uuid)
+        Profile profile = save new Profile(uuid: "uuid1", opus: opus, scientificName: "sciName")
+        Attribute attribute1 = save new Attribute(uuid: "uuid1", title: term1, text: "text1", profile: profile)
+        Attribute attribute2 = save new Attribute(uuid: "uuid2", title: term2, text: "text2", profile: profile)
+
+        service.toggleDraftMode(profile.uuid)
+
+        profile.draft.attributes.remove(0)
+
+        save profile
+
+        expect:
+        Attribute.count == 2
+        Profile.count == 1
+        Profile.list()[0].attributes.size() == 2
+
+        when:
+        service.toggleDraftMode(profile.uuid)
+
+        then:
+        Attribute.count == 1
+        Attribute.list()[0] == attribute2
     }
 }

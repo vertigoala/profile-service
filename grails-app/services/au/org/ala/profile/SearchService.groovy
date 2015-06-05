@@ -3,7 +3,7 @@ package au.org.ala.profile
 
 class SearchService extends BaseDataAccessService {
 
-    static final List<String> RANKS = ["kingdom", "phylum", "clazz", "subclazz", "order", "family", "genus", "species"]
+    static final List<String> RANKS = ["kingdom", "phylum", "class", "subclass", "order", "family", "genus", "species"]
     static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 10
     static final Integer DEFAULT_MAX_BROAD_SEARCH_RESULTS = 50
 
@@ -36,7 +36,7 @@ class SearchService extends BaseDataAccessService {
         }
     }
 
-    List<Profile> findByTaxonNameAndLevel(String taxon, String scientificName, List<String> opusIds, boolean useWildcard = true, int max = -1, int startFrom = 0) {
+    List<Profile> findByTaxonNameAndLevel(String taxon, String scientificName, List<String> opusIds, boolean useWildcard = true, int max = -1, int startFrom = 0, boolean recursive = true) {
         checkArgument taxon
         checkArgument scientificName
 
@@ -51,12 +51,24 @@ class SearchService extends BaseDataAccessService {
             max = opusList ? DEFAULT_MAX_OPUS_SEARCH_RESULTS : DEFAULT_MAX_BROAD_SEARCH_RESULTS
         }
 
+        String nextRank = null
+        if (RANKS.indexOf(taxon) < RANKS.size() - 1 && RANKS.indexOf(taxon) > -1) {
+            nextRank = RANKS[RANKS.indexOf(taxon) + 1]
+        }
+
         Profile.withCriteria {
             if (opusList) {
                 'in' "opus", opusList
             }
 
-            ilike "classification.${taxon.toLowerCase()}", "${scientificName}${wildcard}"
+            "classification" {
+                eq "rank", "${taxon.toLowerCase()}"
+                ilike "name", "${scientificName}${wildcard}"
+            }
+
+            if (!recursive) {
+                eq "rank", nextRank
+            }
 
             order "scientificName"
 
@@ -71,12 +83,12 @@ class SearchService extends BaseDataAccessService {
         Opus opus = Opus.findByUuid(opusId)
 
         if (opus) {
-            RANKS.collectEntries {
-                [it, Profile.collection.aggregate([[$match: [opus: opus.id, "classification.${it}": [$ne: null]]],
-                                                   [$group: [_id: '$classification.' + it, cnt: [$sum: 1]]],
-                                                   [$group: [_id: null, total: [$sum: 1]]]]
-                ).results().iterator().next().get("total")
-                ]
+            Profile.collection.aggregate([[$match: [opus: opus.id]],
+                                          [$unwind: '$classification'],
+                                          [$group: [_id: [rank: '$classification.rank', name: '$classification.name'], cnt: [$sum: 1]]],
+                                          [$group: [_id: '$_id.rank', total: [$sum: 1]]]]
+            ).results().iterator().collectEntries {
+                [(it._id): it.total]
             }
         } else {
             [:]
@@ -90,8 +102,15 @@ class SearchService extends BaseDataAccessService {
         Opus opus = Opus.findByUuid(opusId)
 
         if (opus) {
-            def result = Profile.collection.aggregate([$match: [opus: opus.id, "classification.${taxon}": [$ne: null]]],
-                                                      [$group: [_id: '$classification.' + taxon, cnt: [$sum: 1]]],
+            String nextRank = null
+            if (RANKS.indexOf(taxon) < RANKS.size() - 1 && RANKS.indexOf(taxon) > -1) {
+                nextRank = RANKS[RANKS.indexOf(taxon) + 1]
+            }
+
+            def result = Profile.collection.aggregate([$match: [opus: opus.id]],
+                                                      [$unwind: '$classification'],
+                                                      [$match: ["classification.rank": "${taxon}"]],
+                                                      [$group: [_id: '$classification.name', cnt: [$sum: 1]]],
                                                       [$sort: ["_id": 1]],
                                                       [$skip: startFrom], [$limit: max < 0 ? DEFAULT_MAX_BROAD_SEARCH_RESULTS : max]
             )?.results()

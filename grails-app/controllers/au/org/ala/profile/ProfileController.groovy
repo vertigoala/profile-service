@@ -14,28 +14,26 @@ class ProfileController extends BaseController {
     BieService bieService
 
     def saveBHLLinks() {
-        def jsonSlurper = new JsonSlurper()
-        def json = jsonSlurper.parse(request.getReader())
+        def json = request.getJSON()
 
         if (!json) {
             badRequest()
         } else {
-            List<String> linkIds = profileService.saveBHLLinks(json.profileId, json)
+            boolean success = profileService.saveBHLLinks(json.profileId, json)
 
-            render linkIds as JSON
+            render ([success: success] as JSON)
         }
     }
 
     def saveLinks() {
-        def jsonSlurper = new JsonSlurper()
-        def json = jsonSlurper.parse(request.getReader())
+        def json = request.getJSON()
 
         if (!json) {
             badRequest()
         } else {
-            List<String> linkIds = profileService.saveLinks(json.profileId, json)
+            boolean success = profileService.saveLinks(json.profileId, json)
 
-            render linkIds as JSON
+            render ([success: success] as JSON)
         }
     }
 
@@ -48,8 +46,7 @@ class ProfileController extends BaseController {
             boolean saved = profileService.saveAuthorship(params.profileId, json)
 
             if (saved) {
-                Profile profile = getProfile()
-                render profile.authorship as JSON
+                render ([success: saved] as JSON)
             } else {
                 saveFailed()
             }
@@ -57,22 +54,19 @@ class ProfileController extends BaseController {
     }
 
     def savePublication() {
-        def publication
-        MultipartFile file
+        MultipartFile file = null
         if (request instanceof MultipartHttpServletRequest) {
-            publication = new JsonSlurper().parseText(request.getParameter("data"))
             file = request.getFile("file0")
         }
 
-        // the publicationId may be blank (e.g. when creating a new publication), but the request should still have it
-        if (!file || !publication || !params.profileId) {
+        if (!file || !params.profileId) {
             badRequest()
         } else {
             Profile profile = getProfile()
             if (!profile) {
                 notFound "Profile ${params.profileId} not found"
             } else {
-                Publication pub = profileService.savePublication(profile.uuid, publication, file)
+                Publication pub = profileService.savePublication(profile.uuid, file)
 
                 render pub as JSON
             }
@@ -83,21 +77,15 @@ class ProfileController extends BaseController {
         if (!params.publicationId) {
             badRequest "publicationId is a required parameter"
         } else {
-            GridFSDBFile file = profileService.getPublicationFile(params.publicationId)
+            File file = profileService.getPublicationFile(params.publicationId)
 
-            response.setContentType("application/pdf")
-            response.setHeader("Content-disposition", "attachment;filename=publication.pdf")
-            file.writeTo(response.outputStream)
-        }
-    }
-
-    def deletePublication() {
-        if (!params.publicationId) {
-            badRequest "publicationId is a required parameter"
-        } else {
-            boolean success = profileService.deletePublication(params.publicationId)
-
-            respond success, [formats: ["json", "xml"]]
+            if (!file) {
+                notFound "The requested file could not be found"
+            } else {
+                response.setContentType("application/pdf")
+                response.setHeader("Content-disposition", "attachment;filename=publication.pdf")
+                response.outputStream << file.newInputStream()
+            }
         }
     }
 
@@ -112,26 +100,6 @@ class ProfileController extends BaseController {
                 Set<Publication> publications = profileService.listPublications(profile.uuid)
 
                 render publications as JSON
-            }
-        }
-    }
-
-    def index() {
-        log.debug("ProfileController.index")
-        def results = Profile.findAll([max: 100], {})
-        render(contentType: "application/json") {
-            if (results) {
-                array {
-                    results.each { tp ->
-                        taxon(
-                                "profileId": "${tp.uuid}",
-                                "guid": "${tp.guid}",
-                                "scientificName": "${tp.scientificName}"
-                        )
-                    }
-                }
-            } else {
-                []
             }
         }
     }
@@ -193,20 +161,69 @@ class ProfileController extends BaseController {
             if (!profile) {
                 notFound()
             } else {
-                profile = profileService.updateProfile(params.profileId, json)
+                profileService.updateProfile(profile.uuid, json)
+
+                profile = getProfile()
+
+                if (profile && profile.draft && params.latest == "true") {
+                    Opus opus = profile.opus
+                    profile = new Profile(profile.draft.properties)
+                    profile.attributes?.each { it.profile = profile }
+                    profile.opus = opus
+                    profile.privateMode = true
+                }
 
                 render profile as JSON
             }
         }
     }
 
-    def getByUuid() {
-        // TODO do this better
-        log.debug("Fetching profile by profileId ${params.profileId}")
-        Profile tp = getProfile()//Profile.findByUuidOrGuidOrScientificName(params.profileId, params.profileId, params.profileId)
+    def toggleDraftMode() {
+        if (!params.profileId) {
+            badRequest()
+        } else {
+            Profile profile = getProfile()
 
-        if (tp) {
-            respond tp, [formats: ['json', 'xml']]
+            if (!profile) {
+                notFound()
+            } else {
+                profileService.toggleDraftMode(profile.uuid)
+
+                render ([success: true] as JSON)
+            }
+        }
+    }
+
+    def discardDraftChanges() {
+        if (!params.profileId) {
+            badRequest()
+        } else {
+            Profile profile = getProfile()
+
+            if (!profile) {
+                notFound()
+            } else {
+                profileService.discardDraftChanges(profile.uuid)
+
+                render ([success: true] as JSON)
+            }
+        }
+    }
+
+    def getByUuid() {
+        log.debug("Fetching profile by profileId ${params.profileId}")
+        def profile = getProfile()
+
+        if (profile) {
+            if (profile && profile.draft && params.latest == "true") {
+                Opus opus = profile.opus
+                profile = new Profile(profile.draft.properties)
+                profile.attributes?.each { it.profile = profile }
+                profile.opus = opus
+                profile.privateMode = true
+            }
+
+            render profile as JSON
         } else {
             notFound()
         }
@@ -222,44 +239,8 @@ class ProfileController extends BaseController {
             } else {
                 boolean success = profileService.deleteProfile(profile.uuid)
 
-                respond success, [formats: ["json", "xml"]]
+                render ([success: success] as JSON)
             }
         }
-    }
-
-    def importFOA() {
-        importService.importFOA()
-        render "done"
-    }
-
-    def createTestOccurrenceSource() {
-        def opus = Opus.findByUuid(profileService.spongesOpusId)
-
-        def testResources = [
-                new OccurrenceResource(
-                        name: "Test resource 1",
-                        webserviceUrl: "http://sandbox.ala.org.au/biocache-service",
-                        uiUrl: "http://sandbox.ala.org.au/ala-hub",
-                        dataResourceUid: "drt123",
-                        pointColour: "CCFF00"
-                ),
-                new OccurrenceResource(
-                        name: "Test resource 2",
-                        webserviceUrl: "http://sandbox.ala.org.au/biocache-service",
-                        uiUrl: "http://sandbox.ala.org.au/ala-hub",
-                        dataResourceUid: "drt125",
-                        pointColour: "FFCC00"
-                )
-        ]
-
-        opus.additionalOccurrenceResources = testResources
-        opus.save(flush: true)
-    }
-
-    def importFloraBase() {}
-
-    def importSponges() {
-        importService.importSponges()
-        render "done"
     }
 }

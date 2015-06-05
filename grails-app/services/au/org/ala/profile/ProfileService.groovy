@@ -1,10 +1,9 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.DraftUtil
 import au.org.ala.web.AuthService
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
-
-import java.text.SimpleDateFormat
 
 @Transactional
 class ProfileService extends BaseDataAccessService {
@@ -13,6 +12,8 @@ class ProfileService extends BaseDataAccessService {
     NameService nameService
     AuthService authService
     BieService bieService
+    DoiService doiService
+    def grailsApplication
 
     Profile createProfile(String opusId, Map json) {
         checkArgument opusId
@@ -29,6 +30,7 @@ class ProfileService extends BaseDataAccessService {
 
         if (profile.guid) {
             populateTaxonHierarchy(profile)
+            profile.nslNameIdentifier = nameService.getNSLNameIdentifier(profile.guid)
         }
 
         profile.authorship = [new Authorship(category: "Author", text: authService.getUserForUserId(authService.getUserId()).displayName)]
@@ -47,16 +49,13 @@ class ProfileService extends BaseDataAccessService {
             def classificationJson = bieService.getClassification(profile.guid)
 
             if (classificationJson) {
-                Map classification = classificationJson.collectEntries {
-                    if (it.rank == "class") {
-                        ["clazz": it.scientificName, "clazzGuid": it.guid]
-                    } else if (it.rank == "subclass") {
-                        ["subclazz": it.scientificName, "subclazzGuid": it.guid]
-                    } else {
-                        [(it.rank): it.scientificName, ("${it.rank}Guid"): it.guid]
-                    }
+                profile.classification = classificationJson.collect {
+                    // the classifications returned from the BIE service are in descending order, so the last one will be
+                    // the rank for the profile
+                    profile.rank = it.rank
+
+                    new Classification(rank: it.rank, guid: it.guid, name: it.scientificName)
                 }
-                profile.classification = new Classification(classification)
             } else {
                 log.info("Unable to find species classification for ${profile.scientificName}, with GUID ${profile.guid}")
             }
@@ -71,6 +70,52 @@ class ProfileService extends BaseDataAccessService {
         delete profile
     }
 
+    boolean discardDraftChanges(String profileId) {
+        checkArgument profileId
+
+        Profile profile = Profile.findByUuid(profileId)
+        checkState profile
+
+        if (profile.draft) {
+            profile.draft = null
+
+            save profile
+        }
+    }
+
+    boolean toggleDraftMode(String profileId) {
+        checkArgument profileId
+
+        Profile profile = Profile.findByUuid(profileId)
+        checkState profile
+
+        if (profile.draft) {
+            DraftUtil.updateProfileFromDraft(profile)
+
+            Set<Attribute> attributesToDelete = profile.attributes.findAll {
+                String uuid = it.uuid
+                profile.draft.attributes.find { it.uuid == uuid } == null
+            }
+
+            profile.draft = null
+
+            attributesToDelete.each {
+                profile.attributes.remove(it)
+                delete it
+            }
+
+            save profile
+        } else {
+            profile.draft = DraftUtil.createDraft(profile)
+
+            save profile
+        }
+    }
+
+    def profileOrDraft(Profile profile) {
+        profile.draft ?: profile
+    }
+
     Profile updateProfile(String profileId, Map json) {
         checkArgument profileId
         checkArgument json
@@ -78,17 +123,13 @@ class ProfileService extends BaseDataAccessService {
         Profile profile = Profile.findByUuid(profileId)
         checkState profile
 
-        if (json.containsKey("privateMode")) {
-            profile.privateMode = json.privateMode
-        }
+        saveImages(profile, json, true)
 
-        saveImages(profileId, json)
+        saveSpecimens(profile, json, true)
 
-        saveSpecimens(profileId, json)
+        saveBibliography(profile, json, true)
 
-        saveBibliography(profileId, json)
-
-        saveAuthorship(profileId, json)
+        saveAuthorship(profile, json, true)
 
         boolean success = save profile
 
@@ -99,43 +140,80 @@ class ProfileService extends BaseDataAccessService {
         profile
     }
 
-    boolean saveSpecimens(String profileId, Map json, boolean deferSave = false) {
+    boolean saveSpecimens(Profile profile, Map json, boolean deferSave = false) {
+        checkArgument profile
+        checkArgument json
+
+        if (json.containsKey("specimenIds") && json.specimenIds != profileOrDraft(profile).specimenIds) {
+            if (profileOrDraft(profile).specimenIds) {
+                profileOrDraft(profile).specimenIds.clear()
+            } else {
+                profileOrDraft(profile).specimenIds = []
+            }
+            profileOrDraft(profile).specimenIds.addAll(json.specimenIds ?: [])
+
+            if (!deferSave) {
+                save profile
+            }
+        }
+    }
+
+    boolean saveAuthorship(Profile profile, Map json, boolean deferSave = false) {
+        if (json.containsKey('authorship')) {
+            if (profileOrDraft(profile).authorship) {
+                profileOrDraft(profile).authorship.clear()
+            } else {
+                profileOrDraft(profile).authorship = []
+            }
+
+            json.authorship.each {
+                profileOrDraft(profile).authorship << new Authorship(it)
+            }
+
+            if (!deferSave) {
+                save profile
+            }
+        }
+    }
+    boolean saveAuthorship(String profileId, Map json) {
         checkArgument profileId
         checkArgument json
 
         Profile profile = Profile.findByUuid(profileId)
         checkState profile
 
-        if (json.containsKey("specimenIds") && json.specimenIds != profile.specimenIds) {
-            if (profile.specimenIds) {
-                profile.specimenIds.clear()
-            } else {
-                profile.specimenIds = []
-            }
-            profile.specimenIds.addAll(json.specimenIds ?: [])
+        saveAuthorship(profile, json)
+    }
+
+    boolean saveImages(Profile profile, Map json, boolean deferSave = false) {
+        checkArgument profile
+        checkArgument json
+
+        if (json.primaryImage && json.primaryImage != profileOrDraft(profile).primaryImage) {
+            profileOrDraft(profile).primaryImage = json.primaryImage
         }
 
-        if (!deferSave) {
-            save profile
+        if (json.containsKey("excludedImages") && json.excludedImages != profileOrDraft(profile).excludedImages) {
+            if (profileOrDraft(profile).excludedImages) {
+                profileOrDraft(profile).excludedImages.clear()
+            } else {
+                profileOrDraft(profile).excludedImages = []
+            }
+            profileOrDraft(profile).excludedImages.addAll(json.excludedImages ?: [])
+
+            if (!deferSave) {
+                save profile
+            }
         }
     }
 
-    boolean saveAuthorship(String profileId, Map json, boolean deferSave = false) {
-        checkArgument profileId
+    boolean saveBibliography(Profile profile, Map json, boolean deferSave = false) {
+        checkArgument profile
         checkArgument json
 
-        if (json.containsKey('authorship')) {
-            Profile profile = Profile.findByUuid(profileId)
-            checkState profile
-
-            if (profile.authorship) {
-                profile.authorship.clear()
-            } else {
-                profile.authorship = []
-            }
-
-            json.authorship.each {
-                profile.authorship << new Authorship(it)
+        if (json.containsKey("bibliography") && json.bibliography != profileOrDraft(profile).bibliography) {
+            profileOrDraft(profile).bibliography = json.bibliography.collect {
+               new Bibliography(text: it.text, uuid: UUID.randomUUID().toString(), order: it.order)
             }
 
             if (!deferSave) {
@@ -144,103 +222,16 @@ class ProfileService extends BaseDataAccessService {
         }
     }
 
-    boolean saveImages(String profileId, Map json, boolean deferSave = false) {
+    boolean saveBHLLinks(String profileId, Map json, boolean deferSave = false) {
         checkArgument profileId
         checkArgument json
 
         Profile profile = Profile.findByUuid(profileId)
         checkState profile
 
-        if (json.primaryImage && json.primaryImage != profile.primaryImage) {
-            profile.primaryImage = json.primaryImage
-        }
-
-        if (json.containsKey("excludedImages") && json.excludedImages != profile.excludedImages) {
-            if (profile.excludedImages) {
-                profile.excludedImages.clear()
-            } else {
-                profile.excludedImages = []
-            }
-            profile.excludedImages.addAll(json.excludedImages ?: [])
-        }
-
-        if (!deferSave) {
-            save profile
-        }
-    }
-
-    boolean saveBibliography(String profileId, Map json, boolean deferSave = false) {
-        checkArgument profileId
-        checkArgument json
-
-        Profile profile = Profile.findByUuid(profileId)
-        checkState profile
-
-        if (json.containsKey("bibliography") && json.bibliography != profile.bibliography) {
-            if (!profile.bibliography) {
-                profile.bibliography = []
-            }
-
-            Set retainedIds = []
-            List<Bibliography> incomingBibliographies = json.bibliography.collect {
-                Bibliography bibliography
-                if (it.uuid) {
-                    retainedIds << it.uuid
-                    bibliography = Bibliography.findByUuid(it.uuid)
-                    checkState bibliography, "No matching bibliography for uuid ${it.uuid}"
-                    bibliography.order = it.order ?: 0
-                } else {
-                    bibliography = new Bibliography(text: it.text, uuid: UUID.randomUUID().toString(), order: it.order)
-                }
-
-                bibliography
-            }
-
-            profile.bibliography.each {
-                if (!retainedIds.contains(it.uuid)) {
-                    delete it, false
-                }
-            }
-
-            profile.bibliography.clear()
-
-            profile.bibliography.addAll(incomingBibliographies)
-        }
-
-        if (!deferSave) {
-            save profile
-        }
-    }
-
-    List<String> saveBHLLinks(String profileId, Map json) {
-        checkArgument profileId
-        checkArgument json
-
-        log.debug("Saving BHL links...")
-
-        Profile profile = Profile.findByUuid(profileId)
-
-        checkState profile
-
-        if (profile.bhlLinks == null) {
-            profile.bhlLinks = [] as Set
-        }
-
-        List<String> linkIds = []
-        List<Link> linksToSave = []
-
-        log.debug("profile = ${profile != null}; links: ${json.links.size()}")
-        if (json.links) {
-            json.links.each {
-                log.debug("Saving link ${it.title}...")
-                Link link
-                if (it.uuid) {
-                    link = Link.findByUuid(it.uuid)
-                    checkState link, "No matching link for uuid ${it.uuid}"
-                } else {
-                    link = new Link(uuid: UUID.randomUUID().toString())
-                }
-
+        if (json.containsKey("links") && json.links != profileOrDraft(profile).bhlLinks) {
+            profileOrDraft(profile).bhlLinks = json.links.collect {
+                Link link = new Link(uuid: UUID.randomUUID().toString())
                 link.url = it.url
                 link.title = it.title
                 link.description = it.description
@@ -248,107 +239,73 @@ class ProfileService extends BaseDataAccessService {
                 link.edition = it.edition
                 link.publisherName = it.publisherName
                 link.doi = it.doi
-                linksToSave << link
-                linkIds << link.uuid
+                link
             }
 
-            profile.bhlLinks = linksToSave
-
-            save profile
-        } else if (profile.bhlLinks) {
-            Link.deleteAll(profile.bhlLinks)
-            profile.bhlLinks.clear()
-            save profile
-            linkIds = []
+            if (!deferSave) {
+                save profile
+            }
         }
-
-        linkIds
     }
 
-    List<String> saveLinks(String profileId, Map json) {
+    boolean saveLinks(String profileId, Map json, boolean deferSave = false) {
         checkArgument profileId
         checkArgument json
 
         Profile profile = Profile.findByUuid(profileId)
-
         checkState profile
 
-        List<String> linkIds = []
-        List<Link> linksToSave = []
-
-        if (json.links) {
-            json.links.each {
-                Link link
-                if (it.uuid) {
-                    link = Link.findByUuid(it.uuid)
-                    checkState link, "No matching link for uuid ${it.uuid}"
-                } else {
-                    link = new Link(uuid: UUID.randomUUID().toString())
-                }
+        if (json.containsKey("links") && json.links != profileOrDraft(profile).links) {
+            profileOrDraft(profile).links = json.links.collect {
+                Link link = new Link(uuid: UUID.randomUUID().toString())
                 link.url = it.url
                 link.title = it.title
                 link.description = it.description
-                link.errors.allErrors.each {
-                    println it
-                }
-                linksToSave << link
-                linkIds << link.uuid
+                link
             }
-            profile.links = linksToSave
 
-            save profile
-        } else if (profile.links) {
-            Link.deleteAll(profile.links)
-            profile.links.clear()
-            save profile
+            if (!deferSave) {
+                save profile
+            }
         }
-
-        linkIds
     }
 
-    Publication savePublication(String profileId, Map data, MultipartFile file) {
+    Publication savePublication(String profileId, MultipartFile file) {
         checkArgument profileId
-        checkArgument data
         checkArgument file
 
         Profile profile = Profile.findByUuid(profileId)
 
         checkState profile
 
-        Publication publication = new Publication(data)
-        publication.publicationDate = new SimpleDateFormat("yyyy-MM-dd").parse(data.publicationDate)
-        publication.uploadDate = new Date()
+        if (!profileOrDraft(profile).publications) {
+            profileOrDraft(profile).publications = []
+        }
+
+        Publication publication = new Publication()
+        publication.title = profile.scientificName
+        publication.authors = profile.authorship.find { it.category == "Author" }?.text
+        publication.doi = doiService.mintDOI(publication)
+        publication.publicationDate = new Date()
         publication.userId = authService.getUserId()
         publication.uuid = UUID.randomUUID().toString()
-        profile.addToPublications(publication)
-        publication.profile = profile
+        profileOrDraft(profile).publications << publication
 
-        publication.saveMongoFile(file)
+        String fileName = "${grailsApplication.config.snapshot.directory}/${publication.uuid}.pdf"
+
+        file.transferTo(new File(fileName))
 
         save profile
 
         publication
     }
 
-    boolean deletePublication(String publicationId) {
+    File getPublicationFile(String publicationId) {
         checkArgument publicationId
 
-        Publication publication = Publication.findByUuid(publicationId);
-        checkState publication
+        String fileName = "${grailsApplication.config.snapshot.directory}/${publicationId}.pdf"
 
-        Profile profile = publication.profile
-        profile.publications.remove(publication)
-
-        save profile
-        delete publication
-    }
-
-    def getPublicationFile(String publicationId) {
-        checkArgument publicationId
-
-        Publication publication = Publication.findByUuid(publicationId)
-
-        publication.getMongoFile()
+        new File(fileName)
     }
 
     Set<Publication> listPublications(String profileId) {
@@ -365,7 +322,6 @@ class ProfileService extends BaseDataAccessService {
 
         log.debug("Creating new attribute for profile ${profileId} with data ${data}")
         Profile profile = Profile.findByUuid(profileId)
-
         checkState profile
 
         List<Contributor> creators = []
@@ -380,7 +336,24 @@ class ProfileService extends BaseDataAccessService {
 
         // only add the current user as the creator if the attribute was not copied from another profile
         if (!data.original) {
-            creators << getOrCreateContributor(data.userDisplayName, data.userId)
+            def contributor
+            if (data.attributeTo) {
+                contributor = getOrCreateContributor(data.attributeTo)
+            } else {
+                contributor = getOrCreateContributor(data.userDisplayName, data.userId)
+            }
+            creators << contributor
+        }
+
+        // if we're copying the attribute from another collection and the significant edit flag is set, then add the user as an editor
+        if (data.original && data.significantEdit) {
+            def contributor
+            if (data.attributeTo) {
+                contributor = getOrCreateContributor(data.attributeTo)
+            } else {
+                contributor = getOrCreateContributor(data.userDisplayName, data.userId)
+            }
+            editors << contributor
         }
 
         Term titleTerm = vocabService.getOrCreateTerm(data.title, profile.opus.attributeVocabUuid)
@@ -388,7 +361,8 @@ class ProfileService extends BaseDataAccessService {
         Attribute attribute = new Attribute(
                 uuid: UUID.randomUUID().toString(),
                 title: titleTerm,
-                text: data.text
+                text: data.text,
+                source: data.source
         )
         attribute.creators = creators
         attribute.editors = editors
@@ -398,8 +372,15 @@ class ProfileService extends BaseDataAccessService {
             attribute.original = original
         }
 
-        attribute.profile = profile
-        profile.addToAttributes(attribute)
+        if (profile.draft) {
+            if (!profile.draft.attributes) {
+                profile.draft.attributes = []
+            }
+            profile.draft.attributes << attribute
+        } else {
+            attribute.profile = profile
+            profile.addToAttributes(attribute)
+        }
 
         boolean success = save profile
         if (!success) {
@@ -428,7 +409,12 @@ class ProfileService extends BaseDataAccessService {
         Profile profile = Profile.findByUuid(profileId)
         checkState profile
 
-        Attribute attribute = Attribute.findByUuid(attributeId)
+        Attribute attribute
+        if (profile.draft) {
+            attribute = profile.draft.attributes.find { it.uuid == attributeId }
+        } else {
+            attribute = profile.attributes.find { it.uuid == attributeId }
+        }
         checkState attribute
 
         if (data.title) {
@@ -436,8 +422,14 @@ class ProfileService extends BaseDataAccessService {
             attribute.title = titleTerm
         }
         attribute.text = data.text
+        attribute.source = data.source
 
-        def contributor = getOrCreateContributor(data.userDisplayName, data.userId)
+        def contributor
+        if (data.attributeTo) {
+            contributor = getOrCreateContributor(data.attributeTo)
+        } else {
+            contributor = getOrCreateContributor(data.userDisplayName, data.userId)
+        }
 
         if (!attribute.editors) {
             attribute.editors = []
@@ -447,26 +439,35 @@ class ProfileService extends BaseDataAccessService {
             attribute.editors << contributor
         }
 
-        save attribute
+        if (!profile.draft) {
+            save attribute
+        } else {
+            save profile
+        }
     }
 
     boolean deleteAttribute(String attributeId, String profileId) {
         checkArgument attributeId
         checkArgument profileId
 
-        Attribute attr = Attribute.findByUuid(attributeId)
-        checkState attr
         Profile profile = Profile.findByUuid(profileId)
         checkState profile
 
-        log.debug("Deleting attribute ${attr?.title} from profile ${profile?.scientificName}...")
+        Attribute attr
+        if (profile.draft) {
+            attr = profile.draft.attributes.find { it.uuid == attributeId }
+            profile.draft.attributes.remove(attr)
 
-        println profile.attributes.contains(attr)
-        profile.attributes.remove(attr)
-        println profile.attributes.size()
+            save profile
+        } else {
+            attr = profile.attributes.find { it.uuid == attributeId }
+            checkState attr
 
-        save profile
+            profile.attributes.remove(attr)
 
-        delete attr
+            save profile
+
+            delete attr
+        }
     }
 }

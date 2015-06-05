@@ -7,7 +7,6 @@ import groovy.transform.ToString
 @ToString
 class Authorship {
 
-    String uuid
     String category
     String text
 

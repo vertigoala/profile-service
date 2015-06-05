@@ -180,4 +180,35 @@ class OpusController extends BaseController {
             }
         }
     }
+
+    def about() {
+        if (!params.opusId) {
+            badRequest()
+        } else {
+            Opus opus = getOpus()
+
+            if (!opus) {
+                notFound()
+            } else {
+                render ([opus: [title: opus.title, opusId: opus.uuid, aboutHtml: opus.aboutHtml]] as JSON)
+            }
+        }
+    }
+
+    def updateAboutHtml() {
+        def json = request.getJSON()
+        if (!params.opusId || !json || !json.containsKey("aboutHtml")) {
+            badRequest()
+        } else {
+            Opus opus = getOpus()
+
+            if (!opus) {
+                notFound()
+            } else {
+                opus = opusService.updateAboutHtml(opus.uuid, json.aboutHtml)
+
+                render ([opus: [title: opus.title, opusId: opus.uuid, aboutHtml: opus.aboutHtml]] as JSON)
+            }
+        }
+    }
 }

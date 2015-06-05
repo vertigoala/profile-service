@@ -54,6 +54,7 @@ class ImportController extends BaseController {
                     "opusId": "",
                     "profiles":[{
                             "scientificName": "",
+                            "nameAuthor": "",
                             "links":[{
                                     "creators": [""],
                                     "edition": "",
@@ -78,6 +79,10 @@ class ImportController extends BaseController {
                                     "creators": [""],
                                     "editors": [""],
                                     "title": "",
+                                    "text": ""
+                                    }],
+                            "authorship": [{
+                                    "category": "",
                                     "text": ""
                                     }]
                         }]

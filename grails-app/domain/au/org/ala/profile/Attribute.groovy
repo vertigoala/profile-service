@@ -13,20 +13,21 @@ class Attribute implements Comparable<Attribute> {
     Term title
     String text // = "This animal lives...."
     Attribute original // The original attribute this was copied from
+    String source
 
     Date dateCreated
     Date lastUpdated
 
-    static hasMany = [subAttributes: Attribute, creators: Contributor, editors: Contributor]
+    static hasMany = [creators: Contributor, editors: Contributor]
 
     static belongsTo = [profile: Profile]
 
     static constraints = {
         original nullable: true
+        source nullable: true
     }
 
     static mapping = {
-        subAttributes cascade: "all-delete-orphan"
     }
 
     def beforeValidate() {
@@ -38,7 +39,11 @@ class Attribute implements Comparable<Attribute> {
 
     int compareTo(Attribute right) {
         if (title.order == right.title.order) {
-            title.name.toLowerCase() <=> right.title.name.toLowerCase()
+            if (title.name.equalsIgnoreCase(right.title.name)) {
+                text <=> right.text
+            } else {
+                title.name.toLowerCase() <=> right.title.name.toLowerCase()
+            }
         } else {
             title.order <=> right.title.order
         }

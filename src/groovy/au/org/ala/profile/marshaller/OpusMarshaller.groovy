@@ -17,6 +17,8 @@ class OpusMarshaller {
                     approvedLists              : opus.approvedLists ?: [],
                     logoUrl                    : opus.logoUrl,
                     bannerUrl                  : opus.bannerUrl,
+                    keybaseProjectId           : opus.keybaseProjectId,
+                    keybaseKeyId               : opus.keybaseKeyId,
                     thumbnailUrl               : opus.thumbnailUrl,
                     attributeVocabUuid         : opus.attributeVocabUuid,
                     glossaryUuid               : opus.glossary?.uuid,
@@ -39,6 +41,8 @@ class OpusMarshaller {
                     authorities                : opus.authorities?.collect {
                         [userId: it.user.userId, name: it.user.name, role: it.role.toString(), notes: it.notes]
                     },
+                    copyrightText              : opus.copyrightText,
+                    hasAboutPage               : opus.aboutHtml != null,
                     profileCount               : opus.profileCount
             ]
         }

@@ -7,15 +7,12 @@ import groovy.transform.ToString
 @ToString
 class Publication {
     String uuid
-    Date uploadDate
     Date publicationDate
     String title
-    String description
+    Integer version
     String doi
     String userId
     String authors
-
-    static belongsTo = [profile: Profile]
 
     def beforeValidate() {
         if (!uuid) {

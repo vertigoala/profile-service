@@ -35,7 +35,7 @@ class OpusService extends BaseDataAccessService {
             opus.title = json.title
         }
         if (json.containsKey("shortName") && json.shortName != opus.shortName) {
-            opus.shortName = json.shortName?.toLowerCase()
+            opus.shortName = json.shortName ? json.shortName.toLowerCase() : null
         }
         if (json.imageSources && json.imageSources != opus.imageSources) {
             if (opus.imageSources) {
@@ -60,6 +60,9 @@ class OpusService extends BaseDataAccessService {
                 opus.recordSources = []
             }
             opus.recordSources.addAll(json.recordSources)
+        }
+        if (json.copyrightText != opus.copyrightText) {
+            opus.copyrightText = json.copyrightText
         }
         if (json.logoUrl && json.logoUrl != opus.logoUrl) {
             opus.logoUrl = json.logoUrl
@@ -93,6 +96,12 @@ class OpusService extends BaseDataAccessService {
         }
         if (json.biocacheName && json.biocacheName != opus.biocacheName) {
             opus.biocacheName = json.biocacheName
+        }
+        if (json.containsKey("keybaseProjectId") && json.keybaseProjectId != opus.keybaseProjectId) {
+            opus.keybaseProjectId = json.keybaseProjectId
+        }
+        if (json.containsKey("keybaseKeyId") && json.keybaseKeyId != opus.keybaseKeyId) {
+            opus.keybaseKeyId = json.keybaseKeyId
         }
         if (json.has("enablePhyloUpload") && json.enablePhyloUpload != opus.enablePhyloUpload) {
             opus.enablePhyloUpload = json.enablePhyloUpload as boolean
@@ -134,6 +143,21 @@ class OpusService extends BaseDataAccessService {
         }
     }
 
+    Opus updateAboutHtml(String opusId, String html) {
+        checkArgument opusId
+
+        Opus opus = Opus.findByUuid(opusId)
+        checkState opus
+
+        if (html != opus.aboutHtml) {
+            opus.aboutHtml = html
+        }
+
+        save opus
+
+        opus
+    }
+
     boolean updateUsers(String opusId, Map json) {
         checkArgument opusId
         checkArgument json
@@ -165,11 +189,13 @@ class OpusService extends BaseDataAccessService {
         List profiles = Profile.findAllByOpus(opus)
         Profile.deleteAll(profiles)
 
-        GlossaryItem glossaryItems = GlossaryItem.findByGlossary(opus.glossary)
-        if (glossaryItems) {
-            GlossaryItem.deleteAll(glossaryItems)
+        if (opus.glossary) {
+            GlossaryItem glossaryItems = GlossaryItem.findByGlossary(opus.glossary)
+            if (glossaryItems) {
+                GlossaryItem.deleteAll(glossaryItems)
+            }
+            delete opus.glossary
         }
-        delete opus.glossary
 
         if (opus.attributeVocabUuid) {
             Vocab vocab = Vocab.findByUuid(opus.attributeVocabUuid)
