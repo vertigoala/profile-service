@@ -1,11 +1,11 @@
 package au.org.ala.profile
 
-import au.org.ala.web.UserDetails
 import org.springframework.web.context.request.RequestContextHolder
 
 class AuditFilters {
 
     def grailsApplication, userService
+    public static final String REQUEST_USER_DETAILS_KEY = 'request.user.details'
 
     def filters = {
 
@@ -23,7 +23,7 @@ class AuditFilters {
                         // and the thread local can get clobbered before it is actually required.
                         // Consumers who have access to the request can simply extract current user details
                         // from there rather than use the service.
-                        request.setAttribute(UserDetails.REQUEST_USER_DETAILS_KEY, userDetails)
+                        request.setAttribute(REQUEST_USER_DETAILS_KEY, userDetails)
                     }
                 }
             }
