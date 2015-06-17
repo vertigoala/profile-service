@@ -67,6 +67,17 @@ class OpusService extends BaseDataAccessService {
         if (json.footerText != opus.footerText) {
             opus.footerText = json.footerText
         }
+        if (json.contact) {
+            if (json.contact.email != opus.email) {
+                opus.email = json.contact.email
+            }
+            if (json.contact.facebook != opus.facebook) {
+                opus.facebook = json.contact.facebook
+            }
+            if (json.contact.twitter != opus.twitter) {
+                opus.twitter = json.contact.twitter
+            }
+        }
         if (json.logoUrl && json.logoUrl != opus.logoUrl) {
             opus.logoUrl = json.logoUrl
         }

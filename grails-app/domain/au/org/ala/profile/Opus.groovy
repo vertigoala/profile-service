@@ -39,6 +39,9 @@ class Opus {
     String aboutHtml
     String copyrightText
     String footerText
+    String email
+    String facebook
+    String twitter
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, supportingOpuses: Opus]
 
@@ -60,6 +63,9 @@ class Opus {
         aboutHtml nullable: true
         copyrightText nullable: true
         footerText nullable: true
+        email nullable: true
+        facebook nullable: true
+        twitter nullable: true
     }
 
     def beforeValidate() {
