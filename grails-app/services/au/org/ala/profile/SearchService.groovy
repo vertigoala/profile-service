@@ -4,7 +4,7 @@ package au.org.ala.profile
 class SearchService extends BaseDataAccessService {
 
     static final List<String> RANKS = ["kingdom", "phylum", "class", "subclass", "order", "family", "genus", "species"]
-    static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 10
+    static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 25
     static final Integer DEFAULT_MAX_BROAD_SEARCH_RESULTS = 50
 
 

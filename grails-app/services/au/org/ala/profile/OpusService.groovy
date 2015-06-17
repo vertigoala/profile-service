@@ -37,7 +37,7 @@ class OpusService extends BaseDataAccessService {
         if (json.containsKey("shortName") && json.shortName != opus.shortName) {
             opus.shortName = json.shortName ? json.shortName.toLowerCase() : null
         }
-        if (json.imageSources && json.imageSources != opus.imageSources) {
+        if (json.containsKey("imageSources") && json.imageSources != opus.imageSources) {
             if (opus.imageSources) {
                 opus.imageSources.clear()
             } else {
@@ -45,7 +45,7 @@ class OpusService extends BaseDataAccessService {
             }
             opus.imageSources.addAll(json.imageSources)
         }
-        if (json.approvedLists && json.approvedLists != opus.approvedLists) {
+        if (json.containsKey("approvedLists") && json.approvedLists != opus.approvedLists) {
             if (opus.approvedLists) {
                 opus.approvedLists.clear()
             } else {
@@ -53,7 +53,7 @@ class OpusService extends BaseDataAccessService {
             }
             opus.approvedLists.addAll(json.approvedLists)
         }
-        if (json.recordSources && json.recordSources != opus.recordSources) {
+        if (json.containsKey("recordSources") && json.recordSources != opus.recordSources) {
             if (opus.recordSources) {
                 opus.recordSources.clear()
             } else {
@@ -63,6 +63,9 @@ class OpusService extends BaseDataAccessService {
         }
         if (json.copyrightText != opus.copyrightText) {
             opus.copyrightText = json.copyrightText
+        }
+        if (json.footerText != opus.footerText) {
+            opus.footerText = json.footerText
         }
         if (json.logoUrl && json.logoUrl != opus.logoUrl) {
             opus.logoUrl = json.logoUrl
