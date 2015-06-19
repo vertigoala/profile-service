@@ -33,7 +33,9 @@ class ProfileService extends BaseDataAccessService {
             profile.nslNameIdentifier = nameService.getNSLNameIdentifier(profile.guid)
         }
 
-        profile.authorship = [new Authorship(category: "Author", text: authService.getUserForUserId(authService.getUserId()).displayName)]
+        if (authService.getUserId()) {
+            profile.authorship = [new Authorship(category: "Author", text: authService.getUserForUserId(authService.getUserId()).displayName)]
+        }
 
         boolean success = save profile
 
