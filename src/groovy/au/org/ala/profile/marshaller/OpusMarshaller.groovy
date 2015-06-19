@@ -42,6 +42,10 @@ class OpusMarshaller {
                         [userId: it.user.userId, name: it.user.name, role: it.role.toString(), notes: it.notes]
                     },
                     copyrightText              : opus.copyrightText,
+                    footerText                 : opus.footerText,
+                    contact                    : [twitter : opus.twitter,
+                                                  email   : opus.email,
+                                                  facebook: opus.facebook],
                     hasAboutPage               : opus.aboutHtml != null,
                     profileCount               : opus.profileCount
             ]
