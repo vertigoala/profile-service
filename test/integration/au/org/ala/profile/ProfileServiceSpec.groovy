@@ -9,7 +9,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
     def setup() {
         service.nameService = Mock(NameService)
-        service.nameService.getGuidForName(_) >> "ABC"
+        service.nameService.matchName(_) >> [scientificName: "sciName", author: "fred", guid: "ABC"]
         service.authService = Mock(AuthService)
         service.authService.getUserId() >> "fred"
         service.authService.getUserForUserId(_) >> [displayName: "Fred Bloggs"]
@@ -54,19 +54,6 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile != null && profile.id != null
         Profile.count() == 1
         Profile.list()[0].scientificName == "sciName"
-    }
-
-    def "createProfile should return null on failure"() {
-        given:
-        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
-        save opus
-
-        when:
-        Profile profile = service.createProfile(opus.uuid, [scientificName: null/* mandatory attribute*/])
-
-        then:
-        profile == null
-        Profile.count() == 0
     }
 
     def "createProfile should default the 'author' authorship to the current user"() {

@@ -18,6 +18,7 @@ class ProfileMarshaller {
                     rank: profile.rank,
                     scientificName: profile.scientificName,
                     nameAuthor: profile.nameAuthor,
+                    fullName: profile.fullName,
                     classification: profile.classification,
                     attributes: profile.attributes?.sort(),
                     links: profile.links,

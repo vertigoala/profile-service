@@ -26,11 +26,18 @@ class ProfileService extends BaseDataAccessService {
         Profile profile = new Profile(json)
         profile.opus = opus
 
-        profile.guid = nameService.getGuidForName(profile.scientificName)
+        Map matchedName = nameService.matchName(json.scientificName)
+
+        if (matchedName) {
+            profile.scientificName = matchedName.scientificName
+            profile.nameAuthor = matchedName.author
+            profile.guid = matchedName.guid
+            profile.fullName = matchedName.fullName
+        }
 
         if (profile.guid) {
             populateTaxonHierarchy(profile)
-            profile.nslNameIdentifier = nameService.getNSLNameIdentifier(profile.guid)
+            profile.nslNameIdentifier = nameService.getNSLNameIdentifier(profile.fullName)
         }
 
         if (authService.getUserId()) {
