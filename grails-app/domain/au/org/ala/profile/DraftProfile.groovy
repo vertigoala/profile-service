@@ -11,6 +11,8 @@ class DraftProfile {
     String guid                 //taxon GUID / LSID
     String scientificName
     String nameAuthor
+    String fullName
+    Name matchedName
     String rank
     String nslNameIdentifier
 
@@ -35,5 +37,7 @@ class DraftProfile {
         primaryImage nullable: true
         nslNameIdentifier nullable: true
         rank nullable: true
+        fullName nullable: true
+        matchedName nullable: true
     }
 }

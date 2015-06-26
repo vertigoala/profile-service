@@ -32,6 +32,7 @@ class SearchController extends BaseController {
                         guid          : it.guid,
                         scientificName: it.scientificName,
                         nameAuthor    : it.nameAuthor,
+                        fullName      : it.fullName,
                         rank          : it.rank,
                         opus          : [uuid: it.opus.uuid, title: it.opus.title, shortName: it.opus.shortName]
                 ]

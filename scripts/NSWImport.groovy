@@ -150,7 +150,7 @@ class NSWImport {
             if (!scientificName) {
                 invalidLines[count] = "Unable to determine scientfic name: ${line.substring(0, Math.min(line.size(), 100))}..."
             } else if (!scientificNames.containsKey(scientificName)) {
-                Map profile = [scientificName: scientificName, nameAuthor: nameAuthor, attributes: attributes]
+                Map profile = [scientificName: scientificName, nameAuthor: nameAuthor, attributes: attributes, fullName: "${scientificName} ${nameAuthor}".trim()]
 
                 profiles << profile
             }
@@ -187,19 +187,23 @@ class NSWImport {
 
             int success = 0
             int failed = 0
+            int warnings = 0
             if (resp.data.any {k, v -> v != "Success"}) {
                 report << "\n\nRecords unable to be saved: \n"
             }
             resp.data.each { k, v ->
                 if (v.startsWith("Success")) {
                     success++
+                } else if (v.startsWith("Warning")) {
+                    report << "\t${k}: ${v}\n"
+                    warnings++
                 } else {
                     report << "\t${k} Failed: ${v}\n"
                     failed++
                 }
             }
 
-            report << "\n\nImported ${success} of ${count} profiles"
+            report << "\n\nImported ${success} of ${count} profiles with ${failed} errors and ${warnings} warnings"
         } else {
             println "Import failed with HTTP ${resp.status}"
         }

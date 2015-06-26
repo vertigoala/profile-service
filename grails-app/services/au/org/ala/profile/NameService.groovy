@@ -15,7 +15,6 @@ class NameService {
 
     def grailsApplication
     ALANameSearcher nameSearcher
-    BieService bieService
 
     @PostConstruct
     def init() {
@@ -46,7 +45,8 @@ class NameService {
                     match.author = (suppliedName - matchedName).join(" ")
                     match.fullName = name
                 }
-            } else {
+            }
+            if (!match.fullName) {
                 match.fullName = "${match.scientificName} ${match.author ?: ""}".trim()
             }
 

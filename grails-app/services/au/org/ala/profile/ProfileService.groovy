@@ -15,6 +15,55 @@ class ProfileService extends BaseDataAccessService {
     DoiService doiService
     def grailsApplication
 
+    Map checkName(String opusId, String name) {
+        Map result = [providedName: name, providedNameDuplicates: [], matchedName: [:], matchedNameDuplicates: []]
+
+        Opus opus = Opus.findByUuid(opusId)
+        checkState opus
+
+        // 1. search for the name as it was provided to check for duplicates, searching as both the scientific name and the full name
+        List providedScientificNameDuplicates = findByName(name, opus)
+        if (providedScientificNameDuplicates) {
+            result.providedNameDuplicates = providedScientificNameDuplicates.collect {
+                [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor]
+            }
+        }
+
+        // 2. attempt to match the name
+        Map matchedName = nameService.matchName(name)
+        if (matchedName) {
+            result.matchedName = [scientificName: matchedName.scientificName, fullName: matchedName.fullName, nameAuthor: matchedName.author, guid: matchedName.guid]
+
+            List matchedScientificNameDuplicates = findByName(result.matchedName.scientificName, opus)
+            if (matchedScientificNameDuplicates) {
+                result.matchedNameDuplicates = matchedScientificNameDuplicates.collect {
+                    [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor]
+                }
+            }
+            List matchedFullNameDuplicates = findByName(result.matchedName.fullName, opus)
+            if (matchedFullNameDuplicates) {
+                result.matchedNameDuplicates = matchedFullNameDuplicates.collect {
+                    [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor]
+                }
+            }
+        }
+
+        result
+    }
+
+    private List<Profile> findByName(String name, Opus opus) {
+        Profile.withCriteria {
+            eq "opus", opus
+
+            or {
+                ilike "scientificName", name
+                ilike "fullName", name
+                ilike "draft.scientificName", name
+                ilike "draft.fullName", name
+            }
+        }
+    }
+
     Profile createProfile(String opusId, Map json) {
         checkArgument opusId
         checkArgument json
@@ -29,10 +78,19 @@ class ProfileService extends BaseDataAccessService {
         Map matchedName = nameService.matchName(json.scientificName)
 
         if (matchedName) {
-            profile.scientificName = matchedName.scientificName
+            if (json.scientificName == matchedName.fullName) {
+                profile.scientificName = matchedName.scientificName
+            } else {
+                profile.scientificName = json.scientificName
+            }
+            profile.matchedName = new Name(matchedName)
             profile.nameAuthor = matchedName.author
             profile.guid = matchedName.guid
             profile.fullName = matchedName.fullName
+        } else {
+            profile.scientificName = json.scientificName
+            profile.fullName = json.scientificName
+            profile.matchedName = null
         }
 
         if (profile.guid) {
@@ -42,6 +100,49 @@ class ProfileService extends BaseDataAccessService {
 
         if (authService.getUserId()) {
             profile.authorship = [new Authorship(category: "Author", text: authService.getUserForUserId(authService.getUserId()).displayName)]
+        }
+
+        boolean success = save profile
+
+        if (!success) {
+            profile = null
+        }
+
+        profile
+    }
+
+    void renameProfile(String profileId, Map json) {
+        checkArgument profileId
+        checkArgument json
+
+        Profile profile = Profile.findByUuid(profileId)
+        checkState profile
+
+        if (json.newName) {
+            Map matchedName = nameService.matchName(json.newName)
+
+            if (matchedName) {
+                if (json.newName == matchedName.fullName) {
+                    profile.scientificName = matchedName.scientificName
+                } else {
+                    profile.scientificName = json.newName
+                }
+                profile.matchedName = new Name(matchedName)
+                profile.nameAuthor = matchedName.author
+                profile.guid = matchedName.guid
+                profile.fullName = matchedName.fullName
+            } else {
+                profile.scientificName = json.newName
+                profile.fullName = json.newName
+                profile.matchedName = null
+            }
+        }
+
+        if (json.clearMatch?.booleanValue()) {
+            profile.matchedName = null
+            profile.guid = null
+            profile.nameAuthor = null
+            profile.fullName = profile.scientificName
         }
 
         boolean success = save profile
@@ -184,6 +285,7 @@ class ProfileService extends BaseDataAccessService {
             }
         }
     }
+
     boolean saveAuthorship(String profileId, Map json) {
         checkArgument profileId
         checkArgument json
@@ -222,7 +324,7 @@ class ProfileService extends BaseDataAccessService {
 
         if (json.containsKey("bibliography") && json.bibliography != profileOrDraft(profile).bibliography) {
             profileOrDraft(profile).bibliography = json.bibliography.collect {
-               new Bibliography(text: it.text, uuid: UUID.randomUUID().toString(), order: it.order)
+                new Bibliography(text: it.text, uuid: UUID.randomUUID().toString(), order: it.order)
             }
 
             if (!deferSave) {
