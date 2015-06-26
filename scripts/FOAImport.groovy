@@ -18,7 +18,7 @@ class NSWImport {
 
 
     static void main(args) {
-        def cli = new CliBuilder(usage: "groovy FOAImport -f <datadir> -o opusId -i <imagefile> -p <profileServiceBaseUrl> -d <delimiter default ~> -r <reportfile>")
+        def cli = new CliBuilder(usage: "groovy FOAImport -f <datadir> -o opusId -i <imagefile> -p <profileServiceBaseUrl> -d <delimiter default ,> -r <reportfile>")
         cli.f(longOpt: "dir", "source data directory", required: true, args: 1)
         cli.o(longOpt: "opusId", "UUID of the FOA Opus", required: true, args: 1)
         cli.p(longOpt: "profileServiceBaseUrl", "Base URL of the profile service", required: true, args: 1)
@@ -75,18 +75,41 @@ class NSWImport {
         Map<Integer, List<String>> maps = loadMaps()
 
         List<String> seenImages = []
+        int doubtful = 0
 
         def csv = parseCsv(new File("${DATA_DIR}/taxa.csv").newReader("utf-8"))
         csv.each { line ->
-            if (count++ % 50 == 0) println "Processing taxa line ${count}..."
-
             // exclude the oceanic volumes (ids 14 and 15)
             if (line.VOLUME_ID == "14" || line.VOLUME_ID== "15") {
                 return
             }
 
+            // exclude doubtful names
+            if (line.DOUBTFUL_EXCLUDED_OR_OTHER == "Y") {
+                doubtful++
+                return
+            }
+
+            if (count++ % 50 == 0) println "Processing taxa line ${count}..."
+
             Integer id = line.ID as int
-            String scientificName = line.NAME
+            String scientificName = line.NAME?.trim()
+
+            List connectingTerms = ["subsp.", "var.", "f.", "ser.", "subg.", "sect.", "subsect."]
+
+            String fullName = null
+
+            // full name is the binomial name plus the name author, possibly with an autonym author
+            if (line.AUTHOR_AUTONYM) {
+                connectingTerms.each {
+                    if (scientificName.contains(it)) {
+                        fullName = new StringBuilder(scientificName).insert(scientificName.indexOf(it), "${line.AUTHOR_AUTONYM} ").toString()
+                    }
+                }
+            } else {
+                fullName = "${scientificName} ${line.AUTHOR}"
+            }
+            fullName = fullName.trim()
 
             List attributes = []
             Map<String, List<String>> attrs = taxaAttributes.get(id)
@@ -119,14 +142,15 @@ class NSWImport {
 
             Map profile = [scientificName: scientificName,
                            nameAuthor: line.AUTHOR,
+                           fullName: fullName,
                            attributes: attributes,
                            authorship: [[category: "Author", text: taxaContributors[id]?.join(", ")]]]
 
-            if (!scientificNames.containsKey(scientificName)) {
+            if (!scientificNames.containsKey(scientificName.trim().toLowerCase())) {
                 profiles << profile
             }
 
-            scientificNames.get(scientificName, []) << count
+            scientificNames.get(scientificName.trim().toLowerCase(), []) << count
         }
 
         Map opus = [
@@ -134,6 +158,7 @@ class NSWImport {
                 profiles: profiles
         ]
 
+        println "Ignoring ${doubtful} doubtful names"
         println "Importing ${profiles.size()} profiles..."
 
         def service = new RESTClient(PROFILE_SERVICE_IMPORT_URL)
@@ -158,19 +183,23 @@ class NSWImport {
 
             int success = 0
             int failed = 0
+            int warnings = 0
             if (resp.data.any {k, v -> v != "Success"}) {
                 report << "\n\nRecords unable to be saved: \n"
             }
             resp.data.each { k, v ->
                 if (v.startsWith("Success")) {
                     success++
+                } else if (v.startsWith("Warning")) {
+                    report << "\t${k}: ${v}\n"
+                    warnings++
                 } else {
                     report << "\t${k} Failed: ${v}\n"
                     failed++
                 }
             }
 
-            report << "\n\nImported ${success} of ${count} profiles"
+            report << "\n\nImported ${success} of ${count} profiles with ${failed} errors and ${warnings} warnings"
         } else {
             println "Import failed with HTTP ${resp.status}"
         }

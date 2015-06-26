@@ -36,6 +36,7 @@ class UrlMappings {
 
         "/opus/$opusId/profile/$profileId/toggleDraftMode/" controller: "profile", action: [POST: "toggleDraftMode"]
         "/opus/$opusId/profile/$profileId/discardDraftChanges/" controller: "profile", action: [POST: "discardDraftChanges"]
+        "/opus/$opusId/profile/$profileId/rename/" controller: "profile", action: [POST: "renameProfile"]
 
         "/opus/$opusId/profile/$profileId/attribute/" controller: "attribute", action: [GET: "index", PUT: "create", POST: "create"]
         "/opus/$opusId/profile/$profileId/attribute/$attributeId" controller: "attribute", action: [GET: "show", PUT: "update", DELETE: "delete", POST: "update"]
@@ -59,6 +60,11 @@ class UrlMappings {
 
         "/opus/$opusId/profile/$profileId/comment" controller: "comment", action: [GET: "getComments", PUT: "addComment"]
         "/opus/$opusId/profile/$profileId/comment/$commentId" controller: "comment", action: [GET: "getComment", POST: "updateComment", DELETE: "deleteComment"]
+
+        "/checkName" controller: "profile", action: [GET: "checkName"]
+
+        "/report/mismatchedNames" controller: "report", action: [GET: "mismatchedNames"]
+        "/report/draftProfiles" controller: "report", action: [GET: "draftProfiles"]
 
         "/$controller/$action?/$id?(.$format)?" {
             constraints {

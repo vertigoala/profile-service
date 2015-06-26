@@ -6,6 +6,7 @@ import au.org.ala.profile.Bibliography
 import au.org.ala.profile.Classification
 import au.org.ala.profile.DraftProfile
 import au.org.ala.profile.Link
+import au.org.ala.profile.Name
 import au.org.ala.profile.Profile
 import au.org.ala.profile.Publication
 
@@ -15,10 +16,12 @@ class DraftUtil {
         if (!profile.draft) {
             return
         }
-        
+
         profile.uuid = profile.draft.uuid
         profile.scientificName = profile.draft.scientificName
         profile.nameAuthor = profile.draft.nameAuthor
+        profile.fullName = profile.draft.fullName
+        profile.matchedName = profile.draft.matchedName
         profile.rank = profile.draft.rank
         profile.nslNameIdentifier = profile.draft.nslNameIdentifier
         profile.primaryImage = profile.draft.primaryImage
@@ -30,7 +33,6 @@ class DraftUtil {
         profile.bhlLinks = profile.draft.bhlLinks
         profile.bibliography = profile.draft.bibliography
         profile.publications = profile.draft.publications
-
 
         // Update the existing record rather than replacing it with the draft object,
         // otherwise, the hibernate dirty check will fail (dirty check looks for changes since the entity
@@ -54,6 +56,8 @@ class DraftUtil {
         clone.uuid = profile.uuid
         clone.scientificName = profile.scientificName
         clone.nameAuthor = profile.nameAuthor
+        clone.fullName = profile.fullName
+        clone.matchedName = cloneName(profile.matchedName)
         clone.rank = profile.rank
         clone.guid = profile.guid
         clone.nslNameIdentifier = profile.nslNameIdentifier
@@ -71,6 +75,19 @@ class DraftUtil {
         clone.dateCreated = profile.dateCreated
 
         clone
+    }
+
+    static Name cloneName(Name source) {
+        if (source == null) {
+            null
+        } else {
+            new Name(
+                    scientificName: source.scientificName,
+                    nameAuthor: source.nameAuthor,
+                    fullName: source.fullName,
+                    guid: source.guid
+            )
+        }
     }
 
     static Authorship cloneAuthorship(Authorship source) {

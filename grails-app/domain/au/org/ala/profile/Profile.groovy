@@ -18,6 +18,9 @@ class Profile {
     String nslNameIdentifier
     boolean privateMode = false
 
+    Name matchedName
+    List<String> commonNames
+
     String primaryImage
     List<String> excludedImages
     List<String> specimenIds
@@ -33,7 +36,7 @@ class Profile {
 
     DraftProfile draft
 
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography']
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'matchedName']
 
     static hasMany = [attributes: Attribute]
 
@@ -50,6 +53,7 @@ class Profile {
         nslNameIdentifier nullable: true
         rank nullable: true
         draft nullable: true
+        matchedName nullable: true
     }
 
     static mapping = {

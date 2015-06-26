@@ -128,6 +128,22 @@ class ProfileController extends BaseController {
         }
     }
 
+    def checkName() {
+        if (!params.opusId || !params.scientificName) {
+            badRequest "opusId and scientificName are required parameters"
+        } else {
+            Opus opus = getOpus()
+
+            if (!opus) {
+                notFound "No opus found for ${params.opusId}"
+            } else {
+                Map result = profileService.checkName(opus.uuid, params.scientificName as String)
+
+                render result as JSON
+            }
+        }
+    }
+
     def createProfile() {
         def json = request.getJSON()
 
@@ -146,6 +162,34 @@ class ProfileController extends BaseController {
                     profile = profileService.createProfile(opus.uuid, json);
                     render profile as JSON
                 }
+            }
+        }
+    }
+
+    def renameProfile() {
+        def json = request.getJSON()
+
+        if (!json || !params.opusId || !params.profileId) {
+            badRequest()
+        } else {
+            Profile profile = getProfile()
+
+            if (!profile) {
+                notFound()
+            } else {
+                profileService.renameProfile(profile.uuid, json)
+
+                profile = getProfile()
+
+                if (profile && profile.draft && params.latest == "true") {
+                    Opus opus = profile.opus
+                    profile = new Profile(profile.draft.properties)
+                    profile.attributes?.each { it.profile = profile }
+                    profile.opus = opus
+                    profile.privateMode = true
+                }
+
+                render profile as JSON
             }
         }
     }

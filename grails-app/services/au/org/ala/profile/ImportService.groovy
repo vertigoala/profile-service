@@ -10,7 +10,7 @@ import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
 
 class ImportService extends BaseDataAccessService {
 
-    static final int IMPORT_THREAD_POOL_SIZE = 10
+    static final int IMPORT_THREAD_POOL_SIZE = 15
 
     ProfileService profileService
     NameService nameService
@@ -69,26 +69,39 @@ class ImportService extends BaseDataAccessService {
                 boolean nameMatched = true
                 index.incrementAndGet()
 
+                boolean hasWarning = false
                 if (!it.scientificName) {
                     results << [("Row${index}"): "Failed to import row ${index}, does not have a scientific name"]
                 } else {
-                    Map matchedName = nameService.matchName(it.scientificName)
+                    Map matchedName = nameService.matchName(it.fullName)
 
-                    String scientificName = matchedName ? matchedName.scientificName : it.scientificName
-                    String nameAuthor = matchedName ? matchedName.author : null
-                    String guid = matchedName ? matchedName.guid : null
+                    String scientificName = matchedName?.scientificName ?: it.scientificName
+                    String fullName = matchedName?.fullName ?: scientificName
+                    String nameAuthor = matchedName?.author ?: null
+                    String guid = matchedName?.guid ?: null
 
-                    if (matchedName && matchedName.author && matchedName.author != it.nameAuthor) {
-                        results << [(scientificName): "Warning: name provided with author ${it.nameAuthor}, but was matched with author ${matchedName.author}. Using matched author."]
+                    if (!matchedName) {
+                        results << [("${it.scientificName}_W1"): "Warning: no matching name for ${it.scientificName}"]
+                        hasWarning = true
+                    } else if (!it.scientificName.equalsIgnoreCase(matchedName.scientificName) && !it.scientificName.equalsIgnoreCase(fullName)) {
+                        results << [("${it.scientificName}_W1"): "Warning: provided with name ${it.scientificName}, but was matched with name ${fullName}. Using provided name."]
+                        scientificName = it.scientificName
+                        fullName = it.fullName
+                        nameAuthor = it.nameAuthor
+                        hasWarning = true
                     }
 
-                    Profile profile = Profile.findByScientificNameAndOpus(scientificName, opus);
+                    Profile profile = Profile.findByScientificNameAndOpus(scientificName, opus)
                     if (profile) {
                         log.info("Profile already exists in this opus for scientific name ${scientificName}")
-                        results << [(scientificName): "Already exists"]
+                        results << [(it.scientificName): "Already exists (provided as ${it.scientificName}, matched as ${fullName})"]
                     } else {
                         profile = new Profile(scientificName: scientificName, nameAuthor: nameAuthor, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: []);
-                        profile.fullName = matchedName ? matchedName.fullName : null
+                        profile.fullName = fullName
+
+                        if (matchedName) {
+                            profile.matchedName = new Name(matchedName)
+                        }
 
                         if (profile.guid) {
                             profileService.populateTaxonHierarchy(profile)
@@ -164,9 +177,12 @@ class ImportService extends BaseDataAccessService {
                         if (profile.errors.allErrors.size() > 0) {
                             log.error("Failed to save ${profile}")
                             profile.errors.each { log.error(it) }
-                            results << [(scientificName): "Failed: ${profile.errors.allErrors.get(0)}"]
+                            results << [(it.scientificName): "Failed: ${profile.errors.allErrors.get(0)}"]
                         } else {
-                            results << [(scientificName): nameMatched ? "Success" : "Success (Unmatched name)"]
+                            // may have had a warning added earlier, but we'll still count it as a success
+                            if (!hasWarning) {
+                                results << [(it.scientificName): nameMatched ? "Success" : "Success (Unmatched name)"]
+                            }
                             success.incrementAndGet()
                             if (index % reportInterval == 0) {
                                 log.debug("Saved ${success} of ${profilesJson.size()}")
