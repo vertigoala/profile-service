@@ -15,6 +15,13 @@ class AuditFilters {
                 // userId is set from either the request param userId or failing that it tries to get it from
                 // the UserPrincipal
                 def userId = request.getHeader(grailsApplication.config.app.http.header.userId) ?: RequestContextHolder.currentRequestAttributes()?.getUserPrincipal()?.attributes?.userid
+
+                // decode the ALA Auth cookie value to avoid double-encoding in the ala-auth plugin (yet to be fixed)
+                request.getCookies()?.each {
+                    if (it.getName() == "ALA-Auth") {
+                        it.setValue(URLDecoder.decode(it.getValue(), "UTF-8"))
+                    }
+                }
                 if (userId) {
                     def userDetails = userService.setCurrentUser(userId)
                     if (userDetails) {

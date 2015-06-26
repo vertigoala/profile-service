@@ -68,11 +68,5 @@ class UrlMappings {
 
         "/" view: "/index"
         "500" view: '/error'
-
-        // TODO remove these importXYZ and test mappings
-        "/importFOA" controller: "profile", action: "importFOA"
-        "/importSponges" controller: "profile", action: "importSponges"
-        "/createTestOccurrenceSource" controller: 'profile', action: 'createTestOccurrenceSource'
-
     }
 }

@@ -297,13 +297,13 @@ class OpusService extends BaseDataAccessService {
         }
     }
 
-    boolean saveGlossaryItems(Map json) {
+    boolean saveGlossaryItems(String opusId, Map json) {
         Glossary glossary
 
         if (json.glossaryId) {
             glossary = Glossary.findByUuid(json.glossaryId)
         } else if (json.opusId) {
-            Opus opus = Opus.findByUuid(json.opusId)
+            Opus opus = Opus.findByUuid(opusId)
 
             glossary = opus.glossary
 

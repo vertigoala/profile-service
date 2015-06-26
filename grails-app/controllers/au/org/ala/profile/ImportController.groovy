@@ -26,7 +26,7 @@ class ImportController extends BaseController {
         if (!json || (!json.glossaryId && !json.opusId)) {
             badRequest(samples.glossary)
         } else {
-            opusService.saveGlossaryItems(json)
+            opusService.saveGlossaryItems(json.opusId, json)
         }
     }
 

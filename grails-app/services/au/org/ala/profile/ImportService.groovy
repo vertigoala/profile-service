@@ -68,21 +68,31 @@ class ImportService extends BaseDataAccessService {
             profilesJson.eachParallel {
                 boolean nameMatched = true
                 index.incrementAndGet()
-                Profile profile = Profile.findByScientificNameAndOpus(it.scientificName, opus);
-                if (profile) {
-                    log.info("Profile already exists in this opus for scientific name ${it.scientificName}")
-                    results << [(it.scientificName): "Already exists"]
-                } else {
-                    if (!it.scientificName) {
-                        results << [("Row${index}"): "Failed to import row ${index}, does not have a scientific name"]
-                    } else {
-                        String guid = nameService.getGuidForName(it.scientificName)
 
-                        profile = new Profile(scientificName: it.scientificName, nameAuthor: it.nameAuthor, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: []);
+                if (!it.scientificName) {
+                    results << [("Row${index}"): "Failed to import row ${index}, does not have a scientific name"]
+                } else {
+                    Map matchedName = nameService.matchName(it.scientificName)
+
+                    String scientificName = matchedName ? matchedName.scientificName : it.scientificName
+                    String nameAuthor = matchedName ? matchedName.author : null
+                    String guid = matchedName ? matchedName.guid : null
+
+                    if (matchedName && matchedName.author && matchedName.author != it.nameAuthor) {
+                        results << [(scientificName): "Warning: name provided with author ${it.nameAuthor}, but was matched with author ${matchedName.author}. Using matched author."]
+                    }
+
+                    Profile profile = Profile.findByScientificNameAndOpus(scientificName, opus);
+                    if (profile) {
+                        log.info("Profile already exists in this opus for scientific name ${scientificName}")
+                        results << [(scientificName): "Already exists"]
+                    } else {
+                        profile = new Profile(scientificName: scientificName, nameAuthor: nameAuthor, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: []);
+                        profile.fullName = matchedName ? matchedName.fullName : null
 
                         if (profile.guid) {
                             profileService.populateTaxonHierarchy(profile)
-                            profile.nslNameIdentifier = nameService.getNSLNameIdentifier(profile.guid)
+                            profile.nslNameIdentifier = nameService.getNSLNameIdentifier(profile.fullName)
                         } else {
                             nameMatched = false
                         }
@@ -154,9 +164,9 @@ class ImportService extends BaseDataAccessService {
                         if (profile.errors.allErrors.size() > 0) {
                             log.error("Failed to save ${profile}")
                             profile.errors.each { log.error(it) }
-                            results << [(it.scientificName): "Failed: ${profile.errors.allErrors.get(0)}"]
+                            results << [(scientificName): "Failed: ${profile.errors.allErrors.get(0)}"]
                         } else {
-                            results << [(it.scientificName): nameMatched ? "Success" : "Success (Unmatched name)"]
+                            results << [(scientificName): nameMatched ? "Success" : "Success (Unmatched name)"]
                             success.incrementAndGet()
                             if (index % reportInterval == 0) {
                                 log.debug("Saved ${success} of ${profilesJson.size()}")

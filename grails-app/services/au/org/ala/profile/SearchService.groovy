@@ -27,7 +27,10 @@ class SearchService extends BaseDataAccessService {
                 'in' "opus", opusList
             }
 
-            ilike "scientificName", "${scientificName}${wildcard}"
+            or {
+                ilike "scientificName", "${scientificName}${wildcard}"
+                ilike "fullName", "${scientificName}${wildcard}"
+            }
 
             order "scientificName"
 

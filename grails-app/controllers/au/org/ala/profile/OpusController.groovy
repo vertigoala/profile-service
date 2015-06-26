@@ -117,10 +117,11 @@ class OpusController extends BaseController {
 
     def saveGlossaryItems() {
         def json = request.getJSON();
-        if (!json || (!json.opusId && !json.glossaryId)) {
+        if (!json || (!json.opusId && !json.glossaryId) || !params.opusId) {
             badRequest()
         } else {
-            boolean updated = opusService.saveGlossaryItems(json)
+            Opus opus = getOpus()
+            boolean updated = opusService.saveGlossaryItems(opus.uuid, json)
 
             if (!updated) {
                 saveFailed()

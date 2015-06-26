@@ -13,6 +13,7 @@ class Profile {
     String guid                 //taxon GUID / LSID
     String scientificName
     String nameAuthor
+    String fullName
     String rank
     String nslNameIdentifier
     boolean privateMode = false
@@ -40,6 +41,7 @@ class Profile {
 
     static constraints = {
         nameAuthor nullable: true
+        fullName nullable: true
         guid nullable: true
         primaryImage nullable: true
         excludedImages nullable: true
