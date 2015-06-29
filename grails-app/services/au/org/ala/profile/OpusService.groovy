@@ -10,10 +10,15 @@ class OpusService extends BaseDataAccessService {
         log.debug("Creating new opus record")
         Opus opus = new Opus(json)
 
-        Vocab vocab = new Vocab(name: "${opus.title} Vocabulary", strict: false)
-        save vocab
+        Vocab attributeVocab = new Vocab(name: "${opus.title} Attribute Vocabulary", strict: false)
+        save attributeVocab
+        Vocab authorshipVocab = new Vocab(name: "${opus.title} Authorship Vocabulary", strict: false)
+        Term authorTerm = new Term(name: "Author", vocab: authorshipVocab, uuid: UUID.randomUUID())
+        authorshipVocab.addToTerms(authorTerm)
+        save authorshipVocab
 
-        opus.attributeVocabUuid = vocab.uuid
+        opus.attributeVocabUuid = attributeVocab.uuid
+        opus.authorshipVocabUuid = authorshipVocab.uuid
 
         Glossary glossary = new Glossary()
         save glossary
@@ -213,6 +218,11 @@ class OpusService extends BaseDataAccessService {
 
         if (opus.attributeVocabUuid) {
             Vocab vocab = Vocab.findByUuid(opus.attributeVocabUuid)
+            Term.deleteAll(vocab.terms)
+            delete vocab
+        }
+        if (opus.authorshipVocabUuid) {
+            Vocab vocab = Vocab.findByUuid(opus.authorshipVocabUuid)
             Term.deleteAll(vocab.terms)
             delete vocab
         }

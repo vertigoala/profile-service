@@ -18,6 +18,8 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         service.doiService = Mock(DoiService)
         service.doiService.mintDOI(_) >> "1234"
         service.grailsApplication = [config: [snapshot:[directory: "bla"]]]
+        service.vocabService = Mock(VocabService)
+        service.vocabService.getOrCreateTerm(_, _) >> {name, id -> [name: name, vocabId: id]}
     }
 
     def "createProfile should expect both arguments to be provided"() {
@@ -66,7 +68,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
         then:
         profile.authorship.size() == 1
-        profile.authorship[0].category == "Author"
+        profile.authorship[0].category.name == "Author"
         profile.authorship[0].text == "Fred Bloggs"
     }
 
@@ -1024,8 +1026,8 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         given:
         Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
         save opus
-        Authorship auth1 = new Authorship(category: "Acknowledgement", text: "Fred, Jill")
-        Authorship auth2 = new Authorship(category: "Author", text: "Bob, Jane")
+        Authorship auth1 = new Authorship(category: new Term(name: "Acknowledgement"), text: "Fred, Jill")
+        Authorship auth2 = new Authorship(category: new Term(name: "Author"), text: "Bob, Jane")
         Profile profile = new Profile(opus: opus, scientificName: "sciName", authorship: [auth1, auth2])
         save profile
 
@@ -1040,8 +1042,8 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         given:
         Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
         save opus
-        Authorship auth1 = new Authorship(category: "Acknowledgement", text: "Fred, Jill")
-        Authorship auth2 = new Authorship(category: "Author", text: "Bob, Jane")
+        Authorship auth1 = new Authorship(category: new Term(name: "Acknowledgement"), text: "Fred, Jill")
+        Authorship auth2 = new Authorship(category: new Term(name: "Author"), text: "Bob, Jane")
         Profile profile = new Profile(opus: opus, scientificName: "sciName", authorship: [auth1, auth2])
         save profile
 
@@ -1052,12 +1054,12 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.authorship.each { it.text == auth1.text || it.text == "Sarah" }
     }
 
-    def "saveAuthorship should change the authorship the incoming data contains different records"() {
+    def "saveAuthorship should change the authorship if the incoming data contains different records"() {
         given:
         Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
         save opus
-        Authorship auth1 = new Authorship(category: "Acknowledgement", text: "Fred, Jill")
-        Authorship auth2 = new Authorship(category: "Author", text: "Bob, Jane")
+        Authorship auth1 = new Authorship(category: new Term(name: "Acknowledgement"), text: "Fred, Jill")
+        Authorship auth2 = new Authorship(category: new Term(name: "Author"), text: "Bob, Jane")
         Profile profile = new Profile(opus: opus, scientificName: "sciName", authorship: [auth1, auth2])
         save profile
 
@@ -1067,15 +1069,15 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         then: "the profile should be replaced"
         profile.authorship.size() == 1
         profile.authorship[0].text == "Sarah"
-        profile.authorship[0].category == "Author"
+        profile.authorship[0].category.name == "Author"
     }
 
     def "saveAuthorship should not change the authorship if the incoming data contains the same records"() {
         given:
         Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
         save opus
-        Authorship auth1 = new Authorship(category: "Acknowledgement", text: "Fred, Jill")
-        Authorship auth2 = new Authorship(category: "Author", text: "Bob, Jane")
+        Authorship auth1 = new Authorship(category: new Term(name: "Acknowledgement"), text: "Fred, Jill")
+        Authorship auth2 = new Authorship(category: new Term(name: "Author"), text: "Bob, Jane")
         Profile profile = new Profile(opus: opus, scientificName: "sciName", authorship: [auth1, auth2])
         save profile
 
@@ -1091,8 +1093,8 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         given:
         Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
         save opus
-        Authorship auth1 = new Authorship(category: "Acknowledgement", text: "Fred, Jill")
-        Authorship auth2 = new Authorship(category: "Author", text: "Bob, Jane")
+        Authorship auth1 = new Authorship(category: new Term(name: "Acknowledgement"), text: "Fred, Jill")
+        Authorship auth2 = new Authorship(category: new Term(name: "Author"), text: "Bob, Jane")
         Profile profile = new Profile(opus: opus, scientificName: "sciName", authorship: [auth1, auth2])
         save profile
 
@@ -1107,8 +1109,8 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         given:
         Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
         save opus
-        Authorship auth1 = new Authorship(category: "Acknowledgement", text: "Fred, Jill")
-        Authorship auth2 = new Authorship(category: "Author", text: "Bob, Jane")
+        Authorship auth1 = new Authorship(category: new Term(name: "Acknowledgement"), text: "Fred, Jill")
+        Authorship auth2 = new Authorship(category: new Term(name: "Author"), text: "Bob, Jane")
         Profile profile = new Profile(opus: opus, scientificName: "sciName", authorship: [auth1, auth2])
         save profile
 
@@ -1123,7 +1125,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         given:
         Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
         save opus
-        Authorship auth1 = new Authorship(category: "Author", text: "Bob, Jane")
+        Authorship auth1 = new Authorship(category: new Term(name: "Author"), text: "Bob, Jane")
         Profile profile = new Profile(opus: opus, scientificName: "sciName", authorship: [auth1], draft: [uuid: "123", scientificName: "sciName", authorship: [auth1]])
         save profile
 
@@ -1133,10 +1135,10 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         then: "the profile should be replaced"
         profile.authorship.size() == 1
         profile.authorship[0].text == "Bob, Jane"
-        profile.authorship[0].category == "Author"
+        profile.authorship[0].category.name == "Author"
         profile.draft.authorship.size() == 1
         profile.draft.authorship[0].text == "Sarah"
-        profile.draft.authorship[0].category == "Author"
+        profile.draft.authorship[0].category.name == "Author"
     }
 
     def "toggleDraftMode should create a new draft Profile if one does not exist"() {

@@ -26,6 +26,7 @@ class Opus {
     String biocacheUrl    // e.g.  http://avh.ala.org.au/
     String biocacheName    ///e.g. Australian Virtual Herbarium
     String attributeVocabUuid
+    String authorshipVocabUuid
     Boolean enablePhyloUpload = false
     Boolean enableOccurrenceUpload = false
     Boolean enableTaxaUpload = false
@@ -51,6 +52,7 @@ class Opus {
         bannerUrl nullable: true
         thumbnailUrl nullable: true
         attributeVocabUuid nullable: true
+        authorshipVocabUuid nullable: true
         enablePhyloUpload nullable: true
         enableOccurrenceUpload nullable: true
         enableTaxaUpload nullable: true

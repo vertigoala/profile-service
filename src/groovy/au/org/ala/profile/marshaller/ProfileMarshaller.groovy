@@ -29,7 +29,7 @@ class ProfileMarshaller {
                     primaryImage     : profile.primaryImage,
                     excludedImages   : profile.excludedImages ?: [],
                     specimenIds      : profile.specimenIds ?: [],
-                    authorship       : profile.authorship?.collect { [category: it.category, text: it.text] },
+                    authorship       : profile.authorship?.collect { [category: it.category.name, text: it.text] },
                     bibliography     : profile.bibliography?.collect {
                         [uuid: it.uuid, text: it.text, order: it.order]
                     }?.sort { it.order }

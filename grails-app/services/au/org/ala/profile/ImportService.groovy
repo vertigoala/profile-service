@@ -24,16 +24,6 @@ class ImportService extends BaseDataAccessService {
         return str
     }
 
-    Term getOrCreateTerm(String vocabId, String name) {
-        Vocab vocab = Vocab.findByUuid(vocabId)
-        Term term = Term.findByNameAndVocab(name, vocab)
-        if (!term) {
-            term = new Term(name: name, vocab: vocab)
-            term.save(flush: true)
-        }
-        term
-    }
-
     /**
      * Profile import is a two-pass operation:
      * 1.) Use multiple threads to loop through the provided data set to find all values that should be unique (e.g. attribute terms, contributors, etc)
@@ -166,10 +156,12 @@ class ImportService extends BaseDataAccessService {
 
                         if (it.authorship) {
                             profile.authorship = it.authorship.collect {
-                                new Authorship(category: it.category, text: it.text)
+                                Term term = getOrCreateTerm(opus.authorshipVocabUuid, it.category)
+                                new Authorship(category: term, text: it.text)
                             }
                         } else {
-                            profile.authorship = [new Authorship(category: "Author", text: contributorNames.join(", "))]
+                            Term term = getOrCreateTerm(opus.authorshipVocabUuid, "Author")
+                            profile.authorship = [new Authorship(category: term, text: contributorNames.join(", "))]
                         }
 
                         profile.save(flush: true)

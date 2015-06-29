@@ -37,7 +37,7 @@ class DraftUtilTest extends Specification {
                 primaryImage: "primaryImage",
                 excludedImages: ["image1", "image2"],
                 specimenIds: ["spec1", "spec2"],
-                authorship: [new Authorship(category: "category1", text: "bob"), new Authorship(category: "category2", text: "jill")],
+                authorship: [new Authorship(category: new Term(name: "category1"), text: "bob"), new Authorship(category: new Term(name: "category2"), text: "jill")],
                 classification: [new Classification(rank: "kingdom", name: "Plantae"), new Classification(rank: "family", name: "Acacia")],
                 links: [new Link(title: "link1"), new Link(title: "link2")],
                 bhlLinks: [new Link(title: "bhl1"), new Link(title: "bhl2")],
@@ -91,7 +91,7 @@ class DraftUtilTest extends Specification {
 
     def "cloneAuthorship should create a new object with copies of all attributes"() {
         given:
-        Authorship original = new Authorship(category: "cat1", text: "text1")
+        Authorship original = new Authorship(category: new Term(name: "cat1"), text: "text1")
 
         when:
         Authorship clone = DraftUtil.cloneAuthorship(original)

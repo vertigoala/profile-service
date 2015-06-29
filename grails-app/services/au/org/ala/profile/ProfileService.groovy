@@ -85,7 +85,8 @@ class ProfileService extends BaseDataAccessService {
         }
 
         if (authService.getUserId()) {
-            profile.authorship = [new Authorship(category: "Author", text: authService.getUserForUserId(authService.getUserId()).displayName)]
+            Term term = vocabService.getOrCreateTerm("Author", opus.authorshipVocabUuid)
+            profile.authorship = [new Authorship(category: term, text: authService.getUserForUserId(authService.getUserId()).displayName)]
         }
 
         boolean success = save profile
@@ -278,7 +279,8 @@ class ProfileService extends BaseDataAccessService {
             }
 
             json.authorship.each {
-                profileOrDraft(profile).authorship << new Authorship(it)
+                Term term = vocabService.getOrCreateTerm(it.category, profile.opus.authorshipVocabUuid)
+                profileOrDraft(profile).authorship << new Authorship(category: term, text: it.text)
             }
 
             if (!deferSave) {
@@ -396,7 +398,7 @@ class ProfileService extends BaseDataAccessService {
 
         Publication publication = new Publication()
         publication.title = profile.scientificName
-        publication.authors = profile.authorship.find { it.category == "Author" }?.text
+        publication.authors = profile.authorship.find { it.category.name == "Author" }?.text
         publication.doi = doiService.mintDOI(publication)
         publication.publicationDate = new Date()
         publication.userId = authService.getUserId()
