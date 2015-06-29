@@ -21,10 +21,15 @@ class NameService {
         nameSearcher = new ALANameSearcher("${grailsApplication.config.name.index.location}")
     }
 
-    Map matchName(String name) {
+    Map matchName(String name, String manuallyMatchedGuid = null) {
         LinnaeanRankClassification rankClassification = new LinnaeanRankClassification()
         rankClassification.setScientificName(name)
-        NameSearchResult result = nameSearcher.searchForAcceptedRecordDefaultHandling(rankClassification, true, true)
+        NameSearchResult result
+        if (manuallyMatchedGuid) {
+            result = nameSearcher.searchForRecordByLsid(manuallyMatchedGuid)
+        } else {
+            result = nameSearcher.searchForAcceptedRecordDefaultHandling(rankClassification, true, true)
+        }
 
         if (result) {
             Map match = [

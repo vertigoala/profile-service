@@ -75,7 +75,7 @@ class ProfileService extends BaseDataAccessService {
         Profile profile = new Profile(json)
         profile.opus = opus
 
-        Map matchedName = nameService.matchName(json.scientificName)
+        Map matchedName = nameService.matchName(json.scientificName, json.manuallyMatchedGuid)
 
         updateNameDetails(profile, matchedName, json.scientificName)
 
@@ -125,7 +125,7 @@ class ProfileService extends BaseDataAccessService {
         checkState profile
 
         if (json.newName) {
-            Map matchedName = nameService.matchName(json.newName)
+            Map matchedName = nameService.matchName(json.newName, json.manuallyMatchedGuid)
 
             updateNameDetails(profileOrDraft(profile), matchedName, json.newName)
         }
