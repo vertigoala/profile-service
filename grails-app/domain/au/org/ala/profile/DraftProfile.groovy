@@ -28,6 +28,7 @@ class DraftProfile {
     List<Bibliography> bibliography
 
     Date dateCreated
+    Date draftDate = new Date()
 
     static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'attributes']
 

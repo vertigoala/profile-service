@@ -30,7 +30,7 @@ class NameService {
             Map match = [
                     guid: result.lsid,
                     scientificName: result.getRankClassification().getScientificName(),
-                    author: result.getRankClassification().getAuthorship()
+                    nameAuthor: result.getRankClassification().getAuthorship()
             ]
 
             // Autonym workaround. Autonyms have the author name in the middle, and the name service does not currently
@@ -38,16 +38,16 @@ class NameService {
             // Therefore, we try to find the author name by comparing the provided name with the matched name, and if
             // they are different, but have the same start and end, then we assume that the difference is the author name.
             // e.g. "Acacia dealbata Link subsp. dealbata" is an autonym, but "Acacia dealbata subsp. subalpina Tindale & Kodela" is a subspecies.
-            if (match.author == null && name != match.scientificName) {
+            if (match.nameAuthor == null && name != match.scientificName) {
                 List suppliedName = name.split(" ")
                 List matchedName = match.scientificName.split(" ")
                 if (suppliedName.first() == matchedName.first() && suppliedName.last() == matchedName.last()) {
-                    match.author = (suppliedName - matchedName).join(" ")
+                    match.nameAuthor = (suppliedName - matchedName).join(" ")
                     match.fullName = name
                 }
             }
             if (!match.fullName) {
-                match.fullName = "${match.scientificName} ${match.author ?: ""}".trim()
+                match.fullName = "${match.scientificName} ${match.nameAuthor ?: ""}".trim()
             }
 
             match

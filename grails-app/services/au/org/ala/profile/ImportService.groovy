@@ -77,7 +77,7 @@ class ImportService extends BaseDataAccessService {
 
                     String scientificName = matchedName?.scientificName ?: it.scientificName
                     String fullName = matchedName?.fullName ?: scientificName
-                    String nameAuthor = matchedName?.author ?: null
+                    String nameAuthor = matchedName?.nameAuthor ?: null
                     String guid = matchedName?.guid ?: null
 
                     if (!matchedName) {

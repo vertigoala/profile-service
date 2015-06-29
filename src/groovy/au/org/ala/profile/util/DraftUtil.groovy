@@ -21,7 +21,7 @@ class DraftUtil {
         profile.scientificName = profile.draft.scientificName
         profile.nameAuthor = profile.draft.nameAuthor
         profile.fullName = profile.draft.fullName
-        profile.matchedName = profile.draft.matchedName
+        profile.matchedName = cloneName(profile.draft.matchedName)
         profile.rank = profile.draft.rank
         profile.nslNameIdentifier = profile.draft.nslNameIdentifier
         profile.primaryImage = profile.draft.primaryImage
@@ -53,6 +53,7 @@ class DraftUtil {
 
     static DraftProfile createDraft(Profile profile) {
         DraftProfile clone = new DraftProfile()
+        clone.draftDate = new Date()
         clone.uuid = profile.uuid
         clone.scientificName = profile.scientificName
         clone.nameAuthor = profile.nameAuthor
@@ -78,16 +79,15 @@ class DraftUtil {
     }
 
     static Name cloneName(Name source) {
-        if (source == null) {
-            null
-        } else {
-            new Name(
-                    scientificName: source.scientificName,
-                    nameAuthor: source.nameAuthor,
-                    fullName: source.fullName,
-                    guid: source.guid
-            )
+        Name clone = null
+        if (source != null) {
+            clone = new Name()
+            clone.scientificName = source.scientificName
+            clone.nameAuthor = source.nameAuthor
+            clone.fullName = source.fullName
+            clone.guid = source.guid
         }
+        clone
     }
 
     static Authorship cloneAuthorship(Authorship source) {

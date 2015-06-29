@@ -77,21 +77,7 @@ class ProfileService extends BaseDataAccessService {
 
         Map matchedName = nameService.matchName(json.scientificName)
 
-        if (matchedName) {
-            if (json.scientificName == matchedName.fullName) {
-                profile.scientificName = matchedName.scientificName
-            } else {
-                profile.scientificName = json.scientificName
-            }
-            profile.matchedName = new Name(matchedName)
-            profile.nameAuthor = matchedName.author
-            profile.guid = matchedName.guid
-            profile.fullName = matchedName.fullName
-        } else {
-            profile.scientificName = json.scientificName
-            profile.fullName = json.scientificName
-            profile.matchedName = null
-        }
+        updateNameDetails(profile, matchedName, json.scientificName)
 
         if (profile.guid) {
             populateTaxonHierarchy(profile)
@@ -111,38 +97,52 @@ class ProfileService extends BaseDataAccessService {
         profile
     }
 
+    private void updateNameDetails(profile, Map matchedName, String providedName) {
+        if (matchedName) {
+            if (providedName == matchedName.fullName || providedName == matchedName.scientificName) {
+                profile.scientificName = matchedName.scientificName
+                profile.fullName = matchedName.fullName
+                profile.nameAuthor = matchedName.nameAuthor
+            } else {
+                profile.scientificName = providedName
+                profile.fullName = providedName
+                profile.nameAuthor = null
+            }
+            profile.matchedName = new Name(matchedName)
+            profile.guid = matchedName.guid
+        } else {
+            profile.scientificName = providedName
+            profile.fullName = providedName
+            profile.matchedName = null
+        }
+    }
+
     void renameProfile(String profileId, Map json) {
         checkArgument profileId
         checkArgument json
 
-        Profile profile = Profile.findByUuid(profileId)
+        def profile = Profile.findByUuid(profileId)
         checkState profile
 
         if (json.newName) {
             Map matchedName = nameService.matchName(json.newName)
 
-            if (matchedName) {
-                if (json.newName == matchedName.fullName) {
-                    profile.scientificName = matchedName.scientificName
-                } else {
-                    profile.scientificName = json.newName
-                }
-                profile.matchedName = new Name(matchedName)
-                profile.nameAuthor = matchedName.author
-                profile.guid = matchedName.guid
-                profile.fullName = matchedName.fullName
-            } else {
-                profile.scientificName = json.newName
-                profile.fullName = json.newName
-                profile.matchedName = null
-            }
+            updateNameDetails(profileOrDraft(profile), matchedName, json.newName)
         }
 
         if (json.clearMatch?.booleanValue()) {
-            profile.matchedName = null
-            profile.guid = null
-            profile.nameAuthor = null
-            profile.fullName = profile.scientificName
+            profileOrDraft(profile).matchedName = null
+            profileOrDraft(profile).guid = null
+            profileOrDraft(profile).nameAuthor = null
+            profileOrDraft(profile).fullName = profileOrDraft(profile).scientificName
+        }
+
+        if (profileOrDraft(profile).guid) {
+            populateTaxonHierarchy(profileOrDraft(profile))
+            profileOrDraft(profile).nslNameIdentifier = nameService.getNSLNameIdentifier(profileOrDraft(profile).fullName)
+        } else {
+            profileOrDraft(profile).classification = []
+            profileOrDraft(profile).nslNameIdentifier = null
         }
 
         boolean success = save profile
@@ -154,7 +154,7 @@ class ProfileService extends BaseDataAccessService {
         profile
     }
 
-    void populateTaxonHierarchy(Profile profile) {
+    void populateTaxonHierarchy(profile) {
         if (profile && profile.guid) {
             def classificationJson = bieService.getClassification(profile.guid)
 

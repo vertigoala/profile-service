@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import grails.converters.JSON
+import org.grails.datastore.mapping.query.Restrictions
 
 class ReportController extends BaseController {
     def draftProfiles() {
@@ -12,9 +13,15 @@ class ReportController extends BaseController {
             if (!opus) {
                 notFound "No opus found for ${params.opusId}"
             } else {
-                List report = Profile.findAllByOpusAndDraftIsNotNull(opus).collect {
-                    [profileId: it.uuid, scientificName: it.scientificName]
-                }
+                List profiles = Profile.findAllByOpusAndDraftIsNotNull(opus).collect {
+                    [profileId: it.uuid, scientificName: it.scientificName, draftDate: it.draft.draftDate]
+                }.sort { it.scientificName }
+
+                Map report = [
+                        recordCount: profiles.size(),
+                        records    : profiles
+                ]
+
 
                 render report as JSON
             }
@@ -30,10 +37,22 @@ class ReportController extends BaseController {
             if (!opus) {
                 notFound "No opus found for ${params.opusId}"
             } else {
-                int max = params.max ? params.max as int : -1
+                int max = params.max && params.max != "null" ? params.max as int : -1
                 int startFrom = params.offset ? params.offset as int : 0
 
-                List<Profile> result = Profile.withCriteria {
+                int count = -1
+                if (max > -1) {
+                    count = Profile.withCriteria {
+                        eq "opus", opus
+
+                        or {
+                            isNull "matchedName"
+                            neProperty("fullName", "matchedName.fullName")
+                        }
+                    }.size()
+                }
+
+                def result = Profile.withCriteria {
                     eq "opus", opus
 
                     or {
@@ -49,10 +68,10 @@ class ReportController extends BaseController {
                     }
                 }
 
-                Map report = [mismatchedRecords: result.size(),
-                              records          : result.collect {
+                Map report = [recordCount: count > -1 ? count : result.size(),
+                              records    : result.collect {
                                   [
-                                          profileId: it.uuid,
+                                          profileId  : it.uuid,
                                           profileName: [scientificName: it.scientificName,
                                                         fullName      : it.fullName,
                                                         nameAuthor    : it.nameAuthor],
