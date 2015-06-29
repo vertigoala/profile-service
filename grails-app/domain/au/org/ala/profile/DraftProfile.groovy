@@ -29,6 +29,7 @@ class DraftProfile {
 
     Date dateCreated
     Date draftDate = new Date()
+    String createdBy
 
     static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'attributes']
 
@@ -40,5 +41,6 @@ class DraftProfile {
         rank nullable: true
         fullName nullable: true
         matchedName nullable: true
+        createdBy nullable: true
     }
 }

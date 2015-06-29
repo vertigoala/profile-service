@@ -217,6 +217,7 @@ class ProfileService extends BaseDataAccessService {
             save profile
         } else {
             profile.draft = DraftUtil.createDraft(profile)
+            profile.draft.createdBy = authService.getUserForUserId(authService.getUserId()).displayName
 
             save profile
         }

@@ -1,7 +1,6 @@
 package au.org.ala.profile
 
 import grails.converters.JSON
-import org.grails.datastore.mapping.query.Restrictions
 
 class ReportController extends BaseController {
     def draftProfiles() {
@@ -14,7 +13,7 @@ class ReportController extends BaseController {
                 notFound "No opus found for ${params.opusId}"
             } else {
                 List profiles = Profile.findAllByOpusAndDraftIsNotNull(opus).collect {
-                    [profileId: it.uuid, scientificName: it.scientificName, draftDate: it.draft.draftDate]
+                    [profileId: it.uuid, scientificName: it.scientificName, draftDate: it.draft.draftDate, createdBy: it.draft.createdBy]
                 }.sort { it.scientificName }
 
                 Map report = [
