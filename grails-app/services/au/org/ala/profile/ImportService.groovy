@@ -24,6 +24,16 @@ class ImportService extends BaseDataAccessService {
         return str
     }
 
+    Term getOrCreateTerm(String vocabId, String name) {
+        Vocab vocab = Vocab.findByUuid(vocabId)
+        Term term = Term.findByNameAndVocab(name, vocab)
+        if (!term) {
+            term = new Term(name: name, vocab: vocab)
+            term.save(flush: true)
+        }
+        term
+    }
+
     /**
      * Profile import is a two-pass operation:
      * 1.) Use multiple threads to loop through the provided data set to find all values that should be unique (e.g. attribute terms, contributors, etc)
