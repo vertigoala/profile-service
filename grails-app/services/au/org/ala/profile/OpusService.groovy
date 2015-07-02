@@ -13,7 +13,7 @@ class OpusService extends BaseDataAccessService {
         Vocab attributeVocab = new Vocab(name: "${opus.title} Attribute Vocabulary", strict: false)
         save attributeVocab
         Vocab authorshipVocab = new Vocab(name: "${opus.title} Authorship Vocabulary", strict: false)
-        Term authorTerm = new Term(name: "Author", vocab: authorshipVocab, uuid: UUID.randomUUID())
+        Term authorTerm = new Term(name: "Author", vocab: authorshipVocab, uuid: UUID.randomUUID(), required: true)
         authorshipVocab.addToTerms(authorTerm)
         save authorshipVocab
 

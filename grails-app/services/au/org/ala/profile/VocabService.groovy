@@ -26,6 +26,7 @@ class VocabService extends BaseDataAccessService {
                     retainedTermIds << item.termId
                     term.name = item.name
                     term.order = item.order
+                    term.required = item.required == null ? false : item.required.asBoolean()
                 }
             } else {
                 // GRAILS-8061 beforeValidate does not get called on child records during a cascade save of the parent
