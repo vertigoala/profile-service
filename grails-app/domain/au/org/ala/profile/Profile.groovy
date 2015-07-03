@@ -32,7 +32,9 @@ class Profile {
     List<Publication> publications
 
     Date dateCreated
+    String createdBy
     Date lastUpdated
+    String lastUpdatedBy
 
     DraftProfile draft
 
@@ -54,6 +56,8 @@ class Profile {
         rank nullable: true
         draft nullable: true
         matchedName nullable: true
+        createdBy nullable: true
+        lastUpdatedBy nullable: true
     }
 
     static mapping = {

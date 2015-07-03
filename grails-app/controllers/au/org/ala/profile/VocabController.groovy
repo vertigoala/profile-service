@@ -11,9 +11,9 @@ class VocabController extends BaseController {
         def vocabsToRender = []
         vocabs.each { vocab ->
             vocabsToRender << [
-                    "name": "${vocab.name}",
+                    "name"   : "${vocab.name}",
                     "vocabId": "${vocab.uuid}",
-                    "strict": "${vocab.strict ?: false}"
+                    "strict" : "${vocab.strict ?: false}"
             ]
         }
 
@@ -27,13 +27,16 @@ class VocabController extends BaseController {
 
             vocab.terms.sort().eachWithIndex { term, index ->
                 termsToRender << [
-                        name: term.name,
-                        termId: term.uuid,
-                        order: term.order == -1 ? index : term.order
+                        name    : term.name,
+                        termId  : term.uuid,
+                        order   : term.order == -1 ? index : term.order,
+                        required: term.required
                 ]
             }
 
-            def payload = [name: vocab.name, strict: vocab.strict ?: false, terms: termsToRender.sort { [it.order, it.name.toLowerCase()] }]
+            def payload = [name: vocab.name, strict: vocab.strict ?: false, terms: termsToRender.sort {
+                [it.order, it.name.toLowerCase()]
+            }]
             render payload as JSON
         } else {
             notFound()
@@ -68,7 +71,7 @@ class VocabController extends BaseController {
         } else {
             int usages = vocabService.findUsagesOfTerm(params.vocabId, params.term)
 
-            render ([usageCount: usages] as JSON)
+            render([usageCount: usages] as JSON)
         }
     }
 
@@ -79,7 +82,7 @@ class VocabController extends BaseController {
         } else {
             Map<String, Integer> usages = vocabService.replaceUsagesOfTerm(json)
 
-            render ([usages: usages] as JSON)
+            render([usages: usages] as JSON)
         }
     }
 

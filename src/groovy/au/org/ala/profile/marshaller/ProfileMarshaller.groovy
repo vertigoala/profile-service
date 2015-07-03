@@ -32,7 +32,11 @@ class ProfileMarshaller {
                     authorship       : profile.authorship?.collect { [category: it.category.name, text: it.text] },
                     bibliography     : profile.bibliography?.collect {
                         [uuid: it.uuid, text: it.text, order: it.order]
-                    }?.sort { it.order }
+                    }?.sort { it.order },
+                    createdDate      : profile.dateCreated,
+                    createdBy        : profile.createdBy,
+                    lastUpdated      : profile.lastUpdated,
+                    lastUpdatedBy    : profile.lastUpdatedBy
             ]
         }
     }

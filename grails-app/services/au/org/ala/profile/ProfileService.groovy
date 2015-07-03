@@ -75,7 +75,7 @@ class ProfileService extends BaseDataAccessService {
         Profile profile = new Profile(json)
         profile.opus = opus
 
-        Map matchedName = nameService.matchName(json.scientificName, json.manuallyMatchedGuid)
+        Map matchedName = nameService.matchName(json.scientificName, json.manuallyMatchedGuid ?: null)
 
         updateNameDetails(profile, matchedName, json.scientificName)
 
@@ -126,7 +126,7 @@ class ProfileService extends BaseDataAccessService {
         checkState profile
 
         if (json.newName) {
-            Map matchedName = nameService.matchName(json.newName, json.manuallyMatchedGuid)
+            Map matchedName = nameService.matchName(json.newName, json.manuallyMatchedGuid ?: null)
 
             updateNameDetails(profileOrDraft(profile), matchedName, json.newName)
         }
@@ -553,11 +553,7 @@ class ProfileService extends BaseDataAccessService {
             attribute.editors << contributor
         }
 
-        if (!profile.draft) {
-            save attribute
-        } else {
-            save profile
-        }
+        save profile
     }
 
     boolean deleteAttribute(String attributeId, String profileId) {

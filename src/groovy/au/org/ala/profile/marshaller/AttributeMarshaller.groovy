@@ -15,6 +15,7 @@ class AttributeMarshaller {
                     uuid     : attr.uuid,
                     title    : attr.title.name,
                     order    : attr.title.order,
+                    required : attr.title.required,
                     text     : attr.text,
                     source   : attr.source,
                     plainText: cleanupText(attr.text),
