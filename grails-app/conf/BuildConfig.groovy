@@ -55,6 +55,7 @@ grails.project.dependency.resolution = {
         build ":release:3.0.1"
         build ":tomcat:7.0.55"
         runtime ":ala-auth:1.3.1"
+        runtime ":ala-ws-security:1.0"
         runtime ":mongodb:3.0.3"
         compile ':cache:1.1.6'
         runtime ":cors:1.1.6"

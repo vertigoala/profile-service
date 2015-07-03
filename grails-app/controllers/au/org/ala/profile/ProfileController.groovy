@@ -1,10 +1,12 @@
 package au.org.ala.profile
 
+import au.ala.org.ws.security.RequireApiKey
 import grails.converters.JSON
 import org.apache.http.HttpStatus
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.MultipartHttpServletRequest
 
+@RequireApiKey
 class ProfileController extends BaseController {
 
     ProfileService profileService

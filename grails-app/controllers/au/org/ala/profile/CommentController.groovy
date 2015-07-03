@@ -1,7 +1,9 @@
 package au.org.ala.profile
 
+import au.ala.org.ws.security.RequireApiKey
 import grails.converters.JSON
 
+@RequireApiKey
 class CommentController extends BaseController {
 
     CommentService commentService

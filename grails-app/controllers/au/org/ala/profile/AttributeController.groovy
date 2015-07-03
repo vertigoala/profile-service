@@ -1,9 +1,11 @@
 package au.org.ala.profile
 
+import au.ala.org.ws.security.RequireApiKey
 import grails.converters.JSON
 import groovy.json.JsonSlurper
 import org.apache.http.HttpStatus
 
+@RequireApiKey
 class AttributeController extends BaseController {
 
     ProfileService profileService

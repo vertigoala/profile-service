@@ -1,7 +1,9 @@
 package au.org.ala.profile
 
+import au.ala.org.ws.security.RequireApiKey
 import grails.converters.JSON
 
+@RequireApiKey
 class ImportController extends BaseController {
 
     static allowedMethods = [vocab: "POST", profile: "POST", glossary: "POST"]

@@ -1,7 +1,9 @@
 package au.org.ala.profile
 
+import au.ala.org.ws.security.RequireApiKey
 import grails.converters.JSON
 
+@RequireApiKey
 class AuditController {
 
     def index() {}
