@@ -95,15 +95,15 @@ class ReportController extends BaseController {
             Opus opus = getOpus()
             Date from,
                  to;
-            Date now = new Date();
-            log.debug( new Date(now.getYear(),now.getMonth(), now.getDate()).toString())
+            int max = params.max && params.max != "null" ? params.max as int : -1
+            int startFrom = params.offset ? params.offset as int : 0
             try{
                 from = new Date(params.from);
                 to = new Date(params.to);
                 if (!opus) {
                     notFound "No opus found for ${params.opusId}"
                 } else {
-                    Map report = reportService.mostRecentChange(from, to, opus);
+                    Map report = reportService.mostRecentChange(from, to, opus, max, startFrom);
                     render report as JSON
                 }
             }catch (Exception e){

@@ -10,44 +10,39 @@ class ReportService {
      * @param opus
      * @return
      */
-    Map mostRecentChange(Date from, Date to, Opus opus) {
+    Map mostRecentChange(Date from, Date to, Opus opus, int max, int startFrom) {
 
-        // check if attributes are updated since attribute update does not change
-        // profile's lastUpdated attribute
-        List attributes = Attribute.withCriteria {
-            ge('lastUpdated', from)
-            le('lastUpdated', to)
-            projections{
-                distinct('profile')
-            }
-        };
-
-        //get the identifier
-        List profileIds = [];
-        attributes.each {
-            profileIds.push(it.uuid);
-        };
+        int count = -1
+        if (max > -1) {
+            count = Profile.withCriteria {
+                eq('opus', opus)
+                and {
+                    le('lastUpdated', to)
+                    ge('lastUpdated', from)
+                }
+                order('lastUpdated', "desc")
+            }.size()
+        }
 
         //get profiles updated or profiles with the given ids
-        List profiles = Profile.withCriteria{
+        List profiles = Profile.withCriteria {
             eq('opus', opus)
             and {
-                or{
-                    and{
-                        le('lastUpdated', to)
-                        ge('lastUpdated', from)
-                    }
-                    'in'("uuid",profileIds )
-                }
-
+                le('lastUpdated', to)
+                ge('lastUpdated', from)
             }
             order('lastUpdated', "desc")
+
+            if (max > 0) {
+                maxResults max
+                offset startFrom
+            }
         }.collect {
-            [profileId: it.uuid, scientificName: it.scientificName, lastUpdated: it.lastUpdated]
+            [profileId: it.uuid, scientificName: it.scientificName, lastUpdated: it.lastUpdated, editor: it.lastUpdatedBy]
         }
 
         Map report = [
-                recordCount: profiles.size(),
+                recordCount: count > 0 ? count:profiles.size(),
                 records    : profiles
         ]
     }
