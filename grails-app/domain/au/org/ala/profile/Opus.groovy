@@ -10,6 +10,7 @@ class Opus {
     String uuid
     String shortName
     String title
+    String description
     String dataResourceUid
     List<String> imageSources            // a list of drs that are providing images we can include
     List<String> recordSources         // a list of drs that are providing images we can include
@@ -49,6 +50,7 @@ class Opus {
 
     static constraints = {
         shortName nullable: true
+        description nullable: true
         logoUrl nullable: true
         bannerUrl nullable: true
         thumbnailUrl nullable: true

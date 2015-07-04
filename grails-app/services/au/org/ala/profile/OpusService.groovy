@@ -42,6 +42,9 @@ class OpusService extends BaseDataAccessService {
         if (json.containsKey("shortName") && json.shortName != opus.shortName) {
             opus.shortName = json.shortName ? json.shortName.toLowerCase() : null
         }
+        if (json.containsKey("description") && json.description != opus.description) {
+            opus.description = json.description ? json.description : null
+        }
         if (json.containsKey("imageSources") && json.imageSources != opus.imageSources) {
             if (opus.imageSources) {
                 opus.imageSources.clear()

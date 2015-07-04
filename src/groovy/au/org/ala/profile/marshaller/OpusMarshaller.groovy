@@ -12,6 +12,7 @@ class OpusMarshaller {
                     dataResourceUid            : opus.dataResourceUid,
                     title                      : opus.title,
                     shortName                  : opus.shortName,
+                    description                : opus.description,
                     imageSources               : opus.imageSources ?: [],
                     recordSources              : opus.recordSources ?: [],
                     approvedLists              : opus.approvedLists ?: [],
