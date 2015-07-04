@@ -43,6 +43,7 @@ class Opus {
     String email
     String facebook
     String twitter
+    List<String> excludeRanksFromMap
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, supportingOpuses: Opus]
 
