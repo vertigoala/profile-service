@@ -27,6 +27,8 @@ class DraftProfile {
     List<Publication> publications
     List<Bibliography> bibliography
 
+    String lastAttributeChange
+
     Date dateCreated
     Date draftDate = new Date()
     String createdBy
@@ -42,5 +44,6 @@ class DraftProfile {
         fullName nullable: true
         matchedName nullable: true
         createdBy nullable: true
+        lastAttributeChange nullable: true
     }
 }

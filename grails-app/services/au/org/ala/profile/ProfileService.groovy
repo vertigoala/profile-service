@@ -497,7 +497,7 @@ class ProfileService extends BaseDataAccessService {
             profile.addToAttributes(attribute)
         }
 
-        profile.lastAttributeChange = "Added ${attribute.title.name}"
+        profileOrDraft(profile).lastAttributeChange = "Added ${attribute.title.name}"
 
         boolean success = save profile
         if (!success) {
@@ -556,7 +556,7 @@ class ProfileService extends BaseDataAccessService {
             attribute.editors << contributor
         }
 
-        profile.lastAttributeChange = "Updated ${attribute.title.name}"
+        profileOrDraft(profile).lastAttributeChange = "Updated ${attribute.title.name}"
 
         save profile
     }
@@ -572,6 +572,7 @@ class ProfileService extends BaseDataAccessService {
         if (profile.draft) {
             attr = profile.draft.attributes.find { it.uuid == attributeId }
             profile.draft.attributes.remove(attr)
+            profile.draft.lastAttributeChange = "Deleted ${attr.title.name} - ${Utils.cleanupText(attr.text)}"
 
             save profile
         } else {
