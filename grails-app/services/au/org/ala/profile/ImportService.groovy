@@ -1,5 +1,7 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.Utils
+
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicInteger
@@ -14,15 +16,6 @@ class ImportService extends BaseDataAccessService {
 
     ProfileService profileService
     NameService nameService
-
-    def cleanupText(str) {
-        if (str) {
-            str = unescapeHtml4(str)
-            // preserve line breaks as new lines, remove all other html
-            str = str.replaceAll(/<p\/?>|<br\/?>/, "\n").replaceAll(/<.+?>/, "").trim()
-        }
-        return str
-    }
 
     Term getOrCreateTerm(String vocabId, String name) {
         Vocab vocab = Vocab.findByUuid(vocabId)
@@ -127,7 +120,7 @@ class ImportService extends BaseDataAccessService {
                             if (it.title && it.text) {
                                 Term term = vocab.get(it.title.trim())
 
-                                String text = it.stripHtml?.booleanValue() ? cleanupText(it.text) : it.text
+                                String text = it.stripHtml?.booleanValue() ? Utils.cleanupText(it.text) : it.text
                                 if (text) {
                                     Attribute attribute = new Attribute(title: term, text: text)
                                     attribute.uuid = UUID.randomUUID().toString()

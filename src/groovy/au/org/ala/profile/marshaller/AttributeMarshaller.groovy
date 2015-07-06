@@ -3,6 +3,7 @@ package au.org.ala.profile.marshaller
 import au.org.ala.profile.Attribute
 import au.org.ala.profile.Opus
 import au.org.ala.profile.Profile
+import au.org.ala.profile.util.Utils
 import grails.converters.JSON
 
 import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
@@ -18,7 +19,7 @@ class AttributeMarshaller {
                     required : attr.title.required,
                     text     : attr.text,
                     source   : attr.source,
-                    plainText: cleanupText(attr.text),
+                    plainText: Utils.cleanupText(attr.text),
                     creators : attr.creators.collect { it.name },
                     editors  : attr.editors.collect { it.name },
                     original : attr.original,
@@ -43,12 +44,5 @@ class AttributeMarshaller {
         ]
     }
 
-    def cleanupText(str) {
-        if (str) {
-            str = unescapeHtml4(str)
-            // preserve line breaks as new lines, remove all other html
-            str = str.replaceAll(/<p\/?>|<br\/?>/, "\n").replaceAll(/<.+?>/, "").trim()
-        }
-        return str
-    }
+
 }

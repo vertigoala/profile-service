@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.util.DraftUtil
+import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
@@ -496,6 +497,8 @@ class ProfileService extends BaseDataAccessService {
             profile.addToAttributes(attribute)
         }
 
+        profile.lastAttributeChange = "Added ${attribute.title.name}"
+
         boolean success = save profile
         if (!success) {
             attribute = null
@@ -553,6 +556,8 @@ class ProfileService extends BaseDataAccessService {
             attribute.editors << contributor
         }
 
+        profile.lastAttributeChange = "Updated ${attribute.title.name}"
+
         save profile
     }
 
@@ -574,6 +579,8 @@ class ProfileService extends BaseDataAccessService {
             checkState attr
 
             profile.attributes.remove(attr)
+
+            profile.lastAttributeChange = "Deleted ${attr.title.name} - ${Utils.cleanupText(attr.text)}"
 
             save profile
 

@@ -19,7 +19,6 @@ class Profile {
     boolean privateMode = false
 
     Name matchedName
-    List<String> commonNames
 
     String primaryImage
     List<String> excludedImages
@@ -30,6 +29,8 @@ class Profile {
     List<Link> bhlLinks
     List<Bibliography> bibliography
     List<Publication> publications
+
+    String lastAttributeChange
 
     Date dateCreated
     String createdBy
@@ -58,6 +59,7 @@ class Profile {
         matchedName nullable: true
         createdBy nullable: true
         lastUpdatedBy nullable: true
+        lastAttributeChange nullable: true
     }
 
     static mapping = {
