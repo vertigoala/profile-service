@@ -10,12 +10,12 @@ class AuditController {
 
     def auditTrailForObject() {
         log.debug("Finding audit trail for entity ${params.entityId}")
-        def results = AuditMessage.findAllByEntityId(params.entityId, [max: 10, sort: "date", order: "desc", offset: 0])
+        def results = AuditMessage.findAllByEntityId(params.entityId, [sort: "date", order: "desc", offset: 0])
         render results as JSON
     }
 
     def auditTrailForUser() {
-        def results = AuditMessage.findAllByUserId(params.userId, [max: 10, sort: "date", order: "desc", offset: 0])
+        def results = AuditMessage.findAllByUserId(params.userId, [sort: "date", order: "desc", offset: 0])
         render results as JSON
     }
 }
