@@ -61,6 +61,14 @@ class OpusService extends BaseDataAccessService {
             }
             opus.approvedLists.addAll(json.approvedLists)
         }
+        if (json.containsKey("bioStatusLists") && json.bioStatusLists != opus.bioStatusLists) {
+            if (opus.bioStatusLists) {
+                opus.bioStatusLists.clear()
+            } else {
+                opus.bioStatusLists = []
+            }
+            opus.bioStatusLists.addAll(json.bioStatusLists)
+        }
         if (json.containsKey("recordSources") && json.recordSources != opus.recordSources) {
             if (opus.recordSources) {
                 opus.recordSources.clear()

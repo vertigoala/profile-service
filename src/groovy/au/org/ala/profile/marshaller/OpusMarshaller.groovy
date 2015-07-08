@@ -16,6 +16,7 @@ class OpusMarshaller {
                     imageSources               : opus.imageSources ?: [],
                     recordSources              : opus.recordSources ?: [],
                     approvedLists              : opus.approvedLists ?: [],
+                    bioStatusLists             : opus.bioStatusLists ?: [],
                     logoUrl                    : opus.logoUrl,
                     bannerUrl                  : opus.bannerUrl,
                     keybaseProjectId           : opus.keybaseProjectId,
