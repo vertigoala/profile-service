@@ -3,6 +3,8 @@ package au.org.ala.profile
 import grails.converters.JSON
 
 class ReportController extends BaseController {
+    def reportService
+
     def draftProfiles() {
         if (!params.opusId) {
             badRequest "opusId is a required parameter"
@@ -82,6 +84,30 @@ class ReportController extends BaseController {
                               }]
 
                 render report as JSON
+            }
+        }
+    }
+
+    def mostRecentChange() {
+        if (!params.opusId || !params.from || !params.to) {
+            badRequest "opusId, from and to date are required parameters"
+        } else {
+            Opus opus = getOpus()
+            Date from,
+                 to;
+            int max = params.max && params.max != "null" ? params.max as int : -1
+            int startFrom = params.offset ? params.offset as int : 0
+            try{
+                from = new Date(params.from);
+                to = new Date(params.to);
+                if (!opus) {
+                    notFound "No opus found for ${params.opusId}"
+                } else {
+                    Map report = reportService.mostRecentChange(from, to, opus, max, startFrom);
+                    render report as JSON
+                }
+            }catch (Exception e){
+                badRequest "Provided date is not in the correct format"
             }
         }
     }
