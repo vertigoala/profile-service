@@ -14,15 +14,7 @@ class ReportController extends BaseController {
             if (!opus) {
                 notFound "No opus found for ${params.opusId}"
             } else {
-                List profiles = Profile.findAllByOpusAndDraftIsNotNull(opus).collect {
-                    [profileId: it.uuid, scientificName: it.scientificName, draftDate: it.draft.draftDate, createdBy: it.draft.createdBy]
-                }.sort { it.scientificName }
-
-                Map report = [
-                        recordCount: profiles.size(),
-                        records    : profiles
-                ]
-
+                Map report = reportService.draftProfiles(opus.uuid)
 
                 render report as JSON
             }
@@ -41,47 +33,7 @@ class ReportController extends BaseController {
                 int max = params.max && params.max != "null" ? params.max as int : -1
                 int startFrom = params.offset ? params.offset as int : 0
 
-                int count = -1
-                if (max > -1) {
-                    count = Profile.withCriteria {
-                        eq "opus", opus
-
-                        or {
-                            isNull "matchedName"
-                            neProperty("fullName", "matchedName.fullName")
-                        }
-                    }.size()
-                }
-
-                def result = Profile.withCriteria {
-                    eq "opus", opus
-
-                    or {
-                        isNull "matchedName"
-                        neProperty("fullName", "matchedName.fullName")
-                    }
-
-                    order "scientificName"
-
-                    if (max > 0) {
-                        maxResults max
-                        offset startFrom
-                    }
-                }
-
-                Map report = [recordCount: count > -1 ? count : result.size(),
-                              records    : result.collect {
-                                  [
-                                          profileId  : it.uuid,
-                                          profileName: [scientificName: it.scientificName,
-                                                        fullName      : it.fullName,
-                                                        nameAuthor    : it.nameAuthor],
-                                          matchedName: it.matchedName ? [scientificName: it.matchedName.scientificName,
-                                                                         fullName      : it.matchedName.fullName,
-                                                                         nameAuthor    : it.matchedName.nameAuthor,
-                                                                         guid          : it.matchedName.guid] : [:]
-                                  ]
-                              }]
+                Map report = reportService.mismatchedNames(opus.uuid, max, startFrom)
 
                 render report as JSON
             }
@@ -93,20 +45,20 @@ class ReportController extends BaseController {
             badRequest "opusId, from and to date are required parameters"
         } else {
             Opus opus = getOpus()
-            Date from,
-                 to;
+
             int max = params.max && params.max != "null" ? params.max as int : -1
             int startFrom = params.offset ? params.offset as int : 0
-            try{
-                from = new Date(params.from);
-                to = new Date(params.to);
+
+            try {
+                Date from = new Date(params.from);
+                Date to = new Date(params.to);
                 if (!opus) {
                     notFound "No opus found for ${params.opusId}"
                 } else {
-                    Map report = reportService.mostRecentChange(from, to, opus, max, startFrom);
+                    Map report = reportService.recentUpdates(opus.uuid, from, to, max, startFrom);
                     render report as JSON
                 }
-            }catch (Exception e){
+            } catch (Exception e) {
                 badRequest "Provided date is not in the correct format"
             }
         }

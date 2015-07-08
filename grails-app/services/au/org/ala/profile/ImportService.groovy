@@ -96,11 +96,27 @@ class ImportService extends BaseDataAccessService {
                             profile.matchedName = new Name(matchedName)
                         }
 
+                        if (it.nslNameIdentifier) {
+                            profile.nslNameIdentifier = it.nslNameIdentifier
+                        } else {
+                            Map nslMatch = nameService.matchNSLName(it.fullName)
+                            if (nslMatch) {
+                                profile.nslNameIdentifier = nslMatch.nslIdentifier
+                                profile.nslProtologue = nslMatch.nslProtologue
+                                if (!profile.nameAuthor) {
+                                    profile.nameAuthor = nslMatch.nameAuthor
+                                }
+                            }
+                        }
+
                         if (profile.guid) {
                             profileService.populateTaxonHierarchy(profile)
-                            profile.nslNameIdentifier = nameService.getNSLNameIdentifier(profile.fullName)
                         } else {
                             nameMatched = false
+                        }
+
+                        if (it.nslNomenclatureIdentifier) {
+                            profile.nslNomenclatureIdentifier = it.nslNomenclatureIdentifier
                         }
 
                         it.links.each {

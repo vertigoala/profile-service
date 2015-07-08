@@ -80,11 +80,6 @@ class ProfileService extends BaseDataAccessService {
 
         updateNameDetails(profile, matchedName, json.scientificName)
 
-        if (profile.guid) {
-            populateTaxonHierarchy(profile)
-            profile.nslNameIdentifier = nameService.getNSLNameIdentifier(profile.fullName)
-        }
-
         if (authService.getUserId()) {
             Term term = vocabService.getOrCreateTerm("Author", opus.authorshipVocabUuid)
             profile.authorship = [new Authorship(category: term, text: authService.getUserForUserId(authService.getUserId()).displayName)]
@@ -112,10 +107,28 @@ class ProfileService extends BaseDataAccessService {
             }
             profile.matchedName = new Name(matchedName)
             profile.guid = matchedName.guid
+            populateTaxonHierarchy(profile)
         } else {
             profile.scientificName = providedName
             profile.fullName = providedName
             profile.matchedName = null
+            profile.nameAuthor = null
+            profile.guid = null
+            profile.classification = []
+        }
+
+        // try to match the name against the NSL. If we get a match, and there is currently no name author, use the author from the NSL match
+        Map matchedNSLName = nameService.matchNSLName(providedName)
+        if (matchedNSLName) {
+            profile.nslNameIdentifier = matchedNSLName.nslIdentifier
+            profile.nslProtologue = matchedNSLName.nslProtologue
+            if (!profile.nameAuthor) {
+                profile.nameAuthor = matchedNSLName.nameAuthor
+            }
+        } else {
+            profile.nslNameIdentifier = null
+            profile.nslNomenclatureIdentifier = null
+            profile.nslProtologue = null
         }
     }
 
@@ -133,18 +146,7 @@ class ProfileService extends BaseDataAccessService {
         }
 
         if (json.clearMatch?.booleanValue()) {
-            profileOrDraft(profile).matchedName = null
-            profileOrDraft(profile).guid = null
-            profileOrDraft(profile).nameAuthor = null
-            profileOrDraft(profile).fullName = profileOrDraft(profile).scientificName
-        }
-
-        if (profileOrDraft(profile).guid) {
-            populateTaxonHierarchy(profileOrDraft(profile))
-            profileOrDraft(profile).nslNameIdentifier = nameService.getNSLNameIdentifier(profileOrDraft(profile).fullName)
-        } else {
-            profileOrDraft(profile).classification = []
-            profileOrDraft(profile).nslNameIdentifier = null
+            updateNameDetails(profileOrDraft(profile), null, profileOrDraft(profile).scientificName)
         }
 
         boolean success = save profile
@@ -236,6 +238,11 @@ class ProfileService extends BaseDataAccessService {
         Profile profile = Profile.findByUuid(profileId)
         checkState profile
 
+        if (json.containsKey("nslNomenclatureIdentifier")
+                && json.nslNomenclatureIdentifier != profileOrDraft(profile).nslNomenclatureIdentifier) {
+            profileOrDraft(profile).nslNomenclatureIdentifier = json.nslNomenclatureIdentifier
+        }
+
         saveImages(profile, json, true)
 
         saveSpecimens(profile, json, true)
@@ -321,6 +328,8 @@ class ProfileService extends BaseDataAccessService {
             }
         }
     }
+
+
 
     boolean saveBibliography(Profile profile, Map json, boolean deferSave = false) {
         checkArgument profile

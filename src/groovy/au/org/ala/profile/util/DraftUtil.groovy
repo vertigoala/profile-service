@@ -24,6 +24,7 @@ class DraftUtil {
         profile.matchedName = cloneName(profile.draft.matchedName)
         profile.rank = profile.draft.rank
         profile.nslNameIdentifier = profile.draft.nslNameIdentifier
+        profile.nslNomenclatureIdentifier = profile.draft.nslNomenclatureIdentifier
         profile.primaryImage = profile.draft.primaryImage
         profile.excludedImages = profile.draft.excludedImages
         profile.specimenIds = profile.draft.specimenIds
@@ -62,6 +63,7 @@ class DraftUtil {
         clone.rank = profile.rank
         clone.guid = profile.guid
         clone.nslNameIdentifier = profile.nslNameIdentifier
+        clone.nslNomenclatureIdentifier = profile.nslNomenclatureIdentifier
         clone.primaryImage = profile.primaryImage
         clone.excludedImages = profile.excludedImages?.collect()
         clone.specimenIds = profile.specimenIds?.collect()

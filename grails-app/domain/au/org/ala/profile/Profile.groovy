@@ -16,6 +16,8 @@ class Profile {
     String fullName
     String rank
     String nslNameIdentifier
+    String nslNomenclatureIdentifier
+    String nslProtologue
     boolean privateMode = false
 
     Name matchedName
@@ -29,6 +31,7 @@ class Profile {
     List<Link> bhlLinks
     List<Bibliography> bibliography
     List<Publication> publications
+
 
     String lastAttributeChange
 
@@ -54,6 +57,8 @@ class Profile {
         specimenIds nullable: true
         classification nullable: true
         nslNameIdentifier nullable: true
+        nslNomenclatureIdentifier nullable: true
+        nslProtologue nullable: true
         rank nullable: true
         draft nullable: true
         matchedName nullable: true

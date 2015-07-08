@@ -1,5 +1,7 @@
 package au.org.ala.profile
 
+import static au.org.ala.profile.util.Utils.enc
+
 import au.org.ala.names.model.LinnaeanRankClassification
 import au.org.ala.names.model.NameSearchResult
 import au.org.ala.names.search.ALANameSearcher
@@ -10,8 +12,6 @@ import javax.annotation.PostConstruct
 
 @Transactional
 class NameService {
-
-    static final String CHAR_ENCODING= "utf-8"
 
     def grailsApplication
     ALANameSearcher nameSearcher
@@ -33,9 +33,9 @@ class NameService {
 
         if (result) {
             Map match = [
-                    guid: result.lsid,
+                    guid          : result.lsid,
                     scientificName: result.getRankClassification().getScientificName(),
-                    nameAuthor: result.getRankClassification().getAuthorship()
+                    nameAuthor    : result.getRankClassification().getAuthorship()
             ]
 
             // Autonym workaround. Autonyms have the author name in the middle, and the name service does not currently
@@ -61,27 +61,52 @@ class NameService {
         }
     }
 
-    def getNSLNameIdentifier(String fullName) {
-        String nslIdentifier = null
-
+    Map matchNSLId(Integer id) {
+        Map match = [:]
         try {
-            String name = URLEncoder.encode(fullName, CHAR_ENCODING)
-            // the NSL service can't handle spaces encoded as +, so have to change them to %20
-            name = name.replaceAll("\\+", "%20")
-            String resp = new URL("${grailsApplication.config.nsl.name.match.url.prefix}${name}.json").text
-            JsonSlurper jsonSlurper = new JsonSlurper()
-            def json = jsonSlurper.parseText(resp)
-            json.each {
-                if (it.startsWith(grailsApplication.config.nsl.name.url.prefix)) {
-                    nslIdentifier = it.substring(it.lastIndexOf("/") + 1);
-                }
+            String resp = new URL("${grailsApplication.config.nsl.name.instance.url.prefix}\"${id}\"").text
+            def json = new JsonSlurper().parseText(resp)
+            if (json.instance) {
+                match.scientificName = json.names[0].name.simpleName
+                match.fullName = json.names[0].name.fullName
+                match.nameAuthor = json.names[0].name.author.name
+                String linkUrl = json.names[0].name._links.permalinks.find {
+                    it.preferred == "true" || it.preferred == true
+                }?.link
+                match.nslIdentifier = linkUrl.substring(linkUrl.lastIndexOf("/") + 1)
+                match.nslProtologue = json.names[0].name?.primaryInstance[0]?.citationHtml
+            } else {
+                log.warn("${json.count} NSL matches for ${name}")
             }
-            log.debug "Found NSL ID ${nslIdentifier} for name ${name}"
         } catch (Exception e) {
             log.error e
-            null
         }
 
-        nslIdentifier
+        match
     }
+
+    Map matchNSLName(String name) {
+        Map match = [:]
+        try {
+            String resp = new URL("${grailsApplication.config.nsl.name.match.url.prefix}\"${enc(name)}\"").text
+            def json = new JsonSlurper().parseText(resp)
+            if (json.count == 1) {
+                match.scientificName = json.names[0].name.simpleName
+                match.fullName = json.names[0].name.fullName
+                match.nameAuthor = json.names[0].name.author.name
+                String linkUrl = json.names[0].name._links.permalinks.find {
+                    it.preferred == "true" || it.preferred == true
+                }?.link
+                match.nslIdentifier = linkUrl.substring(linkUrl.lastIndexOf("/") + 1)
+                match.nslProtologue = json.names[0].name?.primaryInstance[0]?.citationHtml
+            } else {
+                log.warn("${json.count} NSL matches for ${name}")
+            }
+        } catch (Exception e) {
+            log.error e
+        }
+
+        match
+    }
+
 }
