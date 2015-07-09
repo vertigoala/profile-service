@@ -565,7 +565,7 @@ class ProfileService extends BaseDataAccessService {
             attribute.editors << contributor
         }
 
-        profileOrDraft(profile).lastAttributeChange = "Updated ${attribute.title.name}"
+        profileOrDraft(profile).lastAttributeChange = "Updated ${attribute.title.name} - ${Utils.cleanupText(attribute.text)}"
 
         save profile
     }
