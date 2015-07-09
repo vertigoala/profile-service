@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
 import au.org.ala.profile.util.Utils
 
 import java.util.concurrent.ConcurrentHashMap
@@ -117,6 +118,10 @@ class ImportService extends BaseDataAccessService {
 
                         if (it.nslNomenclatureIdentifier) {
                             profile.nslNomenclatureIdentifier = it.nslNomenclatureIdentifier
+                        } else if (profile.nslNameIdentifier) {
+                            NSLNomenclatureMatchStrategy matchStrategy = NSLNomenclatureMatchStrategy.valueOf(it.nslNomenclatureMatchStrategy) ?: NSLNomenclatureMatchStrategy.DEFAULT
+                            Map nomenclature = nameService.findNomenclature(profile.nslNameIdentifier, matchStrategy)
+                            profile.nslNomenclatureIdentifier = nomenclature?.id
                         }
 
                         it.links.each {

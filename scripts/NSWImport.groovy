@@ -150,7 +150,11 @@ class NSWImport {
             if (!scientificName) {
                 invalidLines[count] = "Unable to determine scientfic name: ${line.substring(0, Math.min(line.size(), 100))}..."
             } else if (!scientificNames.containsKey(scientificName)) {
-                Map profile = [scientificName: scientificName, nameAuthor: nameAuthor, attributes: attributes, fullName: "${scientificName} ${nameAuthor}".trim()]
+                Map profile = [scientificName: scientificName,
+                               nslNomenclatureMatchStrategy: "APC_OR_LATEST",
+                               nameAuthor: nameAuthor,
+                               attributes: attributes,
+                               fullName: "${scientificName} ${nameAuthor}".trim()]
 
                 profiles << profile
             }

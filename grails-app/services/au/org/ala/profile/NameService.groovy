@@ -1,5 +1,7 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
+
 import static au.org.ala.profile.util.Utils.enc
 
 import au.org.ala.names.model.LinnaeanRankClassification
@@ -107,6 +109,63 @@ class NameService {
         }
 
         match
+    }
+
+    Map findNomenclature(String nslNameIdentifier, NSLNomenclatureMatchStrategy matchStrategy) {
+        List concepts = listNomenclatureConcepts(nslNameIdentifier)
+        Map match = null;
+        switch (matchStrategy) {
+            case NSLNomenclatureMatchStrategy.APC_OR_LATEST:
+                concepts.each {
+                    if (it.APCReference?.booleanValue()) {
+                        match = it
+                    }
+                }
+                if (!match) {
+                    match = concepts.last()
+                }
+                break
+            case NSLNomenclatureMatchStrategy.LATEST:
+                match = concepts.last()
+                break
+        }
+
+        match
+    }
+
+    List listNomenclatureConcepts(String nslNameIdentifier) {
+        List concepts = []
+
+        try {
+            String resp = new URL("${grailsApplication.config.nsl.service.url.prefix}${nslNameIdentifier}${grailsApplication.config.nsl.service.apni.concept.suffix}").text
+            def json = new JsonSlurper().parseText(resp)
+
+            if (json.references) {
+                concepts = json.references.collect {
+                    String url = it._links.permalink.link
+                    String id = url.substring(url.lastIndexOf("/") + 1)
+                    [
+                            id         : id,
+                            url        : url,
+                            name       : it.citation,
+                            nameHtml   : it.citationHtml,
+                            apcAccepted: it.APCReference,
+                            citations  : it.citations.collect {
+                                [
+                                        relationship: it.relationship,
+                                        nameType    : it.nameType,
+                                        fullName    : it.fullName,
+                                        simpleName  : it.simpleName
+                                ]
+                            }
+                    ]
+                }
+            }
+        } catch (Exception e) {
+            log.error "Failed to retrieve nomenclature concepts for NSL name id ${nslNameIdentifier}", e
+        }
+
+        concepts
     }
 
 }

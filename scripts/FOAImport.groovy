@@ -86,11 +86,11 @@ class NSWImport {
                 return
             }
 
-//            // exclude doubtful names
-//            if (line.DOUBTFUL_EXCLUDED_OR_OTHER == "Y") {
-//                doubtful++
-//                return
-//            }
+            // exclude doubtful names
+            if (line.DOUBTFUL_EXCLUDED_OR_OTHER == "Y") {
+                doubtful++
+                return
+            }
 
             if (count++ % 50 == 0) println "Processing taxa line ${count}..."
 
@@ -146,7 +146,8 @@ class NSWImport {
                            nameAuthor: line.AUTHOR,
                            fullName: fullName,
                            attributes: attributes,
-                           nslNomenclatureIdentifier: nslConcepts.get(id) ?: "",
+//                           nslNomenclatureIdentifier: nslConcepts.get(id) ?: "",
+                           nslNomenclatureMatchStrategy: "APC_OR_LATEST",
                            authorship: [[category: "Author", text: taxaContributors[id]?.join(", ")]]]
 
             if (!scientificNames.containsKey(scientificName.trim().toLowerCase())) {
