@@ -121,12 +121,12 @@ class NameService {
                         match = it
                     }
                 }
-                if (!match) {
+                if (!match && concepts) {
                     match = concepts.last()
                 }
                 break
             case NSLNomenclatureMatchStrategy.LATEST:
-                match = concepts.last()
+                match = concepts ? concepts.last() : null
                 break
         }
 
