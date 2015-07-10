@@ -1,5 +1,8 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
+import au.org.ala.profile.util.Utils
+
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicInteger
@@ -14,15 +17,6 @@ class ImportService extends BaseDataAccessService {
 
     ProfileService profileService
     NameService nameService
-
-    def cleanupText(str) {
-        if (str) {
-            str = unescapeHtml4(str)
-            // preserve line breaks as new lines, remove all other html
-            str = str.replaceAll(/<p\/?>|<br\/?>/, "\n").replaceAll(/<.+?>/, "").trim()
-        }
-        return str
-    }
 
     Term getOrCreateTerm(String vocabId, String name) {
         Vocab vocab = Vocab.findByUuid(vocabId)
@@ -77,7 +71,7 @@ class ImportService extends BaseDataAccessService {
 
                     String scientificName = matchedName?.scientificName ?: it.scientificName
                     String fullName = matchedName?.fullName ?: scientificName
-                    String nameAuthor = matchedName?.author ?: null
+                    String nameAuthor = matchedName?.nameAuthor ?: null
                     String guid = matchedName?.guid ?: null
 
                     if (!matchedName) {
@@ -103,11 +97,31 @@ class ImportService extends BaseDataAccessService {
                             profile.matchedName = new Name(matchedName)
                         }
 
+                        if (it.nslNameIdentifier) {
+                            profile.nslNameIdentifier = it.nslNameIdentifier
+                        } else {
+                            Map nslMatch = nameService.matchNSLName(it.fullName)
+                            if (nslMatch) {
+                                profile.nslNameIdentifier = nslMatch.nslIdentifier
+                                profile.nslProtologue = nslMatch.nslProtologue
+                                if (!profile.nameAuthor) {
+                                    profile.nameAuthor = nslMatch.nameAuthor
+                                }
+                            }
+                        }
+
                         if (profile.guid) {
                             profileService.populateTaxonHierarchy(profile)
-                            profile.nslNameIdentifier = nameService.getNSLNameIdentifier(profile.fullName)
                         } else {
                             nameMatched = false
+                        }
+
+                        if (it.nslNomenclatureIdentifier) {
+                            profile.nslNomenclatureIdentifier = it.nslNomenclatureIdentifier
+                        } else if (profile.nslNameIdentifier) {
+                            NSLNomenclatureMatchStrategy matchStrategy = NSLNomenclatureMatchStrategy.valueOf(it.nslNomenclatureMatchStrategy) ?: NSLNomenclatureMatchStrategy.DEFAULT
+                            Map nomenclature = nameService.findNomenclature(profile.nslNameIdentifier, matchStrategy)
+                            profile.nslNomenclatureIdentifier = nomenclature?.id
                         }
 
                         it.links.each {
@@ -127,7 +141,7 @@ class ImportService extends BaseDataAccessService {
                             if (it.title && it.text) {
                                 Term term = vocab.get(it.title.trim())
 
-                                String text = it.stripHtml?.booleanValue() ? cleanupText(it.text) : it.text
+                                String text = it.stripHtml?.booleanValue() ? Utils.cleanupText(it.text) : it.text
                                 if (text) {
                                     Attribute attribute = new Attribute(title: term, text: text)
                                     attribute.uuid = UUID.randomUUID().toString()
@@ -166,10 +180,12 @@ class ImportService extends BaseDataAccessService {
 
                         if (it.authorship) {
                             profile.authorship = it.authorship.collect {
-                                new Authorship(category: it.category, text: it.text)
+                                Term term = getOrCreateTerm(opus.authorshipVocabUuid, it.category)
+                                new Authorship(category: term, text: it.text)
                             }
                         } else {
-                            profile.authorship = [new Authorship(category: "Author", text: contributorNames.join(", "))]
+                            Term term = getOrCreateTerm(opus.authorshipVocabUuid, "Author")
+                            profile.authorship = [new Authorship(category: term, text: contributorNames.join(", "))]
                         }
 
                         profile.save(flush: true)

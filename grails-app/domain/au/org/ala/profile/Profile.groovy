@@ -16,10 +16,11 @@ class Profile {
     String fullName
     String rank
     String nslNameIdentifier
+    String nslNomenclatureIdentifier
+    String nslProtologue
     boolean privateMode = false
 
     Name matchedName
-    List<String> commonNames
 
     String primaryImage
     List<String> excludedImages
@@ -31,8 +32,13 @@ class Profile {
     List<Bibliography> bibliography
     List<Publication> publications
 
+
+    String lastAttributeChange
+
     Date dateCreated
+    String createdBy
     Date lastUpdated
+    String lastUpdatedBy
 
     DraftProfile draft
 
@@ -51,9 +57,14 @@ class Profile {
         specimenIds nullable: true
         classification nullable: true
         nslNameIdentifier nullable: true
+        nslNomenclatureIdentifier nullable: true
+        nslProtologue nullable: true
         rank nullable: true
         draft nullable: true
         matchedName nullable: true
+        createdBy nullable: true
+        lastUpdatedBy nullable: true
+        lastAttributeChange nullable: true
     }
 
     static mapping = {

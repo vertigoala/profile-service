@@ -71,6 +71,8 @@ class NSWImport {
 
         Map<Integer, List<String>> taxaContributors = loadTaxaContributors(contributors)
 
+        Map<Integer, Integer> nslConcepts = loadNslConcepts()
+
         Map<Integer, List<Map<String, String>>> images = loadImages()
         Map<Integer, List<String>> maps = loadMaps()
 
@@ -144,6 +146,8 @@ class NSWImport {
                            nameAuthor: line.AUTHOR,
                            fullName: fullName,
                            attributes: attributes,
+//                           nslNomenclatureIdentifier: nslConcepts.get(id) ?: "",
+                           nslNomenclatureMatchStrategy: "APC_OR_LATEST",
                            authorship: [[category: "Author", text: taxaContributors[id]?.join(", ")]]]
 
             if (!scientificNames.containsKey(scientificName.trim().toLowerCase())) {
@@ -335,5 +339,20 @@ class NSWImport {
         }
 
         volumes
+    }
+
+    static Map<String, String> loadNslConcepts() {
+        Map<String, String> nslConcepts = [:]
+
+        def csv = parseCsv(new File("${DATA_DIR}/nsl_foa_concept.csv").newReader("utf-8"))
+        csv.each { line ->
+            try {
+                nslConcepts << [(line.foa_id as Integer): line.nsl_id as Integer]
+            } catch (e) {
+                println "Failed to extract nsl from line [${line}]: ${e.message}"
+            }
+        }
+
+        nslConcepts
     }
 }

@@ -2,6 +2,8 @@ package au.org.ala.profile.marshaller
 
 import au.org.ala.profile.Attribute
 import au.org.ala.profile.AuditMessage
+import au.org.ala.profile.Opus
+import au.org.ala.profile.Profile
 import grails.converters.JSON
 
 public class AuditMessageMarshaller {
@@ -13,6 +15,12 @@ public class AuditMessageMarshaller {
 
             if(auditMessage.entityType == Attribute.class.getName()){
                 object = new Attribute(auditMessage.entity)
+            } else if (auditMessage.entityType == Profile.class.getName()) {
+                object = new Profile(auditMessage.entity)
+                if (object.draft) {
+                    object = new Profile(object.draft.properties)
+                    object.attributes = null // attributes are not included in the audit history of the profile - they have their own history
+                }
             }
             return [
                     uuid : auditMessage.entityId,

@@ -12,15 +12,18 @@ class OpusMarshaller {
                     dataResourceUid            : opus.dataResourceUid,
                     title                      : opus.title,
                     shortName                  : opus.shortName,
+                    description                : opus.description,
                     imageSources               : opus.imageSources ?: [],
                     recordSources              : opus.recordSources ?: [],
                     approvedLists              : opus.approvedLists ?: [],
+                    bioStatusLists             : opus.bioStatusLists ?: [],
                     logoUrl                    : opus.logoUrl,
                     bannerUrl                  : opus.bannerUrl,
                     keybaseProjectId           : opus.keybaseProjectId,
                     keybaseKeyId               : opus.keybaseKeyId,
                     thumbnailUrl               : opus.thumbnailUrl,
                     attributeVocabUuid         : opus.attributeVocabUuid,
+                    authorshipVocabUuid        : opus.authorshipVocabUuid,
                     glossaryUuid               : opus.glossary?.uuid,
                     enablePhyloUpload          : opus.enablePhyloUpload != null ? opus.enableKeyUpload : true,
                     enableOccurrenceUpload     : opus.enableOccurrenceUpload != null ? opus.enableKeyUpload : true,
@@ -47,6 +50,7 @@ class OpusMarshaller {
                                                   email   : opus.email,
                                                   facebook: opus.facebook],
                     hasAboutPage               : opus.aboutHtml != null,
+                    excludeRanksFromMap        : opus.excludeRanksFromMap ?: [],
                     profileCount               : opus.profileCount
             ]
         }

@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.util.DraftUtil
+import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
@@ -75,31 +76,13 @@ class ProfileService extends BaseDataAccessService {
         Profile profile = new Profile(json)
         profile.opus = opus
 
-        Map matchedName = nameService.matchName(json.scientificName)
+        Map matchedName = nameService.matchName(json.scientificName, json.manuallyMatchedGuid ?: null)
 
-        if (matchedName) {
-            if (json.scientificName == matchedName.fullName) {
-                profile.scientificName = matchedName.scientificName
-            } else {
-                profile.scientificName = json.scientificName
-            }
-            profile.matchedName = new Name(matchedName)
-            profile.nameAuthor = matchedName.author
-            profile.guid = matchedName.guid
-            profile.fullName = matchedName.fullName
-        } else {
-            profile.scientificName = json.scientificName
-            profile.fullName = json.scientificName
-            profile.matchedName = null
-        }
-
-        if (profile.guid) {
-            populateTaxonHierarchy(profile)
-            profile.nslNameIdentifier = nameService.getNSLNameIdentifier(profile.fullName)
-        }
+        updateNameDetails(profile, matchedName, json.scientificName)
 
         if (authService.getUserId()) {
-            profile.authorship = [new Authorship(category: "Author", text: authService.getUserForUserId(authService.getUserId()).displayName)]
+            Term term = vocabService.getOrCreateTerm("Author", opus.authorshipVocabUuid)
+            profile.authorship = [new Authorship(category: term, text: authService.getUserForUserId(authService.getUserId()).displayName)]
         }
 
         boolean success = save profile
@@ -109,40 +92,61 @@ class ProfileService extends BaseDataAccessService {
         }
 
         profile
+    }
+
+    private void updateNameDetails(profile, Map matchedName, String providedName) {
+        if (matchedName) {
+            if (providedName == matchedName.fullName || providedName == matchedName.scientificName) {
+                profile.scientificName = matchedName.scientificName
+                profile.fullName = matchedName.fullName
+                profile.nameAuthor = matchedName.nameAuthor
+            } else {
+                profile.scientificName = providedName
+                profile.fullName = providedName
+                profile.nameAuthor = null
+            }
+            profile.matchedName = new Name(matchedName)
+            profile.guid = matchedName.guid
+            populateTaxonHierarchy(profile)
+        } else {
+            profile.scientificName = providedName
+            profile.fullName = providedName
+            profile.matchedName = null
+            profile.nameAuthor = null
+            profile.guid = null
+            profile.classification = []
+        }
+
+        // try to match the name against the NSL. If we get a match, and there is currently no name author, use the author from the NSL match
+        Map matchedNSLName = nameService.matchNSLName(providedName)
+        if (matchedNSLName) {
+            profile.nslNameIdentifier = matchedNSLName.nslIdentifier
+            profile.nslProtologue = matchedNSLName.nslProtologue
+            if (!profile.nameAuthor) {
+                profile.nameAuthor = matchedNSLName.nameAuthor
+            }
+        } else {
+            profile.nslNameIdentifier = null
+            profile.nslNomenclatureIdentifier = null
+            profile.nslProtologue = null
+        }
     }
 
     void renameProfile(String profileId, Map json) {
         checkArgument profileId
         checkArgument json
 
-        Profile profile = Profile.findByUuid(profileId)
+        def profile = Profile.findByUuid(profileId)
         checkState profile
 
         if (json.newName) {
-            Map matchedName = nameService.matchName(json.newName)
+            Map matchedName = nameService.matchName(json.newName, json.manuallyMatchedGuid ?: null)
 
-            if (matchedName) {
-                if (json.newName == matchedName.fullName) {
-                    profile.scientificName = matchedName.scientificName
-                } else {
-                    profile.scientificName = json.newName
-                }
-                profile.matchedName = new Name(matchedName)
-                profile.nameAuthor = matchedName.author
-                profile.guid = matchedName.guid
-                profile.fullName = matchedName.fullName
-            } else {
-                profile.scientificName = json.newName
-                profile.fullName = json.newName
-                profile.matchedName = null
-            }
+            updateNameDetails(profileOrDraft(profile), matchedName, json.newName)
         }
 
         if (json.clearMatch?.booleanValue()) {
-            profile.matchedName = null
-            profile.guid = null
-            profile.nameAuthor = null
-            profile.fullName = profile.scientificName
+            updateNameDetails(profileOrDraft(profile), null, profileOrDraft(profile).scientificName)
         }
 
         boolean success = save profile
@@ -154,7 +158,7 @@ class ProfileService extends BaseDataAccessService {
         profile
     }
 
-    void populateTaxonHierarchy(Profile profile) {
+    void populateTaxonHierarchy(profile) {
         if (profile && profile.guid) {
             def classificationJson = bieService.getClassification(profile.guid)
 
@@ -217,6 +221,7 @@ class ProfileService extends BaseDataAccessService {
             save profile
         } else {
             profile.draft = DraftUtil.createDraft(profile)
+            profile.draft.createdBy = authService.getUserForUserId(authService.getUserId()).displayName
 
             save profile
         }
@@ -232,6 +237,11 @@ class ProfileService extends BaseDataAccessService {
 
         Profile profile = Profile.findByUuid(profileId)
         checkState profile
+
+        if (json.containsKey("nslNomenclatureIdentifier")
+                && json.nslNomenclatureIdentifier != profileOrDraft(profile).nslNomenclatureIdentifier) {
+            profileOrDraft(profile).nslNomenclatureIdentifier = json.nslNomenclatureIdentifier
+        }
 
         saveImages(profile, json, true)
 
@@ -277,7 +287,8 @@ class ProfileService extends BaseDataAccessService {
             }
 
             json.authorship.each {
-                profileOrDraft(profile).authorship << new Authorship(it)
+                Term term = vocabService.getOrCreateTerm(it.category, profile.opus.authorshipVocabUuid)
+                profileOrDraft(profile).authorship << new Authorship(category: term, text: it.text)
             }
 
             if (!deferSave) {
@@ -317,6 +328,8 @@ class ProfileService extends BaseDataAccessService {
             }
         }
     }
+
+
 
     boolean saveBibliography(Profile profile, Map json, boolean deferSave = false) {
         checkArgument profile
@@ -395,7 +408,7 @@ class ProfileService extends BaseDataAccessService {
 
         Publication publication = new Publication()
         publication.title = profile.scientificName
-        publication.authors = profile.authorship.find { it.category == "Author" }?.text
+        publication.authors = profile.authorship.find { it.category.name == "Author" }?.text
         publication.doi = doiService.mintDOI(publication)
         publication.publicationDate = new Date()
         publication.userId = authService.getUserId()
@@ -493,6 +506,8 @@ class ProfileService extends BaseDataAccessService {
             profile.addToAttributes(attribute)
         }
 
+        profileOrDraft(profile).lastAttributeChange = "Added ${attribute.title.name}"
+
         boolean success = save profile
         if (!success) {
             attribute = null
@@ -550,11 +565,9 @@ class ProfileService extends BaseDataAccessService {
             attribute.editors << contributor
         }
 
-        if (!profile.draft) {
-            save attribute
-        } else {
-            save profile
-        }
+        profileOrDraft(profile).lastAttributeChange = "Updated ${attribute.title.name} - ${Utils.cleanupText(attribute.text)}"
+
+        save profile
     }
 
     boolean deleteAttribute(String attributeId, String profileId) {
@@ -568,6 +581,7 @@ class ProfileService extends BaseDataAccessService {
         if (profile.draft) {
             attr = profile.draft.attributes.find { it.uuid == attributeId }
             profile.draft.attributes.remove(attr)
+            profile.draft.lastAttributeChange = "Deleted ${attr.title.name} - ${Utils.cleanupText(attr.text)}"
 
             save profile
         } else {
@@ -575,6 +589,8 @@ class ProfileService extends BaseDataAccessService {
             checkState attr
 
             profile.attributes.remove(attr)
+
+            profile.lastAttributeChange = "Deleted ${attr.title.name} - ${Utils.cleanupText(attr.text)}"
 
             save profile
 

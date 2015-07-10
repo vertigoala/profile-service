@@ -10,10 +10,15 @@ class OpusService extends BaseDataAccessService {
         log.debug("Creating new opus record")
         Opus opus = new Opus(json)
 
-        Vocab vocab = new Vocab(name: "${opus.title} Vocabulary", strict: false)
-        save vocab
+        Vocab attributeVocab = new Vocab(name: "${opus.title} Attribute Vocabulary", strict: false)
+        save attributeVocab
+        Vocab authorshipVocab = new Vocab(name: "${opus.title} Authorship Vocabulary", strict: false)
+        Term authorTerm = new Term(name: "Author", vocab: authorshipVocab, uuid: UUID.randomUUID(), required: true)
+        authorshipVocab.addToTerms(authorTerm)
+        save authorshipVocab
 
-        opus.attributeVocabUuid = vocab.uuid
+        opus.attributeVocabUuid = attributeVocab.uuid
+        opus.authorshipVocabUuid = authorshipVocab.uuid
 
         Glossary glossary = new Glossary()
         save glossary
@@ -37,6 +42,9 @@ class OpusService extends BaseDataAccessService {
         if (json.containsKey("shortName") && json.shortName != opus.shortName) {
             opus.shortName = json.shortName ? json.shortName.toLowerCase() : null
         }
+        if (json.containsKey("description") && json.description != opus.description) {
+            opus.description = json.description ? json.description : null
+        }
         if (json.containsKey("imageSources") && json.imageSources != opus.imageSources) {
             if (opus.imageSources) {
                 opus.imageSources.clear()
@@ -53,6 +61,14 @@ class OpusService extends BaseDataAccessService {
             }
             opus.approvedLists.addAll(json.approvedLists)
         }
+        if (json.containsKey("bioStatusLists") && json.bioStatusLists != opus.bioStatusLists) {
+            if (opus.bioStatusLists) {
+                opus.bioStatusLists.clear()
+            } else {
+                opus.bioStatusLists = []
+            }
+            opus.bioStatusLists.addAll(json.bioStatusLists)
+        }
         if (json.containsKey("recordSources") && json.recordSources != opus.recordSources) {
             if (opus.recordSources) {
                 opus.recordSources.clear()
@@ -60,6 +76,14 @@ class OpusService extends BaseDataAccessService {
                 opus.recordSources = []
             }
             opus.recordSources.addAll(json.recordSources)
+        }
+        if (json.containsKey("excludeRanksFromMap") && json.excludeRanksFromMap != opus.excludeRanksFromMap) {
+            if (opus.excludeRanksFromMap) {
+                opus.excludeRanksFromMap.clear()
+            } else {
+                opus.excludeRanksFromMap = []
+            }
+            opus.excludeRanksFromMap.addAll(json.excludeRanksFromMap)
         }
         if (json.copyrightText != opus.copyrightText) {
             opus.copyrightText = json.copyrightText
@@ -213,6 +237,11 @@ class OpusService extends BaseDataAccessService {
 
         if (opus.attributeVocabUuid) {
             Vocab vocab = Vocab.findByUuid(opus.attributeVocabUuid)
+            Term.deleteAll(vocab.terms)
+            delete vocab
+        }
+        if (opus.authorshipVocabUuid) {
+            Vocab vocab = Vocab.findByUuid(opus.authorshipVocabUuid)
             Term.deleteAll(vocab.terms)
             delete vocab
         }

@@ -10,6 +10,7 @@ class Term implements Comparable<Term> {
     String uuid
     String name
     int order = -1
+    boolean required = false
 
     static belongsTo = [vocab: Vocab]
 

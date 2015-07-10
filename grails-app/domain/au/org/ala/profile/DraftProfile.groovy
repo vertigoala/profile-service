@@ -15,6 +15,7 @@ class DraftProfile {
     Name matchedName
     String rank
     String nslNameIdentifier
+    String nslNomenclatureIdentifier
 
     String primaryImage
     List<String> excludedImages
@@ -27,7 +28,11 @@ class DraftProfile {
     List<Publication> publications
     List<Bibliography> bibliography
 
+    String lastAttributeChange
+
     Date dateCreated
+    Date draftDate = new Date()
+    String createdBy
 
     static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'attributes']
 
@@ -36,8 +41,11 @@ class DraftProfile {
         guid nullable: true
         primaryImage nullable: true
         nslNameIdentifier nullable: true
+        nslNomenclatureIdentifier nullable: true
         rank nullable: true
         fullName nullable: true
         matchedName nullable: true
+        createdBy nullable: true
+        lastAttributeChange nullable: true
     }
 }

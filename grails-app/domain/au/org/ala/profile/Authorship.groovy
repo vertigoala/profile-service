@@ -7,7 +7,7 @@ import groovy.transform.ToString
 @ToString
 class Authorship {
 
-    String category
+    Term category
     String text
 
 }

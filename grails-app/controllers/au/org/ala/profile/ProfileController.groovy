@@ -1,16 +1,15 @@
 package au.org.ala.profile
 
-import com.mongodb.gridfs.GridFSDBFile
+import au.ala.org.ws.security.RequireApiKey
 import grails.converters.JSON
-import groovy.json.JsonSlurper
 import org.apache.http.HttpStatus
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.MultipartHttpServletRequest
 
+@RequireApiKey
 class ProfileController extends BaseController {
 
     ProfileService profileService
-    ImportService importService
     BieService bieService
 
     def saveBHLLinks() {

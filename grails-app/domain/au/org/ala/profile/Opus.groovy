@@ -10,10 +10,12 @@ class Opus {
     String uuid
     String shortName
     String title
+    String description
     String dataResourceUid
     List<String> imageSources            // a list of drs that are providing images we can include
     List<String> recordSources         // a list of drs that are providing images we can include
     List<String> approvedLists
+    List<String> bioStatusLists
     String logoUrl
     String bannerUrl
     String thumbnailUrl
@@ -26,6 +28,7 @@ class Opus {
     String biocacheUrl    // e.g.  http://avh.ala.org.au/
     String biocacheName    ///e.g. Australian Virtual Herbarium
     String attributeVocabUuid
+    String authorshipVocabUuid
     Boolean enablePhyloUpload = false
     Boolean enableOccurrenceUpload = false
     Boolean enableTaxaUpload = false
@@ -42,15 +45,18 @@ class Opus {
     String email
     String facebook
     String twitter
+    List<String> excludeRanksFromMap
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, supportingOpuses: Opus]
 
     static constraints = {
         shortName nullable: true
+        description nullable: true
         logoUrl nullable: true
         bannerUrl nullable: true
         thumbnailUrl nullable: true
         attributeVocabUuid nullable: true
+        authorshipVocabUuid nullable: true
         enablePhyloUpload nullable: true
         enableOccurrenceUpload nullable: true
         enableTaxaUpload nullable: true
