@@ -6,6 +6,8 @@ import au.org.ala.web.AuthService
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 
+import java.text.SimpleDateFormat
+
 @Transactional
 class ProfileService extends BaseDataAccessService {
 
@@ -329,7 +331,41 @@ class ProfileService extends BaseDataAccessService {
         }
     }
 
+    boolean recordStagedImage(String profileId, Map json) {
+        checkArgument profileId
+        checkArgument json
 
+        Profile profile = Profile.findByUuid(profileId)
+        checkState profile
+        checkState profile.draft // can only stage images for a draft profile - otherwise images are to be automatically updated
+
+        boolean success = false
+        if (json.action == "add") {
+            StagedImage image = new StagedImage()
+            image.creator = json.multimedia[0].creator
+            image.dateTaken = json.multimedia[0].dateTaken ? new SimpleDateFormat("yyyy-MM-dd").parse(json.multimedia[0].dateTaken) : null
+            image.description = json.multimedia[0].description
+            image.imageId = json.imageId
+            image.licence = json.multimedia[0].licence
+            image.originalFileName = json.multimedia[0].originalFilename
+            image.rights = json.multimedia[0].rights
+            image.rightsHolder = json.multimedia[0].rightsHolder
+            image.title = json.multimedia[0].title
+
+            if (profile.draft.stagedImages == null) {
+                profile.draft.stagedImages = []
+            }
+            profile.draft.stagedImages << image
+            success = true
+        } else if (json.action == "delete") {
+            StagedImage image = profile.draft.stagedImages.find { it.imageId == json.imageId }
+            success = profile.draft.stagedImages.remove(image)
+        }
+
+        save profile
+
+        success
+    }
 
     boolean saveBibliography(Profile profile, Map json, boolean deferSave = false) {
         checkArgument profile

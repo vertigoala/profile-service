@@ -286,4 +286,18 @@ class ProfileController extends BaseController {
             }
         }
     }
+
+    def recordStagedImage() {
+        def json = request.getJSON()
+
+        if (!params.profileId || !json) {
+            badRequest "profileId and a json body are required"
+        } else {
+            Profile profile = getProfile()
+
+            boolean success = profileService.recordStagedImage(profile.uuid, json)
+
+            render ([success: success] as JSON)
+        }
+    }
 }

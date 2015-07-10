@@ -9,11 +9,9 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import static groovyx.gpars.GParsPool.*
 
-import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
-
 class ImportService extends BaseDataAccessService {
 
-    static final int IMPORT_THREAD_POOL_SIZE = 15
+    static final int IMPORT_THREAD_POOL_SIZE = 10
 
     ProfileService profileService
     NameService nameService

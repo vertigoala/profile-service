@@ -45,7 +45,7 @@ class UrlMappings {
 
         "/opus/$opusId/profile/$profileId/bhl" controller: "profile", action: [POST: "saveBHLLinks"]
 
-        "/opus/$opusId/profile/$profileId/images" controller: "profile", action: [POST: "saveImages"]
+        "/opus/$opusId/profile/$profileId/recordStagedImage" controller: "profile", action: [POST: "recordStagedImage"]
 
         "/opus/$opusId/profile/$profileId/authorship" controller: "profile", action: [POST: "saveAuthorship"]
 
