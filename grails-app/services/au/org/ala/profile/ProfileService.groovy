@@ -343,7 +343,7 @@ class ProfileService extends BaseDataAccessService {
         if (json.action == "add") {
             StagedImage image = new StagedImage()
             image.creator = json.multimedia[0].creator
-            image.dateTaken = json.multimedia[0].dateTaken ? new SimpleDateFormat("yyyy-MM-dd").parse(json.multimedia[0].dateTaken) : null
+            image.dateCreated = json.multimedia[0].dateCreated ? new SimpleDateFormat("yyyy-MM-dd").parse(json.multimedia[0].dateCreated) : null
             image.description = json.multimedia[0].description
             image.imageId = json.imageId
             image.licence = json.multimedia[0].licence

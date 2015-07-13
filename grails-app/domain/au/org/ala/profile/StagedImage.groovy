@@ -15,5 +15,5 @@ class StagedImage {
     String rights
     String licence
     String creator
-    Date dateTaken
+    Date dateCreated
 }
