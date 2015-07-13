@@ -49,9 +49,7 @@ class NSWImport {
 
         new File(DATA_FILE).eachLine { line ->
             if (count++ % 50 == 0) println "Processing line ${count}..."
-            if (count >= 10){
-                return
-            }
+
             def fields = clean(line).split(DELIMITER)
 
             List attributes = []
