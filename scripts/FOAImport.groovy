@@ -6,23 +6,24 @@ import groovyx.net.http.RESTClient
 
 import static groovyx.net.http.ContentType.*
 import static com.xlson.groovycsv.CsvParser.parseCsv
+import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
 
 class NSWImport {
 
     static String OPUS_ID
     static String DATA_DIR
-    static String IMAGE_FILE
+    static boolean INCLUDE_IMAGES = false
     static String REPORT_FILE
     static String PROFILE_SERVICE_IMPORT_URL
     static String DELIMITER
 
 
     static void main(args) {
-        def cli = new CliBuilder(usage: "groovy FOAImport -f <datadir> -o opusId -i <imagefile> -p <profileServiceBaseUrl> -d <delimiter default ,> -r <reportfile>")
+        def cli = new CliBuilder(usage: "groovy FOAImport -f <datadir> -o opusId -i <includeImages> -p <profileServiceBaseUrl> -d <delimiter default ,> -r <reportfile>")
         cli.f(longOpt: "dir", "source data directory", required: true, args: 1)
         cli.o(longOpt: "opusId", "UUID of the FOA Opus", required: true, args: 1)
         cli.p(longOpt: "profileServiceBaseUrl", "Base URL of the profile service", required: true, args: 1)
-        cli.i(longOpt: "imageFile", "File to write image details to", required: true, args: 1)
+        cli.i(longOpt: "includeImages", "True to include image uploads, false or not present to exclude image uplods", required: false, args: 1)
         cli.d(longOpt: "delimiter", "Data file delimiter (defaults to ,)", required: false, args: 1)
         cli.r(longOpt: "reportFile", "File to write the results of the import to", required: false, args: 1)
 
@@ -35,7 +36,7 @@ class NSWImport {
 
         OPUS_ID = opt.o
         DATA_DIR = opt.f
-        IMAGE_FILE = opt.i
+        INCLUDE_IMAGES = opt.i?.asBoolean()
         REPORT_FILE = opt.r ?: "report.txt"
         PROFILE_SERVICE_IMPORT_URL = "${opt.p}/import/profile"
         DELIMITER = opt.d ?: ","
@@ -44,13 +45,6 @@ class NSWImport {
 
         println "Processing file..."
         int count = 0
-
-        File imageFile = new File(IMAGE_FILE)
-        if (imageFile.exists()) {
-            imageFile.delete()
-            imageFile.createNewFile()
-            imageFile << "scientificName,associatedMedia\n"
-        }
 
         Map<String, List<Integer>> scientificNames = [:]
         Map<Integer, String> invalidLines = [:]
@@ -76,7 +70,6 @@ class NSWImport {
         Map<Integer, List<Map<String, String>>> images = loadImages()
         Map<Integer, List<String>> maps = loadMaps()
 
-        List<String> seenImages = []
         int doubtful = 0
 
         def csv = parseCsv(new File("${DATA_DIR}/taxa.csv").newReader("utf-8"))
@@ -123,22 +116,18 @@ class NSWImport {
                 }
             }
 
-            List<Map<String, String>> imgs = images.get(id)
-            imgs?.each {
-                String url = "http://anbg.gov.au/abrs-archive/Flora_Australia_Online/web_images/vol${volumes[line.VOLUME_ID]}/${it.fileName}"
-                String imgLine = "${scientificName},${url}"
-                if (!seenImages.contains(imgLine)) {
-                    imageFile << "${imgLine}\n"
-                    seenImages << imgLine
+            List profileImages = []
+            if (INCLUDE_IMAGES) {
+                List<Map<String, String>> imgs = images.get(id)
+                imgs?.each {
+                    it.identifier = "http://anbg.gov.au/abrs-archive/Flora_Australia_Online/web_images/vol" + volumes[line.VOLUME_ID] + "/" + it.fileName
+                    profileImages << it
                 }
-            }
-            List<String> mapList = maps.get(id)
-            mapList?.each {
-                String url = "http://anbg.gov.au/abrs-archive/Flora_Australia_Online/web_images/vol${volumes[line.VOLUME_ID]}/${it}"
-                String imgLine = "${scientificName},${url}"
-                if (!seenImages.contains(imgLine)) {
-                    imageFile << "${imgLine}\n"
-                    seenImages << imgLine
+                List<String> mapList = maps.get(id)
+                mapList?.each {
+                    Map metadata = [title: "Distribution Map",
+                                    identifier: "http://anbg.gov.au/abrs-archive/Flora_Australia_Online/web_images/vol" + volumes[line.VOLUME_ID] + "/" + it]
+                    profileImages << metadata
                 }
             }
 
@@ -148,7 +137,8 @@ class NSWImport {
                            attributes: attributes,
 //                           nslNomenclatureIdentifier: nslConcepts.get(id) ?: "",
                            nslNomenclatureMatchStrategy: "APC_OR_LATEST",
-                           authorship: [[category: "Author", text: taxaContributors[id]?.join(", ")]]]
+                           authorship: [[category: "Author", text: taxaContributors[id]?.join(", ")]],
+                           images: profileImages]
 
             if (!scientificNames.containsKey(scientificName.trim().toLowerCase())) {
                 profiles << profile
@@ -291,7 +281,9 @@ class NSWImport {
         def csv = parseCsv(new File("${DATA_DIR}/figures.csv").newReader("utf-8"))
         csv.each { line ->
             try {
-                images << [(line.ID as Integer): [fileName: line.FILE_NAME, title: line.TITLE, caption: line.CAPTION, illustrator: line.ILLUSTRATOR]]
+                images << [(line.ID as Integer): [fileName: line.FILE_NAME,
+                                                  title: cleanupText(line.CAPTION),
+                                                  creator: cleanupText(line.ILLUSTRATOR)]]
             } catch (e) {
                 println "Failed to extract figure from line [${line}]"
             }
@@ -354,5 +346,14 @@ class NSWImport {
         }
 
         nslConcepts
+    }
+
+    static cleanupText(str) {
+        if (str) {
+            str = unescapeHtml4(str)
+            // preserve line breaks as new lines, remove all other html
+            str = str.replaceAll(/<p\/?>|<br\/?>/, "\n").replaceAll(/<.+?>/, "").trim()
+        }
+        return str
     }
 }
