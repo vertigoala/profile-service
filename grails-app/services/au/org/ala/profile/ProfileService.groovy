@@ -633,4 +633,11 @@ class ProfileService extends BaseDataAccessService {
             delete attr
         }
     }
+
+    Profile getProfileFromPubId(String pubId){
+        List<Profile> profiles = Profile.withCriteria {
+            eq("publications.uuid", pubId)
+        };
+        profiles.size() > 0?profiles.get(0):null;
+    }
 }
