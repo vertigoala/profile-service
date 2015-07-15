@@ -72,7 +72,7 @@ class DoiService {
                     query: query,
                     requestContentType: ContentType.URLENC,
                     contentType: ContentType.JSON,
-                    body: [xml: requestXml,shared_secret:"741c63bb41"])?.data
+                    body: [xml: requestXml])?.data
 
             log.debug "DOI response = ${json}"
 
@@ -118,7 +118,6 @@ class DoiService {
             creators() {
                 creator() {
                     creatorName(publication.authors)
-                    affiliation("test")
                 }
             }
             titles() {
