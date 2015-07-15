@@ -16,7 +16,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         service.bieService = Mock(BieService)
         service.bieService.getClassification(_) >> null
         service.doiService = Mock(DoiService)
-        service.doiService.mintDOI(_) >> "1234"
+        service.doiService.mintDOI(_, _) >> [status: "success", doi: "1234"]
         service.grailsApplication = [config: [snapshot:[directory: "bla"]]]
         service.vocabService = Mock(VocabService)
         service.vocabService.getOrCreateTerm(_, _) >> {name, id -> [name: name, vocabId: id]}
