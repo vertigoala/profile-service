@@ -430,7 +430,7 @@ class ProfileService extends BaseDataAccessService {
         }
     }
 
-    Publication savePublication(String profileId, MultipartFile file) {
+    def savePublication(String profileId, MultipartFile file) {
         checkArgument profileId
         checkArgument file
 
@@ -445,19 +445,30 @@ class ProfileService extends BaseDataAccessService {
         Publication publication = new Publication()
         publication.title = profile.scientificName
         publication.authors = profile.authorship.find { it.category.name == "Author" }?.text
-        publication.doi = doiService.mintDOI(publication)
         publication.publicationDate = new Date()
         publication.userId = authService.getUserId()
         publication.uuid = UUID.randomUUID().toString()
+        if (profile.publications) {
+            publication.version = profile.publications.sort { it.version }.last().version + 1
+        } else {
+            publication.version = 1
+        }
         profileOrDraft(profile).publications << publication
 
-        String fileName = "${grailsApplication.config.snapshot.directory}/${publication.uuid}.pdf"
+        Map doiResult = doiService.mintDOI(profile.opus, publication)
+        if (doiResult.status == "success") {
+            publication.doi = doiResult.doi
 
-        file.transferTo(new File(fileName))
+            String fileName = "${grailsApplication.config.snapshot.directory}/${publication.uuid}.pdf"
 
-        save profile
+            file.transferTo(new File(fileName))
 
-        publication
+            save profile
+
+            publication
+        } else {
+            doiResult
+        }
     }
 
     File getPublicationFile(String publicationId) {

@@ -13,7 +13,8 @@ class PublicationMarshaller {
                     publicationDate: publication.publicationDate,
                     uploadDate     : publication.uploadDate,
                     authors        : publication.authors,
-                    doi            : publication.doi
+                    doi            : publication.doi,
+                    version        : publication.version
             ]
         }
     }

@@ -2,7 +2,7 @@ package au.org.ala.profile
 
 import au.ala.org.ws.security.RequireApiKey
 import grails.converters.JSON
-import org.apache.http.HttpStatus
+import org.apache.commons.httpclient.HttpStatus
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.MultipartHttpServletRequest
 
@@ -65,9 +65,16 @@ class ProfileController extends BaseController {
             if (!profile) {
                 notFound "Profile ${params.profileId} not found"
             } else {
-                Publication pub = profileService.savePublication(profile.uuid, file)
+                def result = profileService.savePublication(profile.uuid, file)
+                if (result.error) {
+                    int code = HttpStatus.SC_BAD_REQUEST
+                    if (result.errorCode instanceof Integer && HttpStatus.getStatusText(result.errorCode)) {
+                        code = result.errorCode
+                    }
+                    sendError code, result.error
+                }
 
-                render pub as JSON
+                render result as JSON
             }
         }
     }
