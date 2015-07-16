@@ -69,6 +69,8 @@ class UrlMappings {
         "/status/" controller: "status", action: [GET: "status"]
         "/status/$component" controller: "status", action: [GET: "status"]
 
+        "/publication/$publicationId" controller: "profile", action: [GET: "getPublicationDetails"]
+
         "/$controller/$action?/$id?(.$format)?" {
             constraints {
                 // apply constraints here

@@ -20,7 +20,7 @@ class ProfileController extends BaseController {
         } else {
             boolean success = profileService.saveBHLLinks(json.profileId, json)
 
-            render ([success: success] as JSON)
+            render([success: success] as JSON)
         }
     }
 
@@ -32,7 +32,7 @@ class ProfileController extends BaseController {
         } else {
             boolean success = profileService.saveLinks(json.profileId, json)
 
-            render ([success: success] as JSON)
+            render([success: success] as JSON)
         }
     }
 
@@ -45,7 +45,7 @@ class ProfileController extends BaseController {
             boolean saved = profileService.saveAuthorship(params.profileId, json)
 
             if (saved) {
-                render ([success: saved] as JSON)
+                render([success: saved] as JSON)
             } else {
                 saveFailed()
             }
@@ -107,6 +107,20 @@ class ProfileController extends BaseController {
 
                 render publications as JSON
             }
+        }
+    }
+
+    def getPublicationDetails() {
+        if (!params.publicationId) {
+            badRequest()
+        } else {
+            Profile profile = profileService.getProfileFromPubId(params.publicationId);
+            render text: [
+                    uuid: profile.uuid,
+                    opusId: profile.opus.uuid,
+                    scientificName: profile.scientificName,
+                    publications: profile.publications
+            ] as JSON
         }
     }
 
@@ -239,7 +253,7 @@ class ProfileController extends BaseController {
             } else {
                 profileService.toggleDraftMode(profile.uuid)
 
-                render ([success: true] as JSON)
+                render([success: true] as JSON)
             }
         }
     }
@@ -255,7 +269,7 @@ class ProfileController extends BaseController {
             } else {
                 profileService.discardDraftChanges(profile.uuid)
 
-                render ([success: true] as JSON)
+                render([success: true] as JSON)
             }
         }
     }
@@ -289,7 +303,7 @@ class ProfileController extends BaseController {
             } else {
                 boolean success = profileService.deleteProfile(profile.uuid)
 
-                render ([success: success] as JSON)
+                render([success: success] as JSON)
             }
         }
     }
@@ -304,7 +318,7 @@ class ProfileController extends BaseController {
 
             boolean success = profileService.recordStagedImage(profile.uuid, json)
 
-            render ([success: success] as JSON)
+            render([success: success] as JSON)
         }
     }
 }
