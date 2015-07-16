@@ -453,7 +453,6 @@ class ProfileService extends BaseDataAccessService {
         } else {
             publication.version = 1
         }
-        profileOrDraft(profile).publications << publication
 
         Map doiResult = doiService.mintDOI(profile.opus, publication)
         if (doiResult.status == "success") {
@@ -463,6 +462,7 @@ class ProfileService extends BaseDataAccessService {
 
             file.transferTo(new File(fileName))
 
+            profileOrDraft(profile).publications << publication
             save profile
 
             publication

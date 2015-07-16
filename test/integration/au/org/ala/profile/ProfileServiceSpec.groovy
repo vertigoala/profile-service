@@ -629,6 +629,42 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         1 * mockFile.transferTo(_)
     }
 
+    def "savePublication should assign a DOI to the new publication if the DoiService returns successfully"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Profile profile = new Profile(opus: opus, scientificName: "sciName")
+        save profile
+        MultipartFile mockFile = Mock(MultipartFile)
+        service.doiService = Mock(DoiService)
+        service.doiService.mintDOI(_, _) >> [status: "success", doi: "12345/0987"]
+
+        when:
+        Publication pub = service.savePublication(profile.uuid, mockFile)
+
+        then:
+        Profile.list().get(0).publications.size() == 1
+        pub.doi == "12345/0987"
+    }
+
+    def "savePublication should return an error if the DoiService fails"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Profile profile = new Profile(opus: opus, scientificName: "sciName")
+        save profile
+        MultipartFile mockFile = Mock(MultipartFile)
+        service.doiService = Mock(DoiService)
+        service.doiService.mintDOI(_, _) >> [status: "error", statusCode: "E001", message: "Something blew up!!"]
+
+        when:
+        def result = service.savePublication(profile.uuid, mockFile)
+
+        then:
+        Profile.list().get(0).publications.size() == 0
+        result == [status: "error", statusCode: "E001", message: "Something blew up!!"]
+    }
+
     def "deleteAttribute should throw IllegalStateException if no attributeId or profileId are provided"() {
         when:
         service.deleteAttribute(null, "profileId")

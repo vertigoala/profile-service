@@ -68,24 +68,32 @@ class DoiService {
             Map headers = [Accept: ContentType.JSON, Authorization: "Basic ${secret}"]
 
             RESTClient client = new RESTClient(andsUrl)
-            def json = client.post(headers: headers,
+            def response = client.post(headers: headers,
                     query: query,
                     requestContentType: ContentType.URLENC,
                     contentType: ContentType.JSON,
-                    body: [xml: requestXml])?.data
+                    body: [xml: requestXml])
 
-            log.debug "DOI response = ${json}"
 
-            if (json && json.response.responsecode == ANDS_RESPONSE_MINT_SUCCESS) {
-                log.debug "Minted new doi ${json.response.doi}"
-                result.status = "success"
-                result.doi = json.response.doi
+            if (response.status as int == HttpStatus.SC_OK) {
+                def json = response.data
+                log.debug "DOI response = ${json}"
+
+                if (json.response.responsecode == ANDS_RESPONSE_MINT_SUCCESS) {
+                    log.debug "Minted new doi ${json.response.doi}"
+                    result.status = "success"
+                    result.doi = json.response.doi
+                } else {
+                    result.status = "error"
+                    result.errorCode = json.response.responsecode
+                    result.error = "${json.response.message}: ${json.response.verbosemessage}"
+
+                    log.error("Failed to mint new doi: ${json.response.responsecode} - ${json.response.message}: ${json.response.verbosemessage}")
+                }
             } else {
                 result.status = "error"
-                result.errorCode = json.response.responsecode
-                result.error = "${json.response.message}: ${json.response.verbosemessage}"
-
-                log.error("Failed to mint new doi: ${json.response.responsecode} - ${json.response.message}: ${json.response.verbosemessage}")
+                result.errorCode = response.status
+                result.error = HttpStatus.getStatusText(response.status)
             }
         } else {
             result.status = "error"
