@@ -32,6 +32,7 @@ class Profile {
     List<Bibliography> bibliography
     List<Publication> publications
 
+    List<StagedImage> stagedImages = null // this is only used when dealing with draft profiles
 
     String lastAttributeChange
 

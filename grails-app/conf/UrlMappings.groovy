@@ -45,7 +45,7 @@ class UrlMappings {
 
         "/opus/$opusId/profile/$profileId/bhl" controller: "profile", action: [POST: "saveBHLLinks"]
 
-        "/opus/$opusId/profile/$profileId/images" controller: "profile", action: [POST: "saveImages"]
+        "/opus/$opusId/profile/$profileId/recordStagedImage" controller: "profile", action: [POST: "recordStagedImage"]
 
         "/opus/$opusId/profile/$profileId/authorship" controller: "profile", action: [POST: "saveAuthorship"]
 
@@ -65,6 +65,11 @@ class UrlMappings {
 
         "/report/mismatchedNames" controller: "report", action: [GET: "mismatchedNames"]
         "/report/draftProfiles" controller: "report", action: [GET: "draftProfiles"]
+
+        "/status/" controller: "status", action: [GET: "status"]
+        "/status/$component" controller: "status", action: [GET: "status"]
+
+        "/publication/$publicationId" controller: "profile", action: [GET: "getPublicationDetails"]
 
         "/$controller/$action?/$id?(.$format)?" {
             constraints {

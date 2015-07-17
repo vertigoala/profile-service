@@ -86,6 +86,12 @@ class ImportController extends BaseController {
                             "authorship": [{
                                     "category": "",
                                     "text": ""
+                                    }],
+                            "images": [{
+                                    "identifier": "url to the image - required",
+                                    "title": "required",
+                                    "creator": "",
+                                    "dateCreated": ""
                                     }]
                         }]
                      }"""

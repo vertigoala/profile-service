@@ -27,6 +27,7 @@ class DraftProfile {
     List<Attribute> attributes
     List<Publication> publications
     List<Bibliography> bibliography
+    List<StagedImage> stagedImages
 
     String lastAttributeChange
 
@@ -34,7 +35,7 @@ class DraftProfile {
     Date draftDate = new Date()
     String createdBy
 
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'attributes']
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'attributes', 'stagedImages']
 
     static constraints = {
         nameAuthor nullable: true

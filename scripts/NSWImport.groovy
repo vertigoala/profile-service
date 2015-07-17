@@ -11,11 +11,11 @@ class NSWImport {
 
 
     static void main(args) {
-        def cli = new CliBuilder(usage: "groovy NSWImport -f <datafile> -o opusId -i <imagefile> -p <profileServiceBaseUrl> -d <delimiter default ~> -r <reportfile>")
+        def cli = new CliBuilder(usage: "groovy NSWImport -f <datafile> -o opusId -i <includeImages> -p <profileServiceBaseUrl> -d <delimiter default ~> -r <reportfile>")
         cli.f(longOpt: "file", "source data file", required: true, args: 1)
         cli.o(longOpt: "opusId", "UUID of the NSW Flora Opus", required: true, args: 1)
         cli.p(longOpt: "profileServiceBaseUrl", "Base URL of the profile service", required: true, args: 1)
-        cli.i(longOpt: "imageFile", "File to write image details to", required: true, args: 1)
+        cli.i(longOpt: "includeImages", "True to include image uploads, false or not present to exclude image uplods", required: false, args: 1)
         cli.d(longOpt: "delimiter", "Data file delimiter (defaults to ~)", required: false, args: 1)
         cli.r(longOpt: "reportFile", "File to write the results of the import to", required: false, args: 1)
 
@@ -28,7 +28,7 @@ class NSWImport {
 
         String NSW_OPUS_ID = opt.o
         String DATA_FILE = opt.f
-        String IMAGE_FILE = opt.i
+        String INCLUDE_IMAGES = opt.i?.asBoolean() ?: false
         String REPORT_FILE = opt.r ?: "report.txt"
         String PROFILE_SERVICE_IMPORT_URL = "${opt.p}/import/profile"
         String DELIMITER = opt.d ?: "~"
@@ -37,13 +37,6 @@ class NSWImport {
 
         println "Processing file..."
         int count = 0
-
-        File imageFile = new File(IMAGE_FILE)
-        if (imageFile.exists()) {
-            imageFile.delete()
-            imageFile.createNewFile()
-            imageFile << "scientificName,associatedMedia\n"
-        }
 
         Map<String, List<Integer>> scientificNames = [:]
         Map<Integer, String> invalidLines = [:]
@@ -80,15 +73,10 @@ class NSWImport {
             String contributor = fields[6]
             List<String> images = fields[24..33].findAll { it }
 
-            Set<String> seenImages = []
-
-            if (images) {
-                images.each {
-                    String imageLine = "${species},${NSW_FLORA_IMAGE_URL_PREFIX}${it}"
-                    if (!seenImages.contains(imageLine)) {
-                        imageFile << "${imageLine}\n"
-                        seenImages << imageLine
-                    }
+            List profileImages = []
+            if (images && INCLUDE_IMAGES) {
+                images?.each {
+                    profileImages << [title: "Image", identifier: NSW_FLORA_IMAGE_URL_PREFIX + it]
                 }
             }
 
@@ -154,7 +142,8 @@ class NSWImport {
                                nslNomenclatureMatchStrategy: "APC_OR_LATEST",
                                nameAuthor: nameAuthor,
                                attributes: attributes,
-                               fullName: "${scientificName} ${nameAuthor}".trim()]
+                               fullName: "${scientificName} ${nameAuthor}".trim(),
+                               images: profileImages]
 
                 profiles << profile
             }

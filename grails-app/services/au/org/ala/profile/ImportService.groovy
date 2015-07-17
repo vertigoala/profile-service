@@ -2,6 +2,9 @@ package au.org.ala.profile
 
 import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
 import au.org.ala.profile.util.Utils
+import groovyx.net.http.ContentType
+import groovyx.net.http.RESTClient
+import org.apache.http.HttpStatus
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentSkipListSet
@@ -9,14 +12,13 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import static groovyx.gpars.GParsPool.*
 
-import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
-
 class ImportService extends BaseDataAccessService {
 
-    static final int IMPORT_THREAD_POOL_SIZE = 15
+    static final int IMPORT_THREAD_POOL_SIZE = 10
 
     ProfileService profileService
     NameService nameService
+    def grailsApplication
 
     Term getOrCreateTerm(String vocabId, String name) {
         Vocab vocab = Vocab.findByUuid(vocabId)
@@ -56,6 +58,8 @@ class ImportService extends BaseDataAccessService {
         Map uniqueValues = findAndStoreUniqueValues(opus, profilesJson)
         Map<String, Term> vocab = uniqueValues.vocab
         Map<String, Contributor> contributors = uniqueValues.contributors
+
+        boolean enableNSLMatching = false
 
         log.info "Importing profiles ..."
         withPool(IMPORT_THREAD_POOL_SIZE) {
@@ -99,7 +103,7 @@ class ImportService extends BaseDataAccessService {
 
                         if (it.nslNameIdentifier) {
                             profile.nslNameIdentifier = it.nslNameIdentifier
-                        } else {
+                        } else if (enableNSLMatching) {
                             Map nslMatch = nameService.matchNSLName(it.fullName)
                             if (nslMatch) {
                                 profile.nslNameIdentifier = nslMatch.nslIdentifier
@@ -118,7 +122,7 @@ class ImportService extends BaseDataAccessService {
 
                         if (it.nslNomenclatureIdentifier) {
                             profile.nslNomenclatureIdentifier = it.nslNomenclatureIdentifier
-                        } else if (profile.nslNameIdentifier) {
+                        } else if (profile.nslNameIdentifier && enableNSLMatching) {
                             NSLNomenclatureMatchStrategy matchStrategy = NSLNomenclatureMatchStrategy.valueOf(it.nslNomenclatureMatchStrategy) ?: NSLNomenclatureMatchStrategy.DEFAULT
                             Map nomenclature = nameService.findNomenclature(profile.nslNameIdentifier, matchStrategy)
                             profile.nslNomenclatureIdentifier = nomenclature?.id
@@ -178,6 +182,12 @@ class ImportService extends BaseDataAccessService {
                             }
                         }
 
+                        if (it.images) {
+                            it.images.each {
+                                uploadImage(scientificName, opus.dataResourceUid, it)
+                            }
+                        }
+
                         if (it.authorship) {
                             profile.authorship = it.authorship.collect {
                                 Term term = getOrCreateTerm(opus.authorshipVocabUuid, it.category)
@@ -211,6 +221,25 @@ class ImportService extends BaseDataAccessService {
         log.debug "${success} of ${profilesJson.size()} records imported"
 
         results
+    }
+
+    def uploadImage(String scientificName, String dataResourceId, Map metadata) {
+        Map payload = [scientificName: scientificName, multimedia: [metadata]]
+
+        try {
+            RESTClient client = new RESTClient("${grailsApplication.config.image.upload.url}dr3")
+            def resp = client.post(headers: ["User-Agent": "groovy"],
+                    query: [apiKey: "${grailsApplication.config.image.upload.apiKey}"],
+                    requestContentType: ContentType.JSON,
+                    body: payload)
+
+            if (resp.status != HttpStatus.SC_OK && resp.status != HttpStatus.SC_CREATED) {
+                log.warn("Failed to upload image: ${resp.data}")
+            }
+        }
+        catch (Exception e) {
+            log.warn("Failed to upload image: ", e)
+        }
     }
 
     Map findAndStoreUniqueValues(Opus opus, profilesJson) {

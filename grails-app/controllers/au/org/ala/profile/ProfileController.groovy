@@ -2,7 +2,7 @@ package au.org.ala.profile
 
 import au.ala.org.ws.security.RequireApiKey
 import grails.converters.JSON
-import org.apache.http.HttpStatus
+import org.apache.commons.httpclient.HttpStatus
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.MultipartHttpServletRequest
 
@@ -20,7 +20,7 @@ class ProfileController extends BaseController {
         } else {
             boolean success = profileService.saveBHLLinks(json.profileId, json)
 
-            render ([success: success] as JSON)
+            render([success: success] as JSON)
         }
     }
 
@@ -32,7 +32,7 @@ class ProfileController extends BaseController {
         } else {
             boolean success = profileService.saveLinks(json.profileId, json)
 
-            render ([success: success] as JSON)
+            render([success: success] as JSON)
         }
     }
 
@@ -45,7 +45,7 @@ class ProfileController extends BaseController {
             boolean saved = profileService.saveAuthorship(params.profileId, json)
 
             if (saved) {
-                render ([success: saved] as JSON)
+                render([success: saved] as JSON)
             } else {
                 saveFailed()
             }
@@ -65,9 +65,16 @@ class ProfileController extends BaseController {
             if (!profile) {
                 notFound "Profile ${params.profileId} not found"
             } else {
-                Publication pub = profileService.savePublication(profile.uuid, file)
+                def result = profileService.savePublication(profile.uuid, file)
+                if (result.error) {
+                    int code = HttpStatus.SC_BAD_REQUEST
+                    if (result.errorCode instanceof Integer && HttpStatus.getStatusText(result.errorCode)) {
+                        code = result.errorCode
+                    }
+                    sendError code, result.error
+                }
 
-                render pub as JSON
+                render result as JSON
             }
         }
     }
@@ -100,6 +107,20 @@ class ProfileController extends BaseController {
 
                 render publications as JSON
             }
+        }
+    }
+
+    def getPublicationDetails() {
+        if (!params.publicationId) {
+            badRequest()
+        } else {
+            Profile profile = profileService.getProfileFromPubId(params.publicationId);
+            render text: [
+                    uuid: profile.uuid,
+                    opusId: profile.opus.uuid,
+                    scientificName: profile.scientificName,
+                    publications: profile.publications
+            ] as JSON
         }
     }
 
@@ -232,7 +253,7 @@ class ProfileController extends BaseController {
             } else {
                 profileService.toggleDraftMode(profile.uuid)
 
-                render ([success: true] as JSON)
+                render([success: true] as JSON)
             }
         }
     }
@@ -248,7 +269,7 @@ class ProfileController extends BaseController {
             } else {
                 profileService.discardDraftChanges(profile.uuid)
 
-                render ([success: true] as JSON)
+                render([success: true] as JSON)
             }
         }
     }
@@ -282,8 +303,22 @@ class ProfileController extends BaseController {
             } else {
                 boolean success = profileService.deleteProfile(profile.uuid)
 
-                render ([success: success] as JSON)
+                render([success: success] as JSON)
             }
+        }
+    }
+
+    def recordStagedImage() {
+        def json = request.getJSON()
+
+        if (!params.profileId || !json) {
+            badRequest "profileId and a json body are required"
+        } else {
+            Profile profile = getProfile()
+
+            boolean success = profileService.recordStagedImage(profile.uuid, json)
+
+            render([success: success] as JSON)
         }
     }
 }
