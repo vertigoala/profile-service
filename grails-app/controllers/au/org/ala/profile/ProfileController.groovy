@@ -116,10 +116,10 @@ class ProfileController extends BaseController {
         } else {
             Profile profile = profileService.getProfileFromPubId(params.publicationId);
             render text: [
-                    uuid: profile.uuid,
-                    opusId: profile.opus.uuid,
+                    profileId     : profile.uuid,
+                    opusId        : profile.opus.uuid,
                     scientificName: profile.scientificName,
-                    publications: profile.publications
+                    publications  : profile.publications
             ] as JSON
         }
     }
@@ -140,6 +140,7 @@ class ProfileController extends BaseController {
                 classification.each {
                     def profile = Profile.findByGuidAndOpus(it.guid, opus)
                     it.profileUuid = profile?.uuid ?: ''
+                    it.profileName = profile?.scientificName
                 }
             }
 
