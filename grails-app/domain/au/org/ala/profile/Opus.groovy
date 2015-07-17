@@ -36,6 +36,7 @@ class Opus {
     Boolean showLinkedOpusAttributes = false
     Boolean allowCopyFromLinkedOpus = false
     Boolean allowFineGrainedAttribution = true
+    Boolean privateCollection = false
     Glossary glossary
     String keybaseProjectId
     String keybaseKeyId

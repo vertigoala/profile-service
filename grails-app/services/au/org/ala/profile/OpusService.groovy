@@ -156,6 +156,9 @@ class OpusService extends BaseDataAccessService {
         if (json.has("showLinkedOpusAttributes") && json.showLinkedOpusAttributes != opus.showLinkedOpusAttributes) {
             opus.showLinkedOpusAttributes = json.showLinkedOpusAttributes as boolean
         }
+        if (json.has("privateCollection") && json.privateCollection != opus.privateCollection) {
+            opus.privateCollection = json.privateCollection as boolean
+        }
         if (json.has("allowCopyFromLinkedOpus") && json.allowCopyFromLinkedOpus != opus.allowCopyFromLinkedOpus) {
             opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus as boolean
         }
@@ -216,6 +219,10 @@ class OpusService extends BaseDataAccessService {
                 Role role = Role.valueOf(it.role.toUpperCase())
                 opus.authorities << new Authority(user: user, role: role, notes: it.notes)
             }
+        }
+
+        if (json.containsKey("privateCollection") && json.privateCollection.toBoolean() != opus.privateCollection) {
+            opus.privateCollection = json.privateCollection as boolean
         }
 
         save opus

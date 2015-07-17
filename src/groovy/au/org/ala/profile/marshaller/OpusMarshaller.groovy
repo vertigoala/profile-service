@@ -29,6 +29,7 @@ class OpusMarshaller {
                     enableOccurrenceUpload     : opus.enableOccurrenceUpload != null ? opus.enableKeyUpload : true,
                     enableTaxaUpload           : opus.enableTaxaUpload != null ? opus.enableKeyUpload : true,
                     enableKeyUpload            : opus.enableKeyUpload != null ? opus.enableKeyUpload : true,
+                    privateCollection          : opus.privateCollection != null ? opus.privateCollection : false,
                     mapAttribution             : opus.mapAttribution ?: 'Atlas',
                     mapPointColour             : opus.mapPointColour ?: "FF9900",
                     mapDefaultLatitude         : opus.mapDefaultLatitude ?: -23.6,
