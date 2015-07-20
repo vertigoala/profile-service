@@ -438,8 +438,8 @@ class ProfileService extends BaseDataAccessService {
 
         checkState profile
 
-        if (!profileOrDraft(profile).publications) {
-            profileOrDraft(profile).publications = []
+        if (!profile.publications) {
+            profile.publications = []
         }
 
         Publication publication = new Publication()
@@ -462,7 +462,7 @@ class ProfileService extends BaseDataAccessService {
 
             file.transferTo(new File(fileName))
 
-            profileOrDraft(profile).publications << publication
+            profile.publications << publication
             save profile
 
             publication
