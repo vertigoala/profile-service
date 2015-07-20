@@ -1,9 +1,10 @@
 package au.org.ala.profile
 
-import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
-
+import static com.xlson.groovycsv.CsvParser.parseCsv
 import static au.org.ala.profile.util.Utils.enc
 
+import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
+import au.org.ala.profile.util.Utils
 import au.org.ala.names.model.LinnaeanRankClassification
 import au.org.ala.names.model.NameSearchResult
 import au.org.ala.names.search.ALANameSearcher
@@ -13,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional
 import javax.annotation.PostConstruct
 
 @Transactional
-class NameService {
+class NameService extends BaseDataAccessService {
 
     def grailsApplication
     ALANameSearcher nameSearcher
@@ -63,30 +64,6 @@ class NameService {
         }
     }
 
-    Map matchNSLId(Integer id) {
-        Map match = [:]
-        try {
-            String resp = new URL("${grailsApplication.config.nsl.name.instance.url.prefix}\"${id}\"").text
-            def json = new JsonSlurper().parseText(resp)
-            if (json.instance) {
-                match.scientificName = json.names[0].name.simpleName
-                match.fullName = json.names[0].name.fullName
-                match.nameAuthor = json.names[0].name.author.name
-                String linkUrl = json.names[0].name._links.permalinks.find {
-                    it.preferred == "true" || it.preferred == true
-                }?.link
-                match.nslIdentifier = linkUrl.substring(linkUrl.lastIndexOf("/") + 1)
-                match.nslProtologue = json.names[0].name?.primaryInstance[0]?.citationHtml
-            } else {
-                log.warn("${json.count} NSL matches for ${name}")
-            }
-        } catch (Exception e) {
-            log.error e
-        }
-
-        match
-    }
-
     Map matchNSLName(String name) {
         Map match = [:]
         try {
@@ -94,7 +71,9 @@ class NameService {
             def json = new JsonSlurper().parseText(resp)
             if (json.count == 1) {
                 match.scientificName = json.names[0].name.simpleName
+                match.scientificNameHtml = json.names[0].name.simpleNameHtml
                 match.fullName = json.names[0].name.fullName
+                match.fullNameHtml = json.names[0].name.fullNameHtml
                 match.nameAuthor = json.names[0].name.author.name
                 String linkUrl = json.names[0].name._links.permalinks.find {
                     it.preferred == "true" || it.preferred == true
@@ -111,11 +90,25 @@ class NameService {
         match
     }
 
-    Map findNomenclature(String nslNameIdentifier, NSLNomenclatureMatchStrategy matchStrategy) {
-        List concepts = listNomenclatureConcepts(nslNameIdentifier)
+    Map matchCachedNSLName(Map nslCache, String name) {
+        Map match = [:]
+
+        if (nslCache.bySimpleName.containsKey(name)) {
+            match = nslCache.bySimpleName[name]
+        } else if (nslCache.byFullName.containsKey(name)) {
+            match = nslCache.byFullName[name]
+        } else {
+            log.warn "No match found in NSL name cache for ${name}"
+        }
+
+        match
+    }
+
+    Map findNomenclature(String nslNameIdentifier, NSLNomenclatureMatchStrategy matchStrategy, List<String> searchText = null) {
         Map match = null;
         switch (matchStrategy) {
             case NSLNomenclatureMatchStrategy.APC_OR_LATEST:
+                List concepts = listNomenclatureConcepts(nslNameIdentifier)
                 concepts.each {
                     if (it.APCReference?.booleanValue()) {
                         match = it
@@ -125,9 +118,18 @@ class NameService {
                     match = concepts.last()
                 }
                 break
+            case NSLNomenclatureMatchStrategy.TEXT_CONTAINS:
+                List concepts = listNomenclatureConcepts(nslNameIdentifier)
+
+                match = concepts.find { concept -> searchText.find { text -> concept.name.contains(text) } }
+                break
             case NSLNomenclatureMatchStrategy.LATEST:
+                List concepts = listNomenclatureConcepts(nslNameIdentifier)
+
                 match = concepts ? concepts.last() : null
                 break
+            case NSLNomenclatureMatchStrategy.NSL_SEARCH:
+                match = findConcept(nslNameIdentifier, searchText[0])
         }
 
         match
@@ -168,4 +170,71 @@ class NameService {
         concepts
     }
 
+    Map findConcept(String nslNameIdentifier, String text) {
+        Map concept = [:]
+
+        try {
+            if (text) {
+                String prefix = grailsApplication.config.nsl.service.url.prefix
+                String suffix = grailsApplication.config.nsl.find.concept.service.suffix
+
+                String resp = new URL("${prefix}${nslNameIdentifier}${suffix}${enc(text)}").text
+
+                def json = new JsonSlurper().parseText(resp)
+
+                if (json && json.instance) {
+                    concept.name = json.instance.citation
+                    concept.nameHtml = json.instance.citationHtml
+                    concept.url = json.instance._links.permalink.link
+                    concept.id = concept.url.substring(concept.url.lastIndexOf("/") + 1)
+                    log.debug("Matched '${text}' to ${concept.id} (${concept.name})")
+                } else {
+                    log.warn("Could not match concept name '${text}' to anything in the NSL")
+                }
+
+            }
+        } catch (Exception e) {
+            log.error "Failed to find NSL concept", e
+        }
+
+        concept
+    }
+
+    Map loadNSLSimpleNameDump() {
+        log.info "Loading NSL Simple Name dump into memory...."
+        long start = System.currentTimeMillis()
+
+        Map result = [bySimpleName: [:], byFullName: [:]]
+
+        try {
+            URL url = new URL("${grailsApplication.config.nsl.simple.name.export.url}")
+
+            url.withReader { reader ->
+                def csv = parseCsv(reader)
+
+                csv.each { fields ->
+                    String simpleName = Utils.cleanupText(fields.simple_name_html)
+                    String fullName = Utils.cleanupText(fields.full_name_html)
+
+                    Map name = [scientificName    : simpleName,
+                                scientificNameHtml: fields.simple_name_html,
+                                fullName          : fullName,
+                                fullNameHtml      : fields.full_name_html,
+                                url               : fields.id,
+                                nslIdentifier     : fields.id.substring(fields.id.lastIndexOf("/") + 1),
+                                rank              : fields.rank,
+                                nameAuthor        : fields.authority]
+
+                    result.bySimpleName << [(simpleName): name]
+                    result.byFullName << [(fullName): name]
+                }
+            }
+
+        } catch (Exception e) {
+            log.error "Failed to load NSL simple name dump", e
+        }
+
+        log.info "... finished loading NSL Simple Name dump in ${System.currentTimeMillis() - start} ms"
+        result
+    }
 }

@@ -49,6 +49,7 @@ grails.project.dependency.resolution = {
         // specify dependencies here under either 'build', 'compile', 'runtime', 'test' or 'provided' scopes e.g.
         test 'org.grails:grails-datastore-test-support:1.0.1-grails-2.4'
         runtime 'au.org.ala:ala-name-matching:2.1'
+        compile "com.xlson.groovycsv:groovycsv:1.0"
     }
 
     plugins {
@@ -60,5 +61,7 @@ grails.project.dependency.resolution = {
         compile ':cache:1.1.6'
         runtime ":cors:1.1.6"
         compile ":quartz:1.0.2"
+//        compile ":csv:0.3.1"
+
     }
 }

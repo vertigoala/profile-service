@@ -59,7 +59,15 @@ class ImportService extends BaseDataAccessService {
         Map<String, Term> vocab = uniqueValues.vocab
         Map<String, Contributor> contributors = uniqueValues.contributors
 
-        boolean enableNSLMatching = false
+        Map<String, Map> nomenclatureMatchingCache = [:] as ConcurrentHashMap
+
+        boolean enableNSLMatching = true
+
+        Map nslNamesCached = nameService.loadNSLSimpleNameDump()
+
+        if (!nslNamesCached) {
+            log.warn("NSL Simple Name cache failed - using live service lookup instead")
+        }
 
         log.info "Importing profiles ..."
         withPool(IMPORT_THREAD_POOL_SIZE) {
@@ -104,7 +112,22 @@ class ImportService extends BaseDataAccessService {
                         if (it.nslNameIdentifier) {
                             profile.nslNameIdentifier = it.nslNameIdentifier
                         } else if (enableNSLMatching) {
-                            Map nslMatch = nameService.matchNSLName(it.fullName)
+                            Map nslMatch
+                            if (nslNamesCached) {
+                                nslMatch = nameService.matchCachedNSLName(nslNamesCached, it.scientificName)
+                            } else {
+                                nslMatch = nameService.matchNSLName(it.scientificName)
+                            }
+
+                            // if there is no match using the provided name, try using the ALA matched name
+                            if (!nslMatch && matchedName) {
+                                if (nslNamesCached) {
+                                    nslMatch = nameService.matchCachedNSLName(nslNamesCached, matchedName.scientificName)
+                                } else {
+                                    nslMatch = nameService.matchNSLName(matchedName.scientificName)
+                                }
+                            }
+
                             if (nslMatch) {
                                 profile.nslNameIdentifier = nslMatch.nslIdentifier
                                 profile.nslProtologue = nslMatch.nslProtologue
@@ -124,7 +147,21 @@ class ImportService extends BaseDataAccessService {
                             profile.nslNomenclatureIdentifier = it.nslNomenclatureIdentifier
                         } else if (profile.nslNameIdentifier && enableNSLMatching) {
                             NSLNomenclatureMatchStrategy matchStrategy = NSLNomenclatureMatchStrategy.valueOf(it.nslNomenclatureMatchStrategy) ?: NSLNomenclatureMatchStrategy.DEFAULT
-                            Map nomenclature = nameService.findNomenclature(profile.nslNameIdentifier, matchStrategy)
+                            Map nomenclature
+                            if (nomenclatureMatchingCache.containsKey(it.nslNomenclatureMatchData)) {
+                                nomenclature = nomenclatureMatchingCache[it.nslNomenclatureMatchData]
+                            } else {
+                                nomenclature = nameService.findNomenclature(profile.nslNameIdentifier, matchStrategy, it.nslNomenclatureMatchData)
+                                if (matchStrategy == NSLNomenclatureMatchStrategy.NSL_SEARCH || matchStrategy == NSLNomenclatureMatchStrategy.TEXT_CONTAINS) {
+                                    nomenclatureMatchingCache << [(it.nslNomenclatureMatchData): nomenclature]
+                                }
+
+                            }
+                            if (!nomenclature) {
+                                results << [("${it.scientificName}_W2"): "Warning: no matching nomenclature found"]
+                                hasWarning = true
+                            }
+
                             profile.nslNomenclatureIdentifier = nomenclature?.id
                         }
 
