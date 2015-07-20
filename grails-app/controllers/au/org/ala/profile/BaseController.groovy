@@ -44,7 +44,7 @@ class BaseController {
             profile = Profile.findByOpusAndScientificNameIlike(opus, params.profileId)
 
             // names can be changed, so if there is no profile with the name, check for a draft with that name, but only if the 'latest' flag is true
-            if (!profile && params.latest?.asBoolean()) {
+            if (!profile && params.latest?.toBoolean()) {
                 List matches = Profile.withCriteria {
                     eq "opus", opus
                     ilike "draft.scientificName", params.profileId
