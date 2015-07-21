@@ -35,6 +35,8 @@ class ReportService {
                     neProperty("fullName", "matchedName.fullName")
                     isNull "nslNameIdentifier"
                 }
+
+                isNull "archivedDate"
             }.size()
         }
 
@@ -46,6 +48,8 @@ class ReportService {
                 neProperty("fullName", "matchedName.fullName")
                 isNull "nslNameIdentifier"
             }
+
+            isNull "archivedDate"
 
             order "scientificName"
 
@@ -82,6 +86,8 @@ class ReportService {
                     le('lastUpdated', to)
                     ge('lastUpdated', from)
                 }
+                isNull "archivedDate"
+
                 order('lastUpdated', "desc")
             }.size()
         }
@@ -93,6 +99,8 @@ class ReportService {
                 le('lastUpdated', to)
                 ge('lastUpdated', from)
             }
+            isNull "archivedDate"
+
             order('lastUpdated', "desc")
 
             if (max > 0) {
