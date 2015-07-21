@@ -12,6 +12,16 @@ class ReportService {
         [recordCount: profiles.size(), records: profiles]
     }
 
+    Map archivedProfiles(String opusId) {
+        Opus opus = Opus.findByUuid(opusId)
+
+        List profiles = Profile.findAllByOpusAndArchivedDateIsNotNull(opus).collect {
+            [profileId: it.uuid, scientificName: it.archivedWithName, archivedDate: it.archivedDate, archivedBy: it.archivedBy]
+        }.sort { it.scientificName }
+
+        [recordCount: profiles.size(), records: profiles]
+    }
+
     Map mismatchedNames(String opusId, int max, int startFrom) {
         Opus opus = Opus.findByUuid(opusId)
 

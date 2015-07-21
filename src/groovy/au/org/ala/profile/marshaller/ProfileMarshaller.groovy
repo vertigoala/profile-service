@@ -39,11 +39,16 @@ class ProfileMarshaller {
                     bibliography             : profile.bibliography?.collect {
                         [uuid: it.uuid, text: it.text, plainText: Utils.cleanupText(it.text), order: it.order]
                     }?.sort { it.order },
+                    publications             : profile.publications?.sort { left, right -> right.publicationDate <=> left.publicationDate },
                     lastAttributeChange      : profile.lastAttributeChange,
                     createdDate              : profile.dateCreated,
                     createdBy                : profile.createdBy,
                     lastUpdated              : profile.lastUpdated,
-                    lastUpdatedBy            : profile.lastUpdatedBy
+                    lastUpdatedBy            : profile.lastUpdatedBy,
+                    archiveComment           : profile.archiveComment,
+                    archivedDate             : profile.archivedDate,
+                    archivedBy               : profile.archivedBy,
+                    archivedWithName         : profile.archivedWithName
             ]
         }
     }

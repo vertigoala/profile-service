@@ -61,10 +61,14 @@ class UrlMappings {
         "/opus/$opusId/profile/$profileId/comment" controller: "comment", action: [GET: "getComments", PUT: "addComment"]
         "/opus/$opusId/profile/$profileId/comment/$commentId" controller: "comment", action: [GET: "getComment", POST: "updateComment", DELETE: "deleteComment"]
 
+        "/opus/$opusId/archive/$profileId" controller: "profile", action: [POST: "archiveProfile"]
+        "/opus/$opusId/restore/$profileId" controller: "profile", action: [POST: "restoreArchivedProfile"]
+
         "/checkName" controller: "profile", action: [GET: "checkName"]
 
         "/report/mismatchedNames" controller: "report", action: [GET: "mismatchedNames"]
         "/report/draftProfiles" controller: "report", action: [GET: "draftProfiles"]
+        "/report/archivedProfiles" controller: "report", action: [GET: "archivedProfiles"]
 
         "/status/" controller: "status", action: [GET: "status"]
         "/status/$component" controller: "status", action: [GET: "status"]

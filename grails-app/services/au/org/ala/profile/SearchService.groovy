@@ -51,6 +51,8 @@ class SearchService extends BaseDataAccessService {
                 ilike "fullName", "${scientificName}${wildcard}"
             }
 
+            isNull "archivedDate"
+
             order "scientificName"
 
             maxResults max
@@ -92,6 +94,8 @@ class SearchService extends BaseDataAccessService {
                 eq "rank", nextRank
             }
 
+            isNull "archivedDate"
+
             order "scientificName"
 
             maxResults max
@@ -105,7 +109,7 @@ class SearchService extends BaseDataAccessService {
         Opus opus = Opus.findByUuid(opusId)
 
         if (opus) {
-            Profile.collection.aggregate([[$match: [opus: opus.id]],
+            Profile.collection.aggregate([[$match: [opus: opus.id, archivedDate: null]],
                                           [$unwind: '$classification'],
                                           [$group: [_id: [rank: '$classification.rank', name: '$classification.name'], cnt: [$sum: 1]]],
                                           [$group: [_id: '$_id.rank', total: [$sum: 1]]]]
@@ -129,7 +133,7 @@ class SearchService extends BaseDataAccessService {
                 nextRank = RANKS[RANKS.indexOf(taxon) + 1]
             }
 
-            def result = Profile.collection.aggregate([$match: [opus: opus.id]],
+            def result = Profile.collection.aggregate([$match: [opus: opus.id, archivedDate: null]],
                                                       [$unwind: '$classification'],
                                                       [$match: ["classification.rank": "${taxon}"]],
                                                       [$group: [_id: '$classification.name', cnt: [$sum: 1]]],

@@ -222,6 +222,23 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result == [profile2, profile4]
     }
 
+    def "findByScientificName should perform exclude archived profiles"() {
+        given:
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
+        Profile profile1 = save new Profile(scientificName: "name", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile2 = save new Profile(scientificName: "name two", opus: opus1, archivedDate: new Date(), classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile3 = save new Profile(scientificName: "nameThree", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae")])
+
+        when:
+        List result = service.findByScientificName("NAME", [opus1.uuid], true)
+
+        then:
+        result.size() == 2
+        result.contains(profile1)
+        !result.contains(profile2)
+        result.contains(profile3)
+    }
+
     def "findByTaxonNameAndLevel should fail when no scientific name is provided"() {
         when:
         service.findByTaxonNameAndLevel(null, "name", ["opus"])
@@ -253,6 +270,26 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result.size() == 3
         result.contains(profile1)
         result.contains(profile2)
+        result.contains(profile3)
+    }
+
+    def "findByTaxonNameAndLevel should exclude archived profiles"() {
+        given:
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
+        Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
+        Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3")
+
+        Profile profile1 = save new Profile(scientificName: "name", opus: opus1, classification: [new Classification(rank: "kingdom", name: "kingdom1")])
+        Profile profile2 = save new Profile(scientificName: "name", opus: opus2, archivedDate: new Date(), classification: [new Classification(rank: "kingdom", name: "kingdom2")])
+        Profile profile3 = save new Profile(scientificName: "name", opus: opus3, classification: [new Classification(rank: "kingdom", name: "kingdom3")])
+
+        when:
+        List result = service.findByTaxonNameAndLevel("kingdom", "kingdom", null)
+
+        then:
+        result.size() == 2
+        result.contains(profile1)
+        !result.contains(profile2)
         result.contains(profile3)
     }
 

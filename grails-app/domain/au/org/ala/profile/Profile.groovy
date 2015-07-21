@@ -43,6 +43,11 @@ class Profile {
 
     DraftProfile draft
 
+    String archiveComment
+    Date archivedDate
+    String archivedBy
+    String archivedWithName
+
     static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'matchedName']
 
     static hasMany = [attributes: Attribute]
@@ -66,6 +71,10 @@ class Profile {
         createdBy nullable: true
         lastUpdatedBy nullable: true
         lastAttributeChange nullable: true
+        archiveComment nullable: true
+        archivedDate nullable: true
+        archivedBy nullable: true
+        archivedWithName nullable: true
     }
 
     static mapping = {
