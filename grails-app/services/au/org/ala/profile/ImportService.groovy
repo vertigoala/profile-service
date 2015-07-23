@@ -59,8 +59,6 @@ class ImportService extends BaseDataAccessService {
         Map<String, Term> vocab = uniqueValues.vocab
         Map<String, Contributor> contributors = uniqueValues.contributors
 
-        Map<String, Map> nomenclatureMatchingCache = [:] as ConcurrentHashMap
-
         boolean enableNSLMatching = true
 
         Map nslNamesCached = nameService.loadNSLSimpleNameDump()
@@ -147,16 +145,8 @@ class ImportService extends BaseDataAccessService {
                             profile.nslNomenclatureIdentifier = it.nslNomenclatureIdentifier
                         } else if (profile.nslNameIdentifier && enableNSLMatching) {
                             NSLNomenclatureMatchStrategy matchStrategy = NSLNomenclatureMatchStrategy.valueOf(it.nslNomenclatureMatchStrategy) ?: NSLNomenclatureMatchStrategy.DEFAULT
-                            Map nomenclature
-                            if (nomenclatureMatchingCache.containsKey(it.nslNomenclatureMatchData)) {
-                                nomenclature = nomenclatureMatchingCache[it.nslNomenclatureMatchData]
-                            } else {
-                                nomenclature = nameService.findNomenclature(profile.nslNameIdentifier, matchStrategy, it.nslNomenclatureMatchData)
-                                if (matchStrategy == NSLNomenclatureMatchStrategy.NSL_SEARCH || matchStrategy == NSLNomenclatureMatchStrategy.TEXT_CONTAINS) {
-                                    nomenclatureMatchingCache << [(it.nslNomenclatureMatchData): nomenclature]
-                                }
+                            Map nomenclature = nameService.findNomenclature(profile.nslNameIdentifier, matchStrategy, it.nslNomenclatureMatchData)
 
-                            }
                             if (!nomenclature) {
                                 results << [("${it.scientificName}_W2"): "Warning: no matching nomenclature found"]
                                 hasWarning = true

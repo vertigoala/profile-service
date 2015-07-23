@@ -1,8 +1,11 @@
+import groovy.xml.MarkupBuilder
 @Grab(group = 'org.codehaus.groovy.modules.http-builder', module = 'http-builder', version = '0.7')
 @Grab('com.xlson.groovycsv:groovycsv:1.0')
 @Grab('org.apache.commons:commons-lang3:3.3.2')
 
 import groovyx.net.http.RESTClient
+
+import java.text.SimpleDateFormat
 
 import static groovyx.net.http.ContentType.*
 import static com.xlson.groovycsv.CsvParser.parseCsv
@@ -19,11 +22,10 @@ class NSWImport {
 
 
     static void main(args) {
-        def cli = new CliBuilder(usage: "groovy FOAImport -f <datadir> -o opusId -i <includeImages> -p <profileServiceBaseUrl> -d <delimiter default ,> -r <reportfile>")
+        def cli = new CliBuilder(usage: "groovy FOAImport -f <datadir> -o opusId -p <profileServiceBaseUrl> -d <delimiter default ,> -r <reportfile>")
         cli.f(longOpt: "dir", "source data directory", required: true, args: 1)
         cli.o(longOpt: "opusId", "UUID of the FOA Opus", required: true, args: 1)
         cli.p(longOpt: "profileServiceBaseUrl", "Base URL of the profile service", required: true, args: 1)
-        cli.i(longOpt: "includeImages", "True to include image uploads, false or not present to exclude image uplods", required: false, args: 1)
         cli.d(longOpt: "delimiter", "Data file delimiter (defaults to ,)", required: false, args: 1)
         cli.r(longOpt: "reportFile", "File to write the results of the import to", required: false, args: 1)
 
@@ -36,7 +38,6 @@ class NSWImport {
 
         OPUS_ID = opt.o
         DATA_DIR = opt.f
-        INCLUDE_IMAGES = opt.i?.asBoolean()
         REPORT_FILE = opt.r ?: "report.txt"
         PROFILE_SERVICE_IMPORT_URL = "${opt.p}/import/profile"
         DELIMITER = opt.d ?: ","
@@ -69,6 +70,8 @@ class NSWImport {
 
         Map<Integer, List<Map<String, String>>> images = loadImages()
         Map<Integer, List<String>> maps = loadMaps()
+
+        List collectionImages = []
 
         int doubtful = 0
 
@@ -116,19 +119,18 @@ class NSWImport {
                 }
             }
 
-            List profileImages = []
-            if (INCLUDE_IMAGES) {
-                List<Map<String, String>> imgs = images.get(id)
-                imgs?.each {
-                    it.identifier = "http://anbg.gov.au/abrs-archive/Flora_Australia_Online/web_images/vol" + volumes[line.VOLUME_ID] + "/" + it.fileName
-                    profileImages << it
-                }
-                List<String> mapList = maps.get(id)
-                mapList?.each {
-                    Map metadata = [title: "Distribution Map",
-                                    identifier: "http://anbg.gov.au/abrs-archive/Flora_Australia_Online/web_images/vol" + volumes[line.VOLUME_ID] + "/" + it]
-                    profileImages << metadata
-                }
+            List<Map<String, String>> imgs = images.get(id)
+            imgs?.each {
+                it.identifier = "http://anbg.gov.au/abrs-archive/Flora_Australia_Online/web_images/vol" + volumes[line.VOLUME_ID] + "/" + it.fileName
+                it.scientificName = scientificName
+                collectionImages << it
+            }
+            List<String> mapList = maps.get(id)
+            mapList?.each {
+                Map metadata = [title: "Distribution Map",
+                                identifier: "http://anbg.gov.au/abrs-archive/Flora_Australia_Online/web_images/vol" + volumes[line.VOLUME_ID] + "/" + it,
+                                scientificName: scientificName]
+                collectionImages << metadata
             }
 
             Map profile = [scientificName: scientificName,
@@ -136,9 +138,9 @@ class NSWImport {
                            fullName: fullName,
                            attributes: attributes,
 //                           nslNomenclatureIdentifier: nslConcepts.get(id) ?: "",
-                           nslNomenclatureMatchStrategy: "APC_OR_LATEST",
-                           authorship: [[category: "Author", text: taxaContributors[id]?.join(", ")]],
-                           images: profileImages]
+                           nslNomenclatureMatchStrategy: "NSL_SEARCH",
+                           nslNomenclatureMatchData: "NSL_SEARCH",
+                           authorship: [[category: "Author", text: taxaContributors[id]?.join(", ")]]]
 
             if (!scientificNames.containsKey(scientificName.trim().toLowerCase())) {
                 profiles << profile
@@ -152,6 +154,9 @@ class NSWImport {
                 profiles: profiles
         ]
 
+        println "Creating image files..."
+        createImageFiles(collectionImages)
+if (true) return
         println "Ignoring ${doubtful} doubtful names"
         println "Importing ${profiles.size()} profiles..."
 
@@ -352,8 +357,72 @@ class NSWImport {
         if (str) {
             str = unescapeHtml4(str)
             // preserve line breaks as new lines, remove all other html
-            str = str.replaceAll(/<p\/?>|<br\/?>/, "\n").replaceAll(/<.+?>/, "").trim()
+            str = str.replaceAll(/<p\/?>|<br\/?>/, "\n").replaceAll(/<.+?>/, "").replaceAll("\\p{Pd}", "-").replaceAll("\u2014", "-").trim()
         }
         return str
+    }
+
+    static createImageFiles(List collectionImages) {
+        String now = new SimpleDateFormat("yyyyMMdd").format(new Date())
+
+        File dir = new File("foa_images_${now}")
+        if (dir.exists()) {
+            dir.list().each {
+                new File(dir, it).delete()
+            }
+            dir.delete()
+        }
+        dir.mkdir()
+
+        File images = new File(dir, "images.csv")
+        images << "coreID,identifier,title\n"
+
+        File export = new File(dir, "export.csv")
+        export << "dcterms:type,basisOfRecord,catalogNumber,scientificName\n"
+
+        File metadata = new File(dir, "meta.xml")
+
+        int row = 1
+        collectionImages.each {
+            images.append("\"${row}\",\"${it.identifier}\",\"${it.title}\",\"${it.creator ?: ""}\"\n", "UTF-8")
+            export.append("\"Image\",\"HumanObservation\",\"${row}\",\"${it.scientificName}\"\n", "UTF-8")
+            row++
+        }
+
+        MarkupBuilder xml = new MarkupBuilder(new FileWriter(metadata))
+
+        xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
+
+        xml.archive(xmlns: "http://rs.tdwg.org/dwc/text/") {
+            core(encoding: "UTF-8",
+                    linesTerminatedBy: "\\r\\n",
+                    fieldsTerminatedBy: ",",
+                    fieldsEnclosedBy: "",
+                    ignoreHeaderLines: "1",
+                    rowTye: "http://rs.tdwg.org/dwc/terms/Occurrence") {
+                files() {
+                    location("export.csv")
+                }
+                id(index: 2)
+                field(index: 0, term: "http://purl.org/dc/terms/type")
+                field(index: 1, term: "http://rs.tdwg.org/dwc/terms/basisOfRecord")
+                field(index: 2, term: "http://rs.tdwg.org/dwc/terms/catalogNumber")
+                field(index: 3, term: "http://rs.tdwg.org/dwc/terms/scientificName")
+            }
+            extension(encoding: "UTF-8",
+                    linesTerminatedBy: "\\r\\n",
+                    fieldsTerminatedBy: ",",
+                    fieldsEnclosedBy: '"',
+                    ignoreHeaderLines: "1",
+                    rowTye: "http://rs.gbif.org/terms/1.0/Image") {
+                files() {
+                    location("images.csv")
+                }
+                coreid(index: 0)
+                field(index: 1, term: "http://purl.org/dc/terms/identifier")
+                field(index: 2, term: "http://purl.org/dc/terms/title")
+                field(index: 2, term: "http://purl.org/dc/terms/creator")
+            }
+        }
     }
 }
