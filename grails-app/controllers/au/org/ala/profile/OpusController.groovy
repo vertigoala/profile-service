@@ -9,7 +9,7 @@ class OpusController extends BaseController {
     OpusService opusService
 
     def index() {
-        respond Opus.findAll(), [formats: ['json', 'xml']]
+        render Opus.findAll() as JSON
     }
 
     def show() {
@@ -18,7 +18,7 @@ class OpusController extends BaseController {
             int profiles = Profile.countByOpus(result)
             result.profileCount = profiles
 
-            respond result, [formats: ['json', 'xml']]
+            render result as JSON
         } else {
             notFound()
         }
