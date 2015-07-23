@@ -119,6 +119,7 @@ class ProfileService extends BaseDataAccessService {
             profile.nameAuthor = null
             profile.guid = null
             profile.classification = []
+            profile.rank = null
         }
 
         // try to match the name against the NSL. If we get a match, and there is currently no name author, use the author from the NSL match
