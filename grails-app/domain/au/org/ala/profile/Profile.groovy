@@ -4,6 +4,8 @@ import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.bson.types.ObjectId
 
+import javax.persistence.Transient
+
 @EqualsAndHashCode
 @ToString
 class Profile {
@@ -18,6 +20,8 @@ class Profile {
     String nslNameIdentifier
     String nslNomenclatureIdentifier
     String nslProtologue
+
+    @Transient
     boolean privateMode = false
 
     Name matchedName
