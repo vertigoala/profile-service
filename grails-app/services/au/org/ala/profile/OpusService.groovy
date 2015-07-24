@@ -1,10 +1,17 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.security.Role
+import au.org.ala.profile.util.ShareRequestAction
+import au.org.ala.profile.util.ShareRequestStatus
+import au.org.ala.web.AuthService
 import org.springframework.transaction.annotation.Transactional
 
 @Transactional
 class OpusService extends BaseDataAccessService {
+
+    EmailService emailService
+    AuthService authService
+    def grailsApplication
 
     Opus createOpus(json) {
         log.debug("Creating new opus record")
@@ -165,14 +172,8 @@ class OpusService extends BaseDataAccessService {
         if (json.has("allowFineGrainedAttribution") && json.allowFineGrainedAttribution != opus.allowFineGrainedAttribution) {
             opus.allowFineGrainedAttribution = json.allowFineGrainedAttribution as boolean
         }
-        if (json.supportingOpuses != null) {
-            opus.supportingOpuses.clear()
-            json.supportingOpuses.each {
-                Opus supportingOpus = Opus.findByUuid(it.uuid);
-                if (supportingOpus) {
-                    opus.supportingOpuses << supportingOpus
-                }
-            }
+        if (json.has("autoApproveShareRequests") && json.autoApproveShareRequests != opus.autoApproveShareRequests) {
+            opus.autoApproveShareRequests = json.autoApproveShareRequests.toBoolean()
         }
 
         boolean success = save opus
@@ -253,13 +254,134 @@ class OpusService extends BaseDataAccessService {
             delete vocab
         }
 
-        List<Opus> linkedOpuses = Opus.findAllBySupportingOpuses(opus)
-        linkedOpuses?.each {
-            it.supportingOpuses.remove(opus)
+        Opus.withCriteria {
+            eq "supportingOpuses.uuid", opus.uuid
+        }?.each {
+            SupportingOpus supporting = it.supportingOpuses.find { it.uuid == opus.uuid }
+            it.supportingOpuses.remove(supporting)
             save it
         }
 
         delete opus
+    }
+
+    def updateSupportingOpuses(String opusId, Map json) {
+        checkArgument opusId
+        checkArgument json
+
+        Opus opus = Opus.findByUuid(opusId)
+        checkState opus
+
+        // for each supporting opus:
+        // if the entry is new, send an email requesting approval to the administrator(s) of the supporting opus
+        // if the entry is old, do nothing
+        // if the entry has been removed, delete the supporting opus
+        if (json.supportingOpuses != null) {
+            if (!opus.supportingOpuses) {
+                opus.supportingOpuses = []
+            }
+
+            json.supportingOpuses.each {
+                String supportingOpusId = it.uuid
+                SupportingOpus existing = opus.supportingOpuses.find { it.uuid == supportingOpusId }
+
+                if (!existing) {
+                    Opus supportingOpus = Opus.findByUuid(it.uuid)
+                    ShareRequestStatus status = supportingOpus.autoApproveShareRequests ?
+                            ShareRequestStatus.ACCEPTED : ShareRequestStatus.REQUESTED
+                    opus.supportingOpuses << new SupportingOpus(uuid: supportingOpus.uuid,
+                            title: supportingOpus.title,
+                            requestStatus: status,
+                            dateRequested: new Date())
+
+                    if (!supportingOpus.autoApproveShareRequests) {
+                        List administrators = supportingOpus.authorities.findAll {
+                            it.role == Role.ROLE_PROFILE_ADMIN
+                        }.collect { it.user.userId }
+
+                        String user = authService.getUserForUserId(authService.getUserId()).displayName
+
+                        String url = "${grailsApplication.config.profile.hub.base.url}opus/${supportingOpus.uuid}/shareRequest/${opus.uuid}"
+
+                        emailService.sendEmail(administrators,
+                                "${opus.title}<no-reply@ala.org.au>",
+                                "Request to share collection information",
+                                """<html><body>
+                                <p>${user}, an administrator for the ${
+                                    opus.title
+                                } collection, would like to share information from ${supportingOpus.title}.</p>
+                                <p>You can approve or decline this request by following <a href='${url}'>this link</a>.<p/>
+                                <p>${opus.title} will not be able to see any of the ${
+                                    supportingOpus.title
+                                } data until the request has been approved by you or another ${supportingOpus.title} administrator.</p>
+                                <p>This is an automated email. Please do not reply.</p>
+                                </body></html>""")
+                    } else {
+                        SupportingOpus existingShare = supportingOpus.sharingDataWith.find { it.uuid == opus.uuid }
+                        if (!existingShare) {
+                            supportingOpus.sharingDataWith << new SupportingOpus(uuid: opus.uuid, title: opus.title)
+                            save supportingOpus
+                        }
+                    }
+                }
+            }
+
+            List toBeRemoved = opus.supportingOpuses.findAll { !json.supportingOpuses.find { incoming -> it.uuid == incoming.uuid } }
+
+            toBeRemoved.each {
+                opus.supportingOpuses.remove(it)
+            }
+
+        }
+        if (json.containsKey("showLinkedOpusAttributes") && json.showLinkedOpusAttributes != opus.showLinkedOpusAttributes) {
+            opus.showLinkedOpusAttributes = json.showLinkedOpusAttributes.toBoolean()
+        }
+        if (json.containsKey("autoApproveShareRequests") && json.autoApproveShareRequests != opus.autoApproveShareRequests) {
+            opus.autoApproveShareRequests = json.autoApproveShareRequests.toBoolean()
+        }
+        if (json.containsKey("allowCopyFromLinkedOpus") && json.allowCopyFromLinkedOpus != opus.allowCopyFromLinkedOpus) {
+            opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus.toBoolean()
+        }
+        save opus
+    }
+
+    def respondToSupportingOpusRequest(String opusId, String requestingOpusId, ShareRequestAction action) {
+        checkArgument requestingOpusId
+        checkArgument opusId
+
+        Opus requestingOpus = Opus.findByUuid(requestingOpusId)
+        checkState requestingOpus
+
+        Opus opus = Opus.findByUuid(opusId)
+        checkState opus
+
+        def status = action.resultingStatus
+        requestingOpus.supportingOpuses.find { it.uuid == opusId }.requestStatus = status
+
+        SupportingOpus existing = opus.sharingDataWith.find { it.uuid == requestingOpus.uuid }
+        if (action == ShareRequestAction.ACCEPT && !existing) {
+            opus.sharingDataWith << new SupportingOpus(uuid: requestingOpus.uuid, title: requestingOpus.title)
+            save opus
+        } else if (action != ShareRequestAction.ACCEPT && existing) {
+            opus.sharingDataWith.remove(existing)
+            save opus
+        }
+
+        List administrators = requestingOpus.authorities.findAll {
+            it.role == Role.ROLE_PROFILE_ADMIN
+        }.collect { it.user.userId }
+
+        String user = authService.getUserForUserId(authService.getUserId()).displayName
+
+        emailService.sendEmail(administrators,
+                "${opus.title}<no-reply@ala.org.au>",
+                "Request to share collection information - ${action.resultingStatus.toString().toLowerCase()}",
+                """<html><body>
+                            <p>${user}, an administrator for the ${opus.title} collection, has ${action.resultingStatus.toString().toLowerCase()} your request to share information with your collection.</p>
+                            <p>This is an automated email. Please do not reply.</p>
+                            </body></html>""")
+
+        save requestingOpus
     }
 
     boolean deleteGlossaryItem(String glossaryItemId) {

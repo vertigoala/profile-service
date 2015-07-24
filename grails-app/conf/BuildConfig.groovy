@@ -61,7 +61,6 @@ grails.project.dependency.resolution = {
         compile ':cache:1.1.6'
         runtime ":cors:1.1.6"
         compile ":quartz:1.0.2"
-//        compile ":csv:0.3.1"
-
+        compile ":mail:1.0.7"
     }
 }

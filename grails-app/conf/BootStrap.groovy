@@ -1,6 +1,7 @@
 import au.org.ala.profile.listener.AuditListener
 import au.org.ala.profile.listener.LastUpdateListener
 import org.codehaus.groovy.grails.commons.ApplicationAttributes
+import org.codehaus.groovy.grails.web.json.JSONObject
 import org.grails.datastore.mapping.core.Datastore
 
 class BootStrap {
@@ -17,8 +18,9 @@ class BootStrap {
             ctx.addApplicationListener new LastUpdateListener(d, authService)
         }
 
-        ctx.getBean( "customObjectMarshallers" ).register()
+        ctx.getBean("customObjectMarshallers").register()
 
+        JSONObject.NULL.metaClass.asBoolean = { -> false }
     }
     def destroy = {
     }

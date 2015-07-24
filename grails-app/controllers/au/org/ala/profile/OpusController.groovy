@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import au.ala.org.ws.security.RequireApiKey
+import au.org.ala.profile.util.ShareRequestAction
 import grails.converters.JSON
 
 @RequireApiKey
@@ -57,6 +58,47 @@ class OpusController extends BaseController {
                 def json = request.getJSON()
 
                 boolean updated = opusService.updateOpus(opus.uuid, json)
+
+                if (!updated) {
+                    saveFailed()
+                } else {
+                    success([updated: true])
+                }
+            }
+        }
+    }
+
+    def updateSupportingOpuses() {
+        def json = request.getJSON()
+        if (!params.opusId || !json) {
+            badRequest "opusId and a json body are required"
+        } else {
+            Opus opus = getOpus()
+
+            if (!opus) {
+                notFound "No opus found for id ${params.opusId}"
+            } else {
+                boolean updated = opusService.updateSupportingOpuses(opus.uuid, json)
+
+                if (!updated) {
+                    saveFailed()
+                } else {
+                    success([updated: true])
+                }
+            }
+        }
+    }
+
+    def respondToSupportingOpusRequest() {
+        if (!params.requestingOpusId || !params.opusId || !params.requestAction || !ShareRequestAction.valueOf(params.requestAction.toUpperCase())) {
+            badRequest "requestingOpusId, supportingOpusId and accept are required parameters"
+        } else {
+            Opus opus = getOpus()
+
+            if (!opus) {
+                notFound "No opus found for id ${params.opusId}"
+            } else {
+                boolean updated = opusService.respondToSupportingOpusRequest(opus.uuid, params.requestingOpusId, ShareRequestAction.valueOf(params.requestAction.toUpperCase()))
 
                 if (!updated) {
                     saveFailed()

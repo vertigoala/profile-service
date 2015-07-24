@@ -36,7 +36,7 @@ class Opus {
     Boolean showLinkedOpusAttributes = false
     Boolean allowCopyFromLinkedOpus = false
     Boolean allowFineGrainedAttribution = true
-    Boolean privateCollection = false
+    boolean privateCollection = false
     Glossary glossary
     String keybaseProjectId
     String keybaseKeyId
@@ -47,8 +47,12 @@ class Opus {
     String facebook
     String twitter
     List<String> excludeRanksFromMap
+    List<SupportingOpus> supportingOpuses
+    List<SupportingOpus> sharingDataWith
+    boolean autoApproveShareRequests = true
 
-    static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, supportingOpuses: Opus]
+    static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority]
+    static embedded = ['supportingOpuses', 'sharingDataWith']
 
     static constraints = {
         shortName nullable: true

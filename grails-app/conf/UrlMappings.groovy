@@ -22,6 +22,9 @@ class UrlMappings {
 
         "/opus/$opusId/updateUsers" controller: "opus", action: [POST: "updateUsers"]
 
+        "/opus/$opusId/supportingCollections/respond/$requestingOpusId/$requestAction" controller: "opus", action: [POST: "respondToSupportingOpusRequest"]
+        "/opus/$opusId/supportingCollections/update" controller: "opus", action: [POST: "updateSupportingOpuses"]
+
         "/opus/$opusId" controller: "opus", action: [GET: "show", POST: "updateOpus", DELETE: "deleteOpus"]
 
         "/profile/search" controller: "search", action: "findByScientificName"
