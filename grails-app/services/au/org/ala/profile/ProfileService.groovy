@@ -64,6 +64,8 @@ class ProfileService extends BaseDataAccessService {
                 ilike "draft.scientificName", name
                 ilike "draft.fullName", name
             }
+
+            isNull "archivedDate" // ignore archived profiles during name checks
         }
     }
 
@@ -117,6 +119,7 @@ class ProfileService extends BaseDataAccessService {
             profile.nameAuthor = null
             profile.guid = null
             profile.classification = []
+            profile.rank = null
         }
 
         // try to match the name against the NSL. If we get a match, and there is currently no name author, use the author from the NSL match
@@ -178,10 +181,56 @@ class ProfileService extends BaseDataAccessService {
         }
     }
 
+    Profile archiveProfile(String profileId, String archiveComment) {
+        checkArgument profileId
+        checkArgument archiveComment
+
+        Profile profile = Profile.findByUuid(profileId)
+        checkState profile
+
+        profile.archiveComment = archiveComment
+        profile.archivedBy = authService.getUserForUserId(authService.getUserId()).displayName
+        profile.archivedDate = new Date()
+        profile.archivedWithName = profile.scientificName
+        profile.scientificName = "${profile.scientificName} (Archived ${new SimpleDateFormat('dd/MM/yyyy H:mm a').format(profile.archivedDate)})"
+
+        save profile
+
+        profile
+    }
+
+    Profile restoreArchivedProfile(String profileId, String newName = null) {
+        checkArgument profileId
+
+        Profile profile = Profile.findByUuid(profileId)
+        checkState profile
+
+        if (newName && Profile.findByOpusAndScientificName(profile.opus, newName)) {
+            throw new IllegalStateException("A profile already exists with the name ${newName}")
+        } else if (!newName && Profile.findByOpusAndScientificName(profile.opus, profile.archivedWithName)) {
+            throw new IllegalStateException("A profile already exists with the name ${profile.archivedWithName}. Provide a new unique name.")
+        }
+
+        profile.archiveComment = null
+        profile.archivedBy = null
+        profile.archivedDate = null
+        profile.scientificName = newName ?: profile.archivedWithName
+        profile.archivedWithName = null
+
+        save profile
+
+        profile
+    }
+
     boolean deleteProfile(String profileId) {
         checkArgument profileId
 
         Profile profile = Profile.findByUuid(profileId)
+        checkState profile
+
+        if (profile.publications) {
+            throw new IllegalStateException("Profiles with published versions cannot be deleted. Use the archive option instead.")
+        }
 
         delete profile
     }
@@ -438,8 +487,8 @@ class ProfileService extends BaseDataAccessService {
 
         checkState profile
 
-        if (!profileOrDraft(profile).publications) {
-            profileOrDraft(profile).publications = []
+        if (!profile.publications) {
+            profile.publications = []
         }
 
         Publication publication = new Publication()
@@ -462,7 +511,7 @@ class ProfileService extends BaseDataAccessService {
 
             file.transferTo(new File(fileName))
 
-            profileOrDraft(profile).publications << publication
+            profile.publications << publication
             save profile
 
             publication

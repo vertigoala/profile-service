@@ -4,6 +4,8 @@ import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.bson.types.ObjectId
 
+import javax.persistence.Transient
+
 @EqualsAndHashCode
 @ToString
 class Profile {
@@ -18,6 +20,8 @@ class Profile {
     String nslNameIdentifier
     String nslNomenclatureIdentifier
     String nslProtologue
+
+    @Transient
     boolean privateMode = false
 
     Name matchedName
@@ -43,6 +47,11 @@ class Profile {
 
     DraftProfile draft
 
+    String archiveComment
+    Date archivedDate
+    String archivedBy
+    String archivedWithName
+
     static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'matchedName']
 
     static hasMany = [attributes: Attribute]
@@ -66,6 +75,10 @@ class Profile {
         createdBy nullable: true
         lastUpdatedBy nullable: true
         lastAttributeChange nullable: true
+        archiveComment nullable: true
+        archivedDate nullable: true
+        archivedBy nullable: true
+        archivedWithName nullable: true
     }
 
     static mapping = {

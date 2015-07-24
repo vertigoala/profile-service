@@ -93,18 +93,33 @@ grails.hibernate.pass.readonly = false
 // configure passing read-only to OSIV session by default, requires "singleSession = false" OSIV mode
 grails.hibernate.osiv.readonly = false
 
-environments {
-    development {
-        grails.logging.jul.usebridge = true
-    }
-    production {
-        grails.logging.jul.usebridge = false
-    }
-}
-
 grails.cache.config = {
     provider {
         name "ehcache-profile-service-"+(new Date().format("yyyyMMddHHmmss"))
+    }
+}
+
+environments {
+    development {
+        grails.logging.jul.usebridge = true
+        grails {
+            // use something like FakeSMTP locally to test without actually sending emails.
+            mail {
+                host = "localhost"
+                port = 1025
+                props = ["mail.debug": "true"]
+            }
+        }
+    }
+    production {
+        grails.logging.jul.usebridge = false
+        grails {
+            mail {
+                host = "localhost"
+                port = 25
+                props = ["mail.debug": "false"]
+            }
+        }
     }
 }
 
@@ -118,7 +133,7 @@ log4j = {
         environments {
             production {
                 println "Log4j logs will be written to : ${loggingDir}"
-                rollingFile name: "tomcatLog", maxFileSize: '1MB', file: "${loggingDir}/${appName}.log", threshold: Level.INFO, layout: pattern(conversionPattern: "%d %-5p [%c{1}] %m%n")
+                rollingFile name: "tomcatLog", maxFileSize: '1MB', file: "${loggingDir}/${appName}.log", threshold: Level.DEBUG, layout: pattern(conversionPattern: "%d %-5p [%c{1}] %m%n")
             }
             development {
                 console name: "stdout", layout: pattern(conversionPattern: "%d %-5p [%c{1}] %m%n"), threshold: Level.DEBUG

@@ -10,7 +10,7 @@ class Utils {
         if (str) {
             str = unescapeHtml4(str)
             // preserve line breaks as new lines, remove all other html
-            str = str.replaceAll(/<p\/?>|<br\/?>/, "\n").replaceAll(/<.+?>/, "").trim()
+            str = str.replaceAll(/<p\/?>|<br\/?>/, "\n").replaceAll(/<.+?>/, "").replaceAll(" +", " ").trim()
         }
         return str
     }

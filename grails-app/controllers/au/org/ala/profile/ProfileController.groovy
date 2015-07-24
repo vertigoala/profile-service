@@ -116,10 +116,10 @@ class ProfileController extends BaseController {
         } else {
             Profile profile = profileService.getProfileFromPubId(params.publicationId);
             render text: [
-                    uuid: profile.uuid,
-                    opusId: profile.opus.uuid,
+                    profileId     : profile.uuid,
+                    opusId        : profile.opus.uuid,
                     scientificName: profile.scientificName,
-                    publications: profile.publications
+                    publications  : profile.publications
             ] as JSON
         }
     }
@@ -140,6 +140,7 @@ class ProfileController extends BaseController {
                 classification.each {
                     def profile = Profile.findByGuidAndOpus(it.guid, opus)
                     it.profileUuid = profile?.uuid ?: ''
+                    it.profileName = profile?.scientificName
                 }
             }
 
@@ -305,6 +306,35 @@ class ProfileController extends BaseController {
 
                 render([success: success] as JSON)
             }
+        }
+    }
+
+    def archiveProfile() {
+        def json = request.getJSON()
+        if (!params.profileId || !json?.archiveComment) {
+            badRequest "profileId and archiveComment are required parameters"
+        } else {
+            Profile profile = getProfile()
+
+            if (!profile) {
+                notFound "Profile ${params.profileId} not found"
+            } else {
+                Profile archive = profileService.archiveProfile(profile.uuid, json.archiveComment)
+
+                render archive as JSON
+            }
+        }
+    }
+
+    def restoreArchivedProfile() {
+        def json = request.getJSON()
+
+        if (!params.profileId) {
+            badRequest "profileId is a required parameters"
+        } else {
+            Profile profile = profileService.restoreArchivedProfile(params.profileId, json?.newName ?: null)
+
+            render profile as JSON
         }
     }
 

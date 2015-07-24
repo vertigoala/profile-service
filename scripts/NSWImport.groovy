@@ -1,7 +1,11 @@
+import groovy.xml.MarkupBuilder
 @Grab(group = 'org.codehaus.groovy.modules.http-builder', module = 'http-builder', version = '0.7')
 @Grab('org.apache.commons:commons-lang3:3.3.2')
 
 import groovyx.net.http.RESTClient
+
+import java.text.SimpleDateFormat
+
 import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
 
 import static groovyx.net.http.ContentType.*
@@ -11,11 +15,10 @@ class NSWImport {
 
 
     static void main(args) {
-        def cli = new CliBuilder(usage: "groovy NSWImport -f <datafile> -o opusId -i <includeImages> -p <profileServiceBaseUrl> -d <delimiter default ~> -r <reportfile>")
+        def cli = new CliBuilder(usage: "groovy NSWImport -f <datafile> -o opusId -p <profileServiceBaseUrl> -d <delimiter default ~> -r <reportfile>")
         cli.f(longOpt: "file", "source data file", required: true, args: 1)
         cli.o(longOpt: "opusId", "UUID of the NSW Flora Opus", required: true, args: 1)
         cli.p(longOpt: "profileServiceBaseUrl", "Base URL of the profile service", required: true, args: 1)
-        cli.i(longOpt: "includeImages", "True to include image uploads, false or not present to exclude image uplods", required: false, args: 1)
         cli.d(longOpt: "delimiter", "Data file delimiter (defaults to ~)", required: false, args: 1)
         cli.r(longOpt: "reportFile", "File to write the results of the import to", required: false, args: 1)
 
@@ -28,7 +31,6 @@ class NSWImport {
 
         String NSW_OPUS_ID = opt.o
         String DATA_FILE = opt.f
-        String INCLUDE_IMAGES = opt.i?.asBoolean() ?: false
         String REPORT_FILE = opt.r ?: "report.txt"
         String PROFILE_SERVICE_IMPORT_URL = "${opt.p}/import/profile"
         String DELIMITER = opt.d ?: "~"
@@ -46,6 +48,8 @@ class NSWImport {
             report.delete()
             report.createNewFile()
         }
+
+        List collectionImages = []
 
         new File(DATA_FILE).eachLine { line ->
             if (count++ % 50 == 0) println "Processing line ${count}..."
@@ -70,13 +74,14 @@ class NSWImport {
                 species = cl
             }
 
-            String contributor = fields[6]
-            List<String> images = fields[24..33].findAll { it }
+            String scientificName = "${species}".trim()
 
-            List profileImages = []
-            if (images && INCLUDE_IMAGES) {
+            String contributor = fields[6]
+
+            List<String> images = fields[24..33].findAll { it }
+            if (images) {
                 images?.each {
-                    profileImages << [title: "Image", identifier: NSW_FLORA_IMAGE_URL_PREFIX + it]
+                    collectionImages << [scientificName: scientificName, title: scientificName, identifier: NSW_FLORA_IMAGE_URL_PREFIX + it]
                 }
             }
 
@@ -133,17 +138,15 @@ class NSWImport {
                 attributes << [title: "Taxon Concept", text: taxonConcept, creators: [contributor], stripHtml: true]
             }
 
-            String scientificName = "${species}".trim()
-
             if (!scientificName) {
                 invalidLines[count] = "Unable to determine scientfic name: ${line.substring(0, Math.min(line.size(), 100))}..."
             } else if (!scientificNames.containsKey(scientificName)) {
-                Map profile = [scientificName: scientificName,
-                               nslNomenclatureMatchStrategy: "APC_OR_LATEST",
-                               nameAuthor: nameAuthor,
-                               attributes: attributes,
-                               fullName: "${scientificName} ${nameAuthor}".trim(),
-                               images: profileImages]
+                Map profile = [scientificName              : scientificName,
+                               nslNomenclatureMatchStrategy: "NSL_SEARCH",
+                               nslNomenclatureMatchData    : [taxonConcept],
+                               nameAuthor                  : nameAuthor,
+                               attributes                  : attributes,
+                               fullName                    : "${scientificName} ${nameAuthor}".trim()]
 
                 profiles << profile
             }
@@ -156,20 +159,23 @@ class NSWImport {
                 profiles: profiles
         ]
 
-        println "Importing..."
+        println "Creating images files..."
+        createImageFiles(collectionImages)
 
+        if (true) return
+        println "Importing..."
         def service = new RESTClient(PROFILE_SERVICE_IMPORT_URL)
         def resp = service.post(body: opus, requestContentType: JSON)
 
         if (resp.status == 200) {
             if (invalidLines) {
                 report << "Invalid lines from source file:\n"
-                invalidLines.each {k, v ->
+                invalidLines.each { k, v ->
                     report << "\tLine ${k}: ${v}\n"
                 }
             }
 
-            if (scientificNames.any {k, v -> v.size() > 1 && k != null}) {
+            if (scientificNames.any { k, v -> v.size() > 1 && k != null }) {
                 report << "\n\nDuplicate scientific names (only the first record will be imported): \n"
                 scientificNames.each { k, v ->
                     if (v.size() > 1 && k) {
@@ -181,7 +187,7 @@ class NSWImport {
             int success = 0
             int failed = 0
             int warnings = 0
-            if (resp.data.any {k, v -> v != "Success"}) {
+            if (resp.data.any { k, v -> v != "Success" }) {
                 report << "\n\nRecords unable to be saved: \n"
             }
             resp.data.each { k, v ->
@@ -206,5 +212,70 @@ class NSWImport {
 
     static String clean(String str) {
         unescapeHtml4(str)
+    }
+
+    static createImageFiles(List collectionImages) {
+        String now = new SimpleDateFormat("yyyyMMdd").format(new Date())
+
+        File dir = new File("nsw_images_${now}")
+        if (dir.exists()) {
+            dir.list().each {
+                new File(dir, it).delete()
+            }
+            dir.delete()
+            println "Deleted dir"
+        }
+        dir.mkdir()
+
+        File images = new File(dir, "images.csv")
+        images << "coreID,identifier,title\n"
+
+        File export = new File(dir, "export.csv")
+        export << "dcterms:type,basisOfRecord,catalogNumber,scientificName\n"
+
+        File metadata = new File(dir, "meta.xml")
+
+        int row = 1
+        collectionImages.each {
+            images << "\"${row}\",\"${it.identifier}\",\"${it.title}\"\n"
+            export << "\"Image\",\"HumanObservation\",\"${row}\",\"${it.scientificName}\"\n"
+            row++
+        }
+
+        MarkupBuilder xml = new MarkupBuilder(new FileWriter(metadata))
+
+        xml.mkp.xmlDeclaration(version: "1.0", encoding: "utf-8")
+
+        xml.archive(xmlns: "http://rs.tdwg.org/dwc/text/") {
+            core(encoding: "UTF-8",
+                    linesTerminatedBy: "\\r\\n",
+                    fieldsTerminatedBy: ",",
+                    fieldsEnclosedBy: '"',
+                    ignoreHeaderLines: "1",
+                    rowTye: "http://rs.tdwg.org/dwc/terms/Occurrence") {
+                files() {
+                    location("export.csv")
+                }
+                id(index: 2)
+                field(index: 0, term: "http://purl.org/dc/terms/type")
+                field(index: 1, term: "http://rs.tdwg.org/dwc/terms/basisOfRecord")
+                field(index: 2, term: "http://rs.tdwg.org/dwc/terms/catalogNumber")
+                field(index: 3, term: "http://rs.tdwg.org/dwc/terms/scientificName")
+//                field(index: 4, term: "http://rs.tdwg.org/dwc/terms/associatedMedia")
+            }
+            extension(encoding: "UTF-8",
+                    linesTerminatedBy: "\\r\\n",
+                    fieldsTerminatedBy: ",",
+                    fieldsEnclosedBy: '"',
+                    ignoreHeaderLines: "1",
+                    rowTye: "http://rs.gbif.org/terms/1.0/Image") {
+                files() {
+                    location("images.csv")
+                }
+                coreid(index: 0)
+                field(index: 1, term: "http://purl.org/dc/terms/identifier")
+                field(index: 2, term: "http://purl.org/dc/terms/title")
+            }
+        }
     }
 }

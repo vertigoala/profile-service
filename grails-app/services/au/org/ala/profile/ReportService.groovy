@@ -12,6 +12,16 @@ class ReportService {
         [recordCount: profiles.size(), records: profiles]
     }
 
+    Map archivedProfiles(String opusId) {
+        Opus opus = Opus.findByUuid(opusId)
+
+        List profiles = Profile.findAllByOpusAndArchivedDateIsNotNull(opus).collect {
+            [profileId: it.uuid, scientificName: it.archivedWithName, archivedDate: it.archivedDate, archivedBy: it.archivedBy]
+        }.sort { it.scientificName }
+
+        [recordCount: profiles.size(), records: profiles]
+    }
+
     Map mismatchedNames(String opusId, int max, int startFrom) {
         Opus opus = Opus.findByUuid(opusId)
 
@@ -25,6 +35,8 @@ class ReportService {
                     neProperty("fullName", "matchedName.fullName")
                     isNull "nslNameIdentifier"
                 }
+
+                isNull "archivedDate"
             }.size()
         }
 
@@ -36,6 +48,8 @@ class ReportService {
                 neProperty("fullName", "matchedName.fullName")
                 isNull "nslNameIdentifier"
             }
+
+            isNull "archivedDate"
 
             order "scientificName"
 
@@ -72,6 +86,8 @@ class ReportService {
                     le('lastUpdated', to)
                     ge('lastUpdated', from)
                 }
+                isNull "archivedDate"
+
                 order('lastUpdated', "desc")
             }.size()
         }
@@ -83,6 +99,8 @@ class ReportService {
                 le('lastUpdated', to)
                 ge('lastUpdated', from)
             }
+            isNull "archivedDate"
+
             order('lastUpdated', "desc")
 
             if (max > 0) {

@@ -19,6 +19,7 @@ public class AuditMessageMarshaller {
                 object = new Profile(auditMessage.entity)
                 if (object.draft) {
                     object = new Profile(object.draft.properties)
+                    object.privateMode = true // set the privateMode flag to indicate that the profile was in draft mode at the time the audit was taken
                     object.attributes = null // attributes are not included in the audit history of the profile - they have their own history
                 }
             }

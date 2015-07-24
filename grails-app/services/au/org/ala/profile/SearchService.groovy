@@ -1,7 +1,11 @@
 package au.org.ala.profile
 
+import au.org.ala.web.AuthService
+
 
 class SearchService extends BaseDataAccessService {
+
+    AuthService authService
 
     static final List<String> RANKS = ["kingdom", "phylum", "class", "subclass", "order", "family", "genus", "species"]
     static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 25
@@ -22,6 +26,21 @@ class SearchService extends BaseDataAccessService {
             max = opusList ? DEFAULT_MAX_OPUS_SEARCH_RESULTS : DEFAULT_MAX_BROAD_SEARCH_RESULTS
         }
 
+        // search results from private collections can only be seen by ALA Admins or users registered with the collection
+        boolean alaAdmin = authService.userInRole("ROLE_ADMIN")
+        String userId = authService.getUserId()
+
+        // if the user is ala admin, do nothing
+        // if there is no user, remove all private collections
+        // if there is a user, remove private collections unless the user is registered with the collection
+
+        if (!alaAdmin) {
+            // join queries are not supported in Mongo, so we need to do this programmatically
+            opusList = (opusList ?: Opus.list()).findAll {
+                !it?.privateCollection || it?.authorities?.find { auth -> auth.user.userId == userId }
+            }
+        }
+
         Profile.withCriteria {
             if (opusList) {
                 'in' "opus", opusList
@@ -31,6 +50,8 @@ class SearchService extends BaseDataAccessService {
                 ilike "scientificName", "${scientificName}${wildcard}"
                 ilike "fullName", "${scientificName}${wildcard}"
             }
+
+            isNull "archivedDate"
 
             order "scientificName"
 
@@ -73,6 +94,8 @@ class SearchService extends BaseDataAccessService {
                 eq "rank", nextRank
             }
 
+            isNull "archivedDate"
+
             order "scientificName"
 
             maxResults max
@@ -86,7 +109,7 @@ class SearchService extends BaseDataAccessService {
         Opus opus = Opus.findByUuid(opusId)
 
         if (opus) {
-            Profile.collection.aggregate([[$match: [opus: opus.id]],
+            Profile.collection.aggregate([[$match: [opus: opus.id, archivedDate: null]],
                                           [$unwind: '$classification'],
                                           [$group: [_id: [rank: '$classification.rank', name: '$classification.name'], cnt: [$sum: 1]]],
                                           [$group: [_id: '$_id.rank', total: [$sum: 1]]]]
@@ -110,7 +133,7 @@ class SearchService extends BaseDataAccessService {
                 nextRank = RANKS[RANKS.indexOf(taxon) + 1]
             }
 
-            def result = Profile.collection.aggregate([$match: [opus: opus.id]],
+            def result = Profile.collection.aggregate([$match: [opus: opus.id, archivedDate: null]],
                                                       [$unwind: '$classification'],
                                                       [$match: ["classification.rank": "${taxon}"]],
                                                       [$group: [_id: '$classification.name', cnt: [$sum: 1]]],

@@ -1,6 +1,8 @@
 package au.org.ala.profile.marshaller
 
 import au.org.ala.profile.Opus
+import au.org.ala.profile.SupportingOpus
+import au.org.ala.profile.util.ShareRequestStatus
 import grails.converters.JSON
 
 class OpusMarshaller {
@@ -29,6 +31,7 @@ class OpusMarshaller {
                     enableOccurrenceUpload     : opus.enableOccurrenceUpload != null ? opus.enableKeyUpload : true,
                     enableTaxaUpload           : opus.enableTaxaUpload != null ? opus.enableKeyUpload : true,
                     enableKeyUpload            : opus.enableKeyUpload != null ? opus.enableKeyUpload : true,
+                    privateCollection          : opus.privateCollection != null ? opus.privateCollection : false,
                     mapAttribution             : opus.mapAttribution ?: 'Atlas',
                     mapPointColour             : opus.mapPointColour ?: "FF9900",
                     mapDefaultLatitude         : opus.mapDefaultLatitude ?: -23.6,
@@ -37,7 +40,14 @@ class OpusMarshaller {
                     mapBaseLayer               : opus.mapBaseLayer ?: "https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png",
                     biocacheUrl                : opus.biocacheUrl,
                     biocacheName               : opus.biocacheName ?: 'Atlas',
-                    supportingOpuses           : collectSupportingOpuses(opus),
+                    supportingOpuses           : marshalSupportingOpuses(opus.supportingOpuses?.findAll {
+                        it.requestStatus == ShareRequestStatus.ACCEPTED
+                    }),
+                    requestedSupportingOpuses  : marshalSupportingOpuses(opus.supportingOpuses?.findAll {
+                        it.requestStatus != ShareRequestStatus.ACCEPTED
+                    }),
+                    sharingDataWith            : marshalSupportingOpuses(opus.sharingDataWith),
+                    autoApproveShareRequests   : opus.autoApproveShareRequests,
                     allowCopyFromLinkedOpus    : opus.allowCopyFromLinkedOpus != null ? opus.allowCopyFromLinkedOpus : false,
                     showLinkedOpusAttributes   : opus.showLinkedOpusAttributes != null ? opus.showLinkedOpusAttributes : false,
                     allowFineGrainedAttribution: opus.allowFineGrainedAttribution != null ? opus.allowFineGrainedAttribution : true,
@@ -56,7 +66,10 @@ class OpusMarshaller {
         }
     }
 
-    static def collectSupportingOpuses(opus) {
-        opus.supportingOpuses ? opus.supportingOpuses.each { [opusId: it.uuid, title: it.title] } : []
+    def static marshalSupportingOpuses(List opuses) {
+        opuses ?
+                opuses.collect {
+                    [uuid: it.uuid, title: it.title, requestStatus: it.requestStatus.toString()]
+                } : []
     }
 }

@@ -21,6 +21,22 @@ class ReportController extends BaseController {
         }
     }
 
+    def archivedProfiles() {
+        if (!params.opusId) {
+            badRequest "opusId is a required parameter"
+        } else {
+            Opus opus = getOpus()
+
+            if (!opus) {
+                notFound "No opus found for ${params.opusId}"
+            } else {
+                Map report = reportService.archivedProfiles(opus.uuid)
+
+                render report as JSON
+            }
+        }
+    }
+
     def mismatchedNames() {
         if (!params.opusId) {
             badRequest "opusId is a required parameter"
