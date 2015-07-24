@@ -369,7 +369,7 @@ class OpusService extends BaseDataAccessService {
 
         List administrators = requestingOpus.authorities.findAll {
             it.role == Role.ROLE_PROFILE_ADMIN
-        }.collect { it.user.userId }
+        }.collect { authService.getUserForUserId(it.user.userId).userName }
 
         String user = authService.getUserForUserId(authService.getUserId()).displayName
 
