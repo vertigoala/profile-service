@@ -185,15 +185,14 @@ class OpusService extends BaseDataAccessService {
         }
     }
 
-    Opus updateAboutHtml(String opusId, String html) {
+    Opus updateAbout(String opusId, def json) {
         checkArgument opusId
 
         Opus opus = Opus.findByUuid(opusId)
         checkState opus
 
-        if (html != opus.aboutHtml) {
-            opus.aboutHtml = html
-        }
+        opus.aboutHtml = json.aboutHtml as String
+        opus.citationHtml = json.citationHtml as String
 
         save opus
 

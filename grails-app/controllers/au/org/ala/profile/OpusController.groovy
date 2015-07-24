@@ -235,14 +235,14 @@ class OpusController extends BaseController {
             if (!opus) {
                 notFound()
             } else {
-                render ([opus: [title: opus.title, opusId: opus.uuid, aboutHtml: opus.aboutHtml]] as JSON)
+                render ([opus: [title: opus.title, opusId: opus.uuid, aboutHtml: opus.aboutHtml, citationHtml: opus.citationHtml]] as JSON)
             }
         }
     }
 
-    def updateAboutHtml() {
+    def updateAbout() {
         def json = request.getJSON()
-        if (!params.opusId || !json || !json.containsKey("aboutHtml")) {
+        if (!params.opusId || !json || !json.containsKey("aboutHtml") || !json.containsKey("citationHtml")) {
             badRequest()
         } else {
             Opus opus = getOpus()
@@ -250,7 +250,7 @@ class OpusController extends BaseController {
             if (!opus) {
                 notFound()
             } else {
-                opus = opusService.updateAboutHtml(opus.uuid, json.aboutHtml)
+                opus = opusService.updateAbout(opus.uuid, json)
 
                 render ([opus: [title: opus.title, opusId: opus.uuid, aboutHtml: opus.aboutHtml]] as JSON)
             }

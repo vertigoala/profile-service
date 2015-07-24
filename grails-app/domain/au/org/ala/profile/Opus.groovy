@@ -41,6 +41,7 @@ class Opus {
     String keybaseProjectId
     String keybaseKeyId
     String aboutHtml
+    String citationHtml
     String copyrightText
     String footerText
     String email
@@ -72,6 +73,7 @@ class Opus {
         keybaseProjectId nullable: true
         keybaseKeyId nullable: true
         aboutHtml nullable: true
+        citationHtml nullable: true
         copyrightText nullable: true
         footerText nullable: true
         email nullable: true
