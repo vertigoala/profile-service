@@ -297,7 +297,7 @@ class OpusService extends BaseDataAccessService {
                     if (!supportingOpus.autoApproveShareRequests) {
                         List administrators = supportingOpus.authorities.findAll {
                             it.role == Role.ROLE_PROFILE_ADMIN
-                        }.collect { it.user.userId }
+                        }.collect { authService.getUserForUserId(it.user.userId).userName }
 
                         String user = authService.getUserForUserId(authService.getUserId()).displayName
 
