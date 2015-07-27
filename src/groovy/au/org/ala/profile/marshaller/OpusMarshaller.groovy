@@ -61,7 +61,8 @@ class OpusMarshaller {
                                                   facebook: opus.facebook],
                     hasAboutPage               : opus.aboutHtml != null,
                     excludeRanksFromMap        : opus.excludeRanksFromMap ?: [],
-                    profileCount               : opus.profileCount
+                    profileCount               : opus.profileCount,
+                    citationHtml               : opus.citationHtml
             ]
         }
     }
