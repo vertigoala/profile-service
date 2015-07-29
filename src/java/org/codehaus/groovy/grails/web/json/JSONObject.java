@@ -155,6 +155,15 @@ public class JSONObject implements JSONElement, Map {
         public String toString() {
             return "";
         }
+
+        /**
+         * Converts JSONObject.NULL to null
+         * @param c Type conversion
+         * @return
+         */
+        public Object asType(Class c) {
+            return null;
+        }
     }
 
 
