@@ -19,8 +19,6 @@ class BootStrap {
         }
 
         ctx.getBean("customObjectMarshallers").register()
-
-        JSONObject.NULL.metaClass.asBoolean = { -> false }
     }
     def destroy = {
     }

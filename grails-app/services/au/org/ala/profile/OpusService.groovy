@@ -185,15 +185,14 @@ class OpusService extends BaseDataAccessService {
         }
     }
 
-    Opus updateAboutHtml(String opusId, String html) {
+    Opus updateAbout(String opusId, def json) {
         checkArgument opusId
 
         Opus opus = Opus.findByUuid(opusId)
         checkState opus
 
-        if (html != opus.aboutHtml) {
-            opus.aboutHtml = html
-        }
+        opus.aboutHtml = json.aboutHtml as String
+        opus.citationHtml = json.citationHtml as String
 
         save opus
 
@@ -297,7 +296,7 @@ class OpusService extends BaseDataAccessService {
                     if (!supportingOpus.autoApproveShareRequests) {
                         List administrators = supportingOpus.authorities.findAll {
                             it.role == Role.ROLE_PROFILE_ADMIN
-                        }.collect { it.user.userId }
+                        }.collect { authService.getUserForUserId(it.user.userId).userName }
 
                         String user = authService.getUserForUserId(authService.getUserId()).displayName
 
@@ -369,7 +368,7 @@ class OpusService extends BaseDataAccessService {
 
         List administrators = requestingOpus.authorities.findAll {
             it.role == Role.ROLE_PROFILE_ADMIN
-        }.collect { it.user.userId }
+        }.collect { authService.getUserForUserId(it.user.userId).userName }
 
         String user = authService.getUserForUserId(authService.getUserId()).displayName
 
