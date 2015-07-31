@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import grails.converters.JSON
+import org.apache.commons.lang3.BooleanUtils
 
 class ReportController extends BaseController {
     def reportService
@@ -56,7 +57,7 @@ class ReportController extends BaseController {
         }
     }
 
-    def mostRecentChange() {
+    def recentChanges() {
         if (!params.opusId || !params.from || !params.to) {
             badRequest "opusId, from and to date are required parameters"
         } else {
@@ -64,6 +65,7 @@ class ReportController extends BaseController {
 
             int max = params.max && params.max != "null" ? params.max as int : -1
             int startFrom = params.offset ? params.offset as int : 0
+            boolean countOnly = BooleanUtils.toBoolean(params.countOnly, "true", "false")
 
             try {
                 Date from = new Date(params.from);
@@ -71,7 +73,8 @@ class ReportController extends BaseController {
                 if (!opus) {
                     notFound "No opus found for ${params.opusId}"
                 } else {
-                    Map report = reportService.recentUpdates(opus.uuid, from, to, max, startFrom);
+                    Map report = reportService.recentUpdates(
+                            opus.uuid, from, to, max, startFrom, countOnly);
                     render report as JSON
                 }
             } catch (Exception e) {

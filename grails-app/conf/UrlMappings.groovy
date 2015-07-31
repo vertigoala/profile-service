@@ -69,9 +69,10 @@ class UrlMappings {
 
         "/checkName" controller: "profile", action: [GET: "checkName"]
 
-        "/report/mismatchedNames" controller: "report", action: [GET: "mismatchedNames"]
-        "/report/draftProfiles" controller: "report", action: [GET: "draftProfiles"]
         "/report/archivedProfiles" controller: "report", action: [GET: "archivedProfiles"]
+        "/report/draftProfiles" controller: "report", action: [GET: "draftProfiles"]
+        "/report/mismatchedNames" controller: "report", action: [GET: "mismatchedNames"]
+        "/report/recentChanges" controller: "report", action: [GET: "recentChanges"]
 
         "/status/" controller: "status", action: [GET: "status"]
         "/status/$component" controller: "status", action: [GET: "status"]

@@ -75,7 +75,8 @@ class ReportService {
          }]
     }
 
-    Map recentUpdates(String opusId, Date from, Date to, int max, int startFrom) {
+    Map recentUpdates(String opusId, Date from, Date to, int max, int startFrom,
+                      boolean countOnly) {
         Opus opus = Opus.findByUuid(opusId)
 
         int count = -1
@@ -92,25 +93,30 @@ class ReportService {
             }.size()
         }
 
-        //get profiles updated or profiles with the given ids
-        List profiles = Profile.withCriteria {
-            eq('opus', opus)
-            and {
-                le('lastUpdated', to)
-                ge('lastUpdated', from)
-            }
-            isNull "archivedDate"
-
-            order('lastUpdated', "desc")
-
-            if (max > 0) {
-                maxResults max
-                offset startFrom
-            }
-        }.collect {
-            [profileId: it.uuid, scientificName: it.scientificName, lastUpdated: it.lastUpdated, editor: it.lastUpdatedBy]
+        if (countOnly) {
+            [recordCount: count > 0 ? count : 0]
         }
+        else {
+            //get profiles updated or profiles with the given ids
+            List profiles = Profile.withCriteria {
+                eq('opus', opus)
+                and {
+                    le('lastUpdated', to)
+                    ge('lastUpdated', from)
+                }
+                isNull "archivedDate"
 
-        [recordCount: count > 0 ? count : profiles.size(), records: profiles]
+                order('lastUpdated', "desc")
+
+                if (max > 0) {
+                    maxResults max
+                    offset startFrom
+                }
+            }.collect {
+                [profileId: it.uuid, scientificName: it.scientificName, lastUpdated: it.lastUpdated, editor: it.lastUpdatedBy]
+            }
+
+            [recordCount: count > 0 ? count : profiles.size(), records: profiles]
+        }
     }
 }
