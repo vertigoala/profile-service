@@ -8,7 +8,7 @@ import java.text.SimpleDateFormat
 
 import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
 
-import static groovyx.net.http.ContentType.*
+import static groovyx.net.http.ContentType.JSON
 
 class NSWImport {
     static final String NSW_FLORA_IMAGE_URL_PREFIX = "http://plantnet.rbgsyd.nsw.gov.au/HerbLink/multimedia/"
@@ -85,57 +85,57 @@ class NSWImport {
                 }
             }
 
-            String suppliedTaxonomy = fields[1..4].join("\n").trim()
-            attributes << [title: "Supplied Taxonomy", text: suppliedTaxonomy, creators: [contributor], stripHtml: true]
+            String suppliedTaxonomy = fields[1..4].join("<p/>").trim()
+            attributes << [title: "Supplied Taxonomy", text: suppliedTaxonomy, creators: [contributor], stripHtml: false]
 
             String commonName = fields[5]
             if (commonName) {
-                attributes << [title: "Common Name", text: commonName, creators: [contributor], stripHtml: true]
+                attributes << [title: "Common Name", text: commonName, creators: [contributor], stripHtml: false]
             }
 
             String description = fields[7]
             if (description) {
-                attributes << [title: "Description", text: description, creators: [contributor], stripHtml: true]
+                attributes << [title: "Description", text: description, creators: [contributor], stripHtml: false]
             }
 
             String leaves = fields[8]
             if (leaves) {
-                attributes << [title: "Leaves", text: leaves, creators: [contributor], stripHtml: true]
+                attributes << [title: "Leaves", text: leaves, creators: [contributor], stripHtml: false]
             }
 
             String flowers = fields[9]
             if (flowers) {
-                attributes << [title: "Flowers", text: flowers, creators: [contributor], stripHtml: true]
+                attributes << [title: "Flowers", text: flowers, creators: [contributor], stripHtml: false]
             }
 
             String fruit = fields[10]
             if (fruit) {
-                attributes << [title: "Fruit", text: fruit, creators: [contributor], stripHtml: true]
+                attributes << [title: "Fruit", text: fruit, creators: [contributor], stripHtml: false]
             }
 
             String flowering = fields[11]
             if (flowering) {
-                attributes << [title: "Flowering", text: flowering, creators: [contributor], stripHtml: true]
+                attributes << [title: "Flowering", text: flowering, creators: [contributor], stripHtml: false]
             }
 
-            String occurrence = fields[12..15].join("\n").trim()
+            String occurrence = fields[12..15].join("<p/>").trim()
             if (occurrence) {
-                attributes << [title: "Occurrence", text: occurrence, creators: [contributor], stripHtml: true]
+                attributes << [title: "Occurrence", text: occurrence, creators: [contributor], stripHtml: false]
             }
 
-            String otherNotes = fields[18..21].join("\n").trim()
+            String otherNotes = (fields[18..19] + fields[21]).join("<p/>").trim()
             if (otherNotes) {
-                attributes << [title: "Notes", text: otherNotes, creators: [contributor], stripHtml: true]
+                attributes << [title: "Notes", text: otherNotes, creators: [contributor], stripHtml: false]
             }
 
             String synonyms = fields[17]
             if (synonyms) {
-                attributes << [title: "Synonyms", text: synonyms, creators: [contributor], stripHtml: true]
+                attributes << [title: "Synonyms", text: synonyms, creators: [contributor], stripHtml: false]
             }
 
             String taxonConcept = fields[23]
             if (taxonConcept) {
-                attributes << [title: "Taxon Concept", text: taxonConcept, creators: [contributor], stripHtml: true]
+                attributes << [title: "Taxon Concept", text: taxonConcept, creators: [contributor], stripHtml: false]
             }
 
             if (!scientificName) {
@@ -162,7 +162,6 @@ class NSWImport {
         println "Creating images files..."
         createImageFiles(collectionImages)
 
-        if (true) return
         println "Importing..."
         def service = new RESTClient(PROFILE_SERVICE_IMPORT_URL)
         def resp = service.post(body: opus, requestContentType: JSON)
@@ -187,17 +186,26 @@ class NSWImport {
             int success = 0
             int failed = 0
             int warnings = 0
-            if (resp.data.any { k, v -> v != "Success" }) {
-                report << "\n\nRecords unable to be saved: \n"
-            }
+            report << "\n\nImport results: \n"
             resp.data.each { k, v ->
-                if (v.startsWith("Success")) {
+                if (v.status.startsWith("success")) {
                     success++
-                } else if (v.startsWith("Warning")) {
-                    report << "\t${k}: ${v}\n"
+                } else if (v.status.startsWith("warning")) {
+                    report << "\t${k} succeeded with ${v.warnings.size()} warnings:\n"
+                    v.warnings.each {
+                        report << "\t\t${it}\n"
+                    }
                     warnings++
                 } else {
-                    report << "\t${k} Failed: ${v}\n"
+                    report << "\t${k} failed with ${v.errors.size()} errors and ${v.warnings.size()} warnings:\n"
+                    report << "\t\tWarnings\n"
+                    v.warnings.each {
+                        report << "\t\t\t${it}\n"
+                    }
+                    report << "\t\tErrors\n"
+                    v.errors.each {
+                        report << "\t\t\t${it}\n"
+                    }
                     failed++
                 }
             }
@@ -261,7 +269,6 @@ class NSWImport {
                 field(index: 1, term: "http://rs.tdwg.org/dwc/terms/basisOfRecord")
                 field(index: 2, term: "http://rs.tdwg.org/dwc/terms/catalogNumber")
                 field(index: 3, term: "http://rs.tdwg.org/dwc/terms/scientificName")
-//                field(index: 4, term: "http://rs.tdwg.org/dwc/terms/associatedMedia")
             }
             extension(encoding: "UTF-8",
                     linesTerminatedBy: "\\r\\n",

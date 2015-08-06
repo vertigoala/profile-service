@@ -183,17 +183,26 @@ if (true) return
             int success = 0
             int failed = 0
             int warnings = 0
-            if (resp.data.any {k, v -> v != "Success"}) {
-                report << "\n\nRecords unable to be saved: \n"
-            }
+            report << "\n\nImport results: \n"
             resp.data.each { k, v ->
-                if (v.startsWith("Success")) {
+                if (v.status.startsWith("success")) {
                     success++
-                } else if (v.startsWith("Warning")) {
-                    report << "\t${k}: ${v}\n"
+                } else if (v.status.startsWith("warning")) {
+                    report << "\t${k} succeeded with ${v.warnings.size()} warnings:\n"
+                    v.warnings.each {
+                        report << "\t\t${it}\n"
+                    }
                     warnings++
                 } else {
-                    report << "\t${k} Failed: ${v}\n"
+                    report << "\t${k} failed with ${v.errors.size()} errors and ${v.warnings.size()} warnings:\n"
+                    report << "\t\tWarnings\n"
+                    v.warnings.each {
+                        report << "\t\t\t${it}\n"
+                    }
+                    report << "\t\tErrors\n"
+                    v.errors.each {
+                        report << "\t\t\t${it}\n"
+                    }
                     failed++
                 }
             }

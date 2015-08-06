@@ -49,7 +49,7 @@ class ImportService extends BaseDataAccessService {
     Map<String, String> importProfiles(String opusId, profilesJson) {
         Opus opus = Opus.findByUuid(opusId);
 
-        Map<String, String> results = [:] as ConcurrentHashMap
+        Map<String, Map> profileResults = [:] as ConcurrentHashMap
 
         AtomicInteger success = new AtomicInteger(0)
         AtomicInteger index = new AtomicInteger(0)
@@ -70,12 +70,11 @@ class ImportService extends BaseDataAccessService {
         log.info "Importing profiles ..."
         withPool(IMPORT_THREAD_POOL_SIZE) {
             profilesJson.eachParallel {
-                boolean nameMatched = true
+                Map results = [errors: [], warnings: []]
                 index.incrementAndGet()
 
-                boolean hasWarning = false
                 if (!it.scientificName) {
-                    results << [("Row${index}"): "Failed to import row ${index}, does not have a scientific name"]
+                    results.errors << "Failed to import row ${index}, does not have a scientific name"
                 } else {
                     Map matchedName = nameService.matchName(it.fullName)
 
@@ -85,20 +84,18 @@ class ImportService extends BaseDataAccessService {
                     String guid = matchedName?.guid ?: null
 
                     if (!matchedName) {
-                        results << [("${it.scientificName}_W1"): "Warning: no matching name for ${it.scientificName}"]
-                        hasWarning = true
+                        results.warnings << ["No matching name for ${it.scientificName}"]
                     } else if (!it.scientificName.equalsIgnoreCase(matchedName.scientificName) && !it.scientificName.equalsIgnoreCase(fullName)) {
-                        results << [("${it.scientificName}_W1"): "Warning: provided with name ${it.scientificName}, but was matched with name ${fullName}. Using provided name."]
+                        results.warnings << "Provided with name ${it.scientificName}, but was matched with name ${fullName}. Using provided name."
                         scientificName = it.scientificName
                         fullName = it.fullName
                         nameAuthor = it.nameAuthor
-                        hasWarning = true
                     }
 
                     Profile profile = Profile.findByScientificNameAndOpus(scientificName, opus)
                     if (profile) {
                         log.info("Profile already exists in this opus for scientific name ${scientificName}")
-                        results << [(it.scientificName): "Already exists (provided as ${it.scientificName}, matched as ${fullName})"]
+                        results.errors << "'${it.scientificName}' already exists (provided as ${it.scientificName}, matched as ${fullName})"
                     } else {
                         profile = new Profile(scientificName: scientificName, nameAuthor: nameAuthor, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: []);
                         profile.fullName = fullName
@@ -137,22 +134,21 @@ class ImportService extends BaseDataAccessService {
 
                         if (profile.guid) {
                             profileService.populateTaxonHierarchy(profile)
-                        } else {
-                            nameMatched = false
                         }
 
                         if (it.nslNomenclatureIdentifier) {
                             profile.nslNomenclatureIdentifier = it.nslNomenclatureIdentifier
                         } else if (profile.nslNameIdentifier && enableNSLMatching) {
                             NSLNomenclatureMatchStrategy matchStrategy = NSLNomenclatureMatchStrategy.valueOf(it.nslNomenclatureMatchStrategy) ?: NSLNomenclatureMatchStrategy.DEFAULT
-                            Map nomenclature = nameService.findNomenclature(profile.nslNameIdentifier, matchStrategy, it.nslNomenclatureMatchData)
+                            if (matchStrategy != NSLNomenclatureMatchStrategy.NONE) {
+                                Map nomenclature = nameService.findNomenclature(profile.nslNameIdentifier, matchStrategy, it.nslNomenclatureMatchData)
 
-                            if (!nomenclature) {
-                                results << [("${it.scientificName}_W2"): "Warning: no matching nomenclature found"]
-                                hasWarning = true
+                                if (!nomenclature) {
+                                    results.warnings << "No matching nomenclature was found"
+                                }
+
+                                profile.nslNomenclatureIdentifier = nomenclature?.id
                             }
-
-                            profile.nslNomenclatureIdentifier = nomenclature?.id
                         }
 
                         it.links.each {
@@ -230,12 +226,8 @@ class ImportService extends BaseDataAccessService {
                         if (profile.errors.allErrors.size() > 0) {
                             log.error("Failed to save ${profile}")
                             profile.errors.each { log.error(it) }
-                            results << [(it.scientificName): "Failed: ${profile.errors.allErrors.get(0)}"]
+                            results.errors << "Failed to save profile ${profile.errors.allErrors.get(0)}"
                         } else {
-                            // may have had a warning added earlier, but we'll still count it as a success
-                            if (!hasWarning) {
-                                results << [(it.scientificName): nameMatched ? "Success" : "Success (Unmatched name)"]
-                            }
                             success.incrementAndGet()
                             if (index % reportInterval == 0) {
                                 log.debug("Saved ${success} of ${profilesJson.size()}")
@@ -243,11 +235,13 @@ class ImportService extends BaseDataAccessService {
                         }
                     }
                 }
+                results.status = results.errors ? "error" : results.warnings ? "warning" : "success"
+                profileResults << [(it.scientificName): results]
             }
         }
         log.debug "${success} of ${profilesJson.size()} records imported"
 
-        results
+        profileResults
     }
 
     def uploadImage(String scientificName, String dataResourceId, Map metadata) {
