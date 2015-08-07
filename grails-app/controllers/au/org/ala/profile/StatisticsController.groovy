@@ -52,18 +52,18 @@ class StatisticsController extends BaseController {
 						value: "${profile.scientificName} by ${profile.lastUpdatedBy} on ${profile.lastUpdated.format("dd MMM yyyy")}"
 				])
 
-				int namesNotInNSL = statisticsService.profilesWithNameNotInNSL(opus)
+				Map mismatchedNames = reportService.mismatchedNames(opus.uuid, 0, 1, true)
 				statistics.add([
-						id: 'namesNotInNSL',
-				        name: 'Names Not In NSL',
-						value: namesNotInNSL
+				        id: 'mismatchedNames',
+						name: 'Mismatched Names',
+						value: mismatchedNames.recordCount
 				])
 
-				float namesNotInNSLAsPercent = statisticsService.profilesWithNameNotInNSLAsPercent(opus)
+				float mismatchedNamesAsPercent = mismatchedNames.recordCount / profileCount * 100.0;
 				statistics.add([
-						id: 'namesNotInNSLPercent',
-				        name: 'Names Not In NSL Percent',
-						value: namesNotInNSLAsPercent,
+						id: 'mismatchedNamesPercent',
+				        name: 'Mismatched Names (Percent)',
+						value: mismatchedNamesAsPercent,
 				])
 
 				render statistics as JSON

@@ -22,7 +22,7 @@ class ReportService {
         [recordCount: profiles.size(), records: profiles]
     }
 
-    Map mismatchedNames(String opusId, int max, int startFrom) {
+    Map mismatchedNames(String opusId, int max, int startFrom, boolean countOnly) {
         Opus opus = Opus.findByUuid(opusId)
 
         int count = -1
@@ -40,39 +40,44 @@ class ReportService {
             }.size()
         }
 
-        def result = Profile.withCriteria {
-            eq "opus", opus
-
-            or {
-                isNull "matchedName"
-                neProperty("fullName", "matchedName.fullName")
-                isNull "nslNameIdentifier"
-            }
-
-            isNull "archivedDate"
-
-            order "scientificName"
-
-            if (max > 0) {
-                maxResults max
-                offset startFrom
-            }
+        if (countOnly) {
+            [recordCount: count > 0 ? count : 0]
         }
+        else {
+            def result = Profile.withCriteria {
+                eq "opus", opus
 
-        [recordCount: count > -1 ? count : result.size(),
-         records    : result.collect {
-             [
-                     profileId  : it.uuid,
-                     profileName: [scientificName: it.scientificName,
-                                   fullName      : it.fullName,
-                                   nameAuthor    : it.nameAuthor],
-                     matchedName: it.matchedName ? [scientificName: it.matchedName.scientificName,
-                                                    fullName      : it.matchedName.fullName,
-                                                    nameAuthor    : it.matchedName.nameAuthor,
-                                                    guid          : it.matchedName.guid] : [:],
-                     nslNameId  : it.nslNameIdentifier
-             ]
-         }]
+                or {
+                    isNull "matchedName"
+                    neProperty("fullName", "matchedName.fullName")
+                    isNull "nslNameIdentifier"
+                }
+
+                isNull "archivedDate"
+
+                order "scientificName"
+
+                if (max > 0) {
+                    maxResults max
+                    offset startFrom
+                }
+            }
+
+            [recordCount: count > -1 ? count : result.size(),
+             records    : result.collect {
+                 [
+                         profileId  : it.uuid,
+                         profileName: [scientificName: it.scientificName,
+                                       fullName      : it.fullName,
+                                       nameAuthor    : it.nameAuthor],
+                         matchedName: it.matchedName ? [scientificName: it.matchedName.scientificName,
+                                                        fullName      : it.matchedName.fullName,
+                                                        nameAuthor    : it.matchedName.nameAuthor,
+                                                        guid          : it.matchedName.guid] : [:],
+                         nslNameId  : it.nslNameIdentifier
+                 ]
+             }]
+        }
     }
 
     Map recentUpdates(String opusId, Date from, Date to, int max, int startFrom,
