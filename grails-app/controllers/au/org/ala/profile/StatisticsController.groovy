@@ -18,7 +18,9 @@ class StatisticsController extends BaseController {
 			} else {
 				def statistics = []
 
-				int profileCount = Profile.count
+				int profileCount = Profile.createCriteria().count {
+					eq("opus", opus)
+				}
 				statistics.add([
 				        name: 'Profiles',
 						value: profileCount
