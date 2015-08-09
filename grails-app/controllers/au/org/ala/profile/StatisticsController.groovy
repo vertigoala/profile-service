@@ -28,7 +28,7 @@ class StatisticsController extends BaseController {
 				])
 
 				int editorCount = opus.authorities.count {
-					eq("role", Role.ROLE_PROFILE_EDITOR)
+					eq("role", Role.ROLE_PROFILE_EDITOR.name())
 				}
 				statistics.add([
 						id: 'editorCount',
@@ -36,9 +36,14 @@ class StatisticsController extends BaseController {
 						value: editorCount
 				])
 
-				Date from = new Date().minus(30)
+				Calendar from = Calendar.getInstance().set(Calendar.DAY_OF_MONTH, 1)
+                from.set(Calendar.HOUR_OF_DAY, 0)
+                from.set(Calendar.MINUTE, 0)
+                from.set(Calendar.SECOND, 0)
+                from.set(Calendar.MILLISECOND, 0)
+
 				Date to = new Date()
-				Map updatesThisMonth = reportService.recentUpdates(opus.uuid, from, to, 0, 1, true)
+				Map updatesThisMonth = reportService.recentUpdates(opus.uuid, from.getTime(), to, 0, 1, true)
 				statistics.add([
 						id: 'updatesThisMonth',
 						name: 'Updates This Month',
