@@ -48,7 +48,7 @@ class ReportController extends BaseController {
                 int max = params.max && params.max != "null" ? params.max as int : -1
                 int startFrom = params.offset ? params.offset as int : 0
 
-                Map report = reportService.mismatchedNames(opus.uuid, max, startFrom)
+                Map report = reportService.mismatchedNames(opus.uuid, max, startFrom, false)
 
                 render report as JSON
             }

@@ -74,6 +74,8 @@ class UrlMappings {
         "/report/mismatchedNames" controller: "report", action: [GET: "mismatchedNames"]
         "/report/recentChanges" controller: "report", action: [GET: "recentChanges"]
 
+        "/statistics/" controller: "statistics", action: [GET: "index"]
+
         "/status/" controller: "status", action: [GET: "status"]
         "/status/$component" controller: "status", action: [GET: "status"]
 
