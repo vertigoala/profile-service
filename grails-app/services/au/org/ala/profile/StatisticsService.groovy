@@ -1,5 +1,4 @@
 package au.org.ala.profile
-
 /**
  * StatisticsService
  *
@@ -18,5 +17,23 @@ class StatisticsService {
 		}.first()
 
 		return profile
+	}
+
+	/**
+	 * Counts the number of profiles by rank
+	 * @param opus
+	 * @return
+	 */
+	Map profilesByRank(Opus opus) {
+		def c = Profile.createCriteria()
+		def result = c.list {
+			eq("opus", opus)
+			projections {
+				groupProperty("rank")
+				countDistinct("id")
+			}
+		}
+
+		result
 	}
 }
