@@ -25,7 +25,7 @@ class StatisticsController extends BaseController {
 				}
 				statistics.add([
 						id: 'profileCount',
-				        name: 'Profiles',
+				        name: 'Profiles in collection',
 						value: profileCount,
                         tooltip: "Total number of profiles in this collection"
 				])
@@ -51,7 +51,7 @@ class StatisticsController extends BaseController {
 				}
 				statistics.add([
 						id: 'editorCount',
-				        name: 'Editors',
+				        name: 'Collection editors',
 						value: editorCount,
                         tooltip: "Number of people who can edit profiles in this collection"
                 ])
@@ -75,7 +75,7 @@ class StatisticsController extends BaseController {
 				Profile profile = statisticsService.lastEditedProfile(opus)
 				statistics.add([
 						id: 'lastUpdatedProfile',
-				        name: 'Last Updated',
+				        name: 'Most Recent Update',
 						value: "${profile.scientificName}",
                         tooltip: "Updated by ${profile.lastUpdatedBy} on ${profile.lastUpdated.format('dd/MM/yyyy')}"
 				])
