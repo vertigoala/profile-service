@@ -70,21 +70,19 @@ class NameService extends BaseDataAccessService {
             String resp = new URL("${grailsApplication.config.nsl.name.match.url.prefix}\"${enc(name)}\"").text
             def json = new JsonSlurper().parseText(resp)
             if (json.count == 1) {
-                match.scientificName = json.names[0].name.simpleName
-                match.scientificNameHtml = json.names[0].name.simpleNameHtml
-                match.fullName = json.names[0].name.fullName
-                match.fullNameHtml = json.names[0].name.fullNameHtml
-                match.nameAuthor = json.names[0].name.author.name
-                String linkUrl = json.names[0].name._links.permalinks.find {
-                    it.preferred == "true" || it.preferred == true
-                }?.link
+                match.scientificName = json.names[0].simpleName
+                match.scientificNameHtml = json.names[0].simpleNameHtml
+                match.fullName = json.names[0].fullName
+                match.fullNameHtml = json.names[0].fullNameHtml
+                match.nameAuthor = json.names[0].author?.name
+                String linkUrl = json.names[0]._links.permalink.link
                 match.nslIdentifier = linkUrl.substring(linkUrl.lastIndexOf("/") + 1)
-                match.nslProtologue = json.names[0].name?.primaryInstance[0]?.citationHtml
+                match.nslProtologue = json.names[0].primaryInstance[0]?.citationHtml
             } else {
                 log.warn("${json.count} NSL matches for ${name}")
             }
         } catch (Exception e) {
-            log.error e
+            log.error(e)
         }
 
         match
@@ -223,7 +221,8 @@ class NameService extends BaseDataAccessService {
                                 url               : fields.id,
                                 nslIdentifier     : fields.id.substring(fields.id.lastIndexOf("/") + 1),
                                 rank              : fields.rank,
-                                nameAuthor        : fields.authority]
+                                nameAuthor        : fields.authority,
+                                nslProtologue     : fields.proto_citation]
 
                     result.bySimpleName << [(simpleName): name]
                     result.byFullName << [(fullName): name]
