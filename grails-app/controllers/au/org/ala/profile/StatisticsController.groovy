@@ -2,8 +2,6 @@ package au.org.ala.profile
 import au.org.ala.profile.security.Role
 import grails.converters.JSON
 
-import java.text.SimpleDateFormat
-
 class StatisticsController extends BaseController {
 
 	StatisticsService statisticsService
