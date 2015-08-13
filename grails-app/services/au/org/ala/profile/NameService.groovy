@@ -74,7 +74,7 @@ class NameService extends BaseDataAccessService {
                 match.scientificNameHtml = json.names[0].simpleNameHtml
                 match.fullName = json.names[0].fullName
                 match.fullNameHtml = json.names[0].fullNameHtml
-                match.nameAuthor = json.names[0].author?.name
+                match.nameAuthor = extractAuthorsFromNameHtml(match.fullNameHtml)
                 String linkUrl = json.names[0]._links.permalink.link
                 match.nslIdentifier = linkUrl.substring(linkUrl.lastIndexOf("/") + 1)
                 match.nslProtologue = json.names[0].primaryInstance[0]?.citationHtml
@@ -86,6 +86,19 @@ class NameService extends BaseDataAccessService {
         }
 
         match
+    }
+
+    String extractAuthorsFromNameHtml(String nameHtml) {
+        String names = nameHtml?.
+                replaceAll(".*<authors>(.*)</authors>.*", '$1')?.
+                replaceAll("</author>", ", ")?.
+                replaceAll("<author.*?>", '')?.trim()
+
+        if (names?.endsWith(",")) {
+            names = names.substring(0, names.length() - 1)
+        }
+
+        names
     }
 
     Map matchCachedNSLName(Map nslCache, String name) {
