@@ -36,7 +36,7 @@ class StatisticsController extends BaseController {
                         tooltip: "Number of profiles where the name does not exist in the National Species List (NSL)"
                 ])
 
-                float mismatchedNamesAsPercent = profileCount ?: (mismatchedNames.recordCount / profileCount * 100.0)
+                float mismatchedNamesAsPercent = profileCount == 0 ? 0 : (mismatchedNames.recordCount / profileCount * 100.0)
                 statistics.add([
                         id: 'mismatchedNamesPercent',
                         name: 'Mismatched Names %',
