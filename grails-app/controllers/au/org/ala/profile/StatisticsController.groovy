@@ -23,47 +23,59 @@ class StatisticsController extends BaseController {
 				}
 				statistics.add([
 						id: 'profileCount',
-				        name: 'Profiles',
-						value: profileCount
+				        name: 'Profiles in collection',
+						value: profileCount,
+                        tooltip: "Total number of profiles in this collection"
 				])
 
+                Map mismatchedNames = reportService.mismatchedNames(opus.uuid, 0, 1, true)
+                statistics.add([
+                        id: 'mismatchedNames',
+                        name: 'Mismatched Names',
+                        value: mismatchedNames.recordCount,
+                        tooltip: "Number of profiles where the name does not exist in the National Species List (NSL)"
+                ])
+
+                float mismatchedNamesAsPercent = profileCount == 0 ? 0 : (mismatchedNames.recordCount / profileCount * 100.0)
+                statistics.add([
+                        id: 'mismatchedNamesPercent',
+                        name: 'Mismatched Names %',
+                        value: "${mismatchedNamesAsPercent.round(2)}%",
+                        tooltip: "Percentage of profiles where the name does not exist in the National Species List (NSL)"
+                ])
+
 				int editorCount = opus.authorities.count {
-					eq("role", Role.ROLE_PROFILE_EDITOR)
+					it.role == Role.ROLE_PROFILE_EDITOR
 				}
 				statistics.add([
 						id: 'editorCount',
-				        name: 'Editors',
-						value: editorCount
-				])
+				        name: 'Collection editors',
+						value: editorCount,
+                        tooltip: "Number of people who can edit profiles in this collection"
+                ])
 
-				Date from = new Date().minus(30)
+				Calendar from = Calendar.getInstance()
+                from.set(Calendar.DAY_OF_MONTH, 1)
+                from.set(Calendar.HOUR_OF_DAY, 0)
+                from.set(Calendar.MINUTE, 0)
+                from.set(Calendar.SECOND, 0)
+                from.set(Calendar.MILLISECOND, 0)
+
 				Date to = new Date()
-				Map updatesThisMonth = reportService.recentUpdates(opus.uuid, from, to, 0, 1, true)
+				Map updatesThisMonth = reportService.recentUpdates(opus.uuid, from.getTime(), to, 0, 1, true)
 				statistics.add([
 						id: 'updatesThisMonth',
 						name: 'Updates This Month',
-						value: updatesThisMonth.recordCount
-				])
+						value: updatesThisMonth.recordCount,
+                        tooltip: "Number of profiles which have been updated since ${from.getTime().format("dd/MM/yyyy")}"
+                ])
 
 				Profile profile = statisticsService.lastEditedProfile(opus)
 				statistics.add([
-						id: 'lastEditedProfile',
-				        name: 'Last Edited',
-						value: "${profile.scientificName} by ${profile.lastUpdatedBy} on ${profile.lastUpdated.format("dd MMM yyyy")}"
-				])
-
-				Map mismatchedNames = reportService.mismatchedNames(opus.uuid, 0, 1, true)
-				statistics.add([
-				        id: 'mismatchedNames',
-						name: 'Mismatched Names',
-						value: mismatchedNames.recordCount
-				])
-
-				float mismatchedNamesAsPercent = mismatchedNames.recordCount / profileCount * 100.0;
-				statistics.add([
-						id: 'mismatchedNamesPercent',
-				        name: 'Mismatched Names (Percent)',
-						value: mismatchedNamesAsPercent,
+						id: 'lastUpdatedProfile',
+				        name: 'Most Recent Update',
+						value: "${profile.scientificName}",
+                        tooltip: "Updated by ${profile.lastUpdatedBy} on ${profile.lastUpdated.format('dd/MM/yyyy')}"
 				])
 
 				render statistics as JSON

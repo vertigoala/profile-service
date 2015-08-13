@@ -93,9 +93,9 @@ class NSWImport {
                 attributes << [title: "Common Name", text: commonName, creators: [contributor], stripHtml: false]
             }
 
-            String description = fields[7]
-            if (description) {
-                attributes << [title: "Description", text: description, creators: [contributor], stripHtml: false]
+            String habit = fields[7]
+            if (habit) {
+                attributes << [title: "Habit", text: habit, creators: [contributor], stripHtml: false]
             }
 
             String leaves = fields[8]
