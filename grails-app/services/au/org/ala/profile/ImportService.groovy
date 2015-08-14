@@ -151,7 +151,7 @@ class ImportService extends BaseDataAccessService {
                                 Map nomenclature = nameService.findNomenclature(profile.nslNameIdentifier, matchStrategy, it.nslNomenclatureMatchData)
 
                                 if (!nomenclature) {
-                                    results.warnings << "No matching nomenclature was found"
+                                    results.warnings << "No matching nomenclature was found for '${it.nslNomenclatureMatchData}'"
                                 }
 
                                 profile.nslNomenclatureIdentifier = nomenclature?.id
@@ -176,7 +176,7 @@ class ImportService extends BaseDataAccessService {
                                 Term term = vocab.get(it.title.trim())
 
                                 String text = it.stripHtml?.booleanValue() ? Utils.cleanupText(it.text) : it.text
-                                if (text) {
+                                if (text?.trim()) {
                                     Attribute attribute = new Attribute(title: term, text: text)
                                     attribute.uuid = UUID.randomUUID().toString()
 

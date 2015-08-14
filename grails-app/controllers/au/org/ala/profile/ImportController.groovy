@@ -44,9 +44,7 @@ class ImportController extends BaseController {
             } else {
                 String importId = UUID.randomUUID().toString()
 
-                log.debug("************ Before async call")
                 importService.importProfiles(importId, json.opusId, json.profiles)
-                log.debug("************ After async call")
 
                 render ([status: "IN_PROGRES", id: importId, report: ""] as JSON)
             }
