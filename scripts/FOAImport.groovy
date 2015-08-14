@@ -156,7 +156,7 @@ class NSWImport {
         println "Creating image files..."
         createImageFiles(collectionImages)
 
-        println "Ignoring ${doubtful} doubtful names"
+        report << "Ignoring ${doubtful} doubtful names\n\n"
         println "Importing ${profiles.size()} profiles..."
 
         def service = new RESTClient(PROFILE_SERVICE_IMPORT_URL)
@@ -202,7 +202,7 @@ class NSWImport {
         int warnings = 0
         report << "\n\nImport results: \n"
         report << "\nStarted: ${resp.report.started}"
-        report << "\nFinished: ${resp.report.finished}\n\n"
+        report << "\nFinished: ${resp.report.finished}"
 
         resp.report.profiles.each { k, v ->
             if (v.status.startsWith("success")) {

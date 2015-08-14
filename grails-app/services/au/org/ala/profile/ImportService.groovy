@@ -66,7 +66,7 @@ class ImportService extends BaseDataAccessService {
         Map<String, Term> vocab = uniqueValues.vocab
         Map<String, Contributor> contributors = uniqueValues.contributors
 
-        boolean enableNSLMatching = false
+        boolean enableNSLMatching = true
 
         Map nslNamesCached = enableNSLMatching ? nameService.loadNSLSimpleNameDump() : [:]
 
