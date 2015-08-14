@@ -74,8 +74,8 @@ class StatisticsController extends BaseController {
 				statistics.add([
 						id: 'lastUpdatedProfile',
 				        name: 'Most Recent Update',
-						value: "${profile.scientificName}",
-                        tooltip: "Updated by ${profile.lastUpdatedBy} on ${profile.lastUpdated.format('dd/MM/yyyy')}"
+						value: "${profile?.scientificName ?: ""}",
+                        tooltip: "Updated by ${profile?.lastUpdatedBy} on ${profile?.lastUpdated?.format('dd/MM/yyyy')}"
 				])
 
 				render statistics as JSON
