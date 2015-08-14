@@ -4,6 +4,12 @@ import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
 
 class Utils {
 
+    static final double DEFAULT_MAP_LATITUDE = -27
+    static final double DEFAULT_MAP_LONGITUDE = 133.6
+    static final double DEFAULT_MAP_ZOOM = 3
+    static final String DEFAULT_MAP_BASE_LAYER = "https://{s}.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={token}"
+
+
     static final String CHAR_ENCODING = "utf-8"
 
     static cleanupText(str) {

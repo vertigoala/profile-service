@@ -3,6 +3,7 @@ package au.org.ala.profile.marshaller
 import au.org.ala.profile.Opus
 import au.org.ala.profile.SupportingOpus
 import au.org.ala.profile.util.ShareRequestStatus
+import au.org.ala.profile.util.Utils
 import grails.converters.JSON
 
 class OpusMarshaller {
@@ -34,10 +35,10 @@ class OpusMarshaller {
                     privateCollection          : opus.privateCollection != null ? opus.privateCollection : false,
                     mapAttribution             : opus.mapAttribution ?: 'Atlas',
                     mapPointColour             : opus.mapPointColour ?: "FF9900",
-                    mapDefaultLatitude         : opus.mapDefaultLatitude ?: -23.6,
-                    mapDefaultLongitude        : opus.mapDefaultLongitude ?: 133.6,
-                    mapZoom                    : opus.mapZoom ?: 3,
-                    mapBaseLayer               : opus.mapBaseLayer ?: "https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png",
+                    mapDefaultLatitude         : opus.mapDefaultLatitude ?: Utils.DEFAULT_MAP_LATITUDE,
+                    mapDefaultLongitude        : opus.mapDefaultLongitude ?: Utils.DEFAULT_MAP_LONGITUDE,
+                    mapZoom                    : opus.mapZoom ?: Utils.DEFAULT_MAP_ZOOM,
+                    mapBaseLayer               : opus.mapBaseLayer ?: Utils.DEFAULT_MAP_BASE_LAYER,
                     biocacheUrl                : opus.biocacheUrl,
                     biocacheName               : opus.biocacheName ?: 'Atlas',
                     supportingOpuses           : marshalSupportingOpuses(opus.supportingOpuses?.findAll {
