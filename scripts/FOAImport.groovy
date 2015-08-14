@@ -1,13 +1,13 @@
-import groovy.xml.MarkupBuilder
 @Grab(group = 'org.codehaus.groovy.modules.http-builder', module = 'http-builder', version = '0.7')
 @Grab('com.xlson.groovycsv:groovycsv:1.0')
 @Grab('org.apache.commons:commons-lang3:3.3.2')
 
 import groovyx.net.http.RESTClient
+import groovy.xml.MarkupBuilder
 
 import java.text.SimpleDateFormat
 
-import static groovyx.net.http.ContentType.*
+import static groovyx.net.http.ContentType.JSON
 import static com.xlson.groovycsv.CsvParser.parseCsv
 import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
 
@@ -15,9 +15,9 @@ class NSWImport {
 
     static String OPUS_ID
     static String DATA_DIR
-    static boolean INCLUDE_IMAGES = false
     static String REPORT_FILE
     static String PROFILE_SERVICE_IMPORT_URL
+    static String PROFILE_SERVICE_REPORT_URL
     static String DELIMITER
 
 
@@ -40,6 +40,7 @@ class NSWImport {
         DATA_DIR = opt.f
         REPORT_FILE = opt.r ?: "report.txt"
         PROFILE_SERVICE_IMPORT_URL = "${opt.p}/import/profile"
+        PROFILE_SERVICE_REPORT_URL = "${opt.p}/"
         DELIMITER = opt.d ?: ","
 
         List profiles = []
@@ -137,9 +138,7 @@ class NSWImport {
                            nameAuthor: line.AUTHOR,
                            fullName: fullName,
                            attributes: attributes,
-//                           nslNomenclatureIdentifier: nslConcepts.get(id) ?: "",
-                           nslNomenclatureMatchStrategy: "NSL_SEARCH",
-                           nslNomenclatureMatchData: "NSL_SEARCH",
+                           nslNomenclatureIdentifier: nslConcepts.get(id) ?: "",
                            authorship: [[category: "Author", text: taxaContributors[id]?.join(", ")]]]
 
             if (!scientificNames.containsKey(scientificName.trim().toLowerCase())) {
@@ -156,61 +155,86 @@ class NSWImport {
 
         println "Creating image files..."
         createImageFiles(collectionImages)
-if (true) return
+
         println "Ignoring ${doubtful} doubtful names"
         println "Importing ${profiles.size()} profiles..."
 
         def service = new RESTClient(PROFILE_SERVICE_IMPORT_URL)
+
         def resp = service.post(body: opus, requestContentType: JSON)
 
-        if (resp.status == 200) {
-            if (invalidLines) {
-                report << "Invalid lines from source file:\n"
-                invalidLines.each {k, v ->
-                    report << "\tLine ${k}: ${v}\n"
-                }
-            }
+        String importId = resp.data.id
 
-            if (scientificNames.any {k, v -> v.size() > 1 && k != null}) {
-                report << "\n\nDuplicate scientific names (only the first record will be imported): \n"
-                scientificNames.each { k, v ->
-                    if (v.size() > 1 && k) {
-                        report << "\t${k}, on lines ${v}. Line ${v.first()} was imported.\n"
-                    }
-                }
-            }
+        println "Import report will be available at ${PROFILE_SERVICE_REPORT_URL}import/${importId}/report"
 
-            int success = 0
-            int failed = 0
-            int warnings = 0
-            report << "\n\nImport results: \n"
-            resp.data.each { k, v ->
-                if (v.status.startsWith("success")) {
-                    success++
-                } else if (v.status.startsWith("warning")) {
-                    report << "\t${k} succeeded with ${v.warnings.size()} warnings:\n"
-                    v.warnings.each {
-                        report << "\t\t${it}\n"
-                    }
-                    warnings++
-                } else {
-                    report << "\t${k} failed with ${v.errors.size()} errors and ${v.warnings.size()} warnings:\n"
-                    report << "\t\tWarnings\n"
-                    v.warnings.each {
-                        report << "\t\t\t${it}\n"
-                    }
-                    report << "\t\tErrors\n"
-                    v.errors.each {
-                        report << "\t\t\t${it}\n"
-                    }
-                    failed++
-                }
-            }
+        int sleepTime = 5 * 60 * 1000
+        println "${new Date().format("HH:mm:ss.S")} Waiting for import to complete..."
+        Thread.sleep(sleepTime)
 
-            report << "\n\nImported ${success} of ${count} profiles with ${failed} errors and ${warnings} warnings"
-        } else {
-            println "Import failed with HTTP ${resp.status}"
+        service = new RESTClient("${PROFILE_SERVICE_REPORT_URL}import/${importId}/report")
+        resp = service.get([:]).data
+
+        while (resp.status == "IN_PROGRESS") {
+            println "${new Date().format("HH:mm:ss.S")} Waiting for import to complete..."
+            Thread.sleep(sleepTime)
+
+            resp = service.get([:]).data
         }
+
+        if (invalidLines) {
+            report << "Invalid lines from source file:\n"
+            invalidLines.each {k, v ->
+                report << "\tLine ${k}: ${v}\n"
+            }
+        }
+
+        if (scientificNames.any {k, v -> v.size() > 1 && k != null}) {
+            report << "\n\nDuplicate scientific names (only the first record will be imported): \n"
+            scientificNames.each { k, v ->
+                if (v.size() > 1 && k) {
+                    report << "\t${k}, on lines ${v}. Line ${v.first()} was imported.\n"
+                }
+            }
+        }
+
+        int success = 0
+        int failed = 0
+        int warnings = 0
+        report << "\n\nImport results: \n"
+        report << "\nStarted: ${resp.report.started}"
+        report << "\nFinished: ${resp.report.finished}\n\n"
+
+        resp.report.profiles.each { k, v ->
+            if (v.status.startsWith("success")) {
+                success++
+            } else if (v.status.startsWith("warning")) {
+                warnings++
+            } else {
+                failed++
+            }
+        }
+
+        report << "\n\nImported ${success} of ${count} profiles with ${failed} errors and ${warnings} warnings\n\n"
+
+        resp.report.profiles.each { k, v ->
+            if (v.status.startsWith("warning")) {
+                report << "\t${k} succeeded with ${v.warnings.size()} warnings:\n"
+                v.warnings.each {
+                    report << "\t\t${it}\n"
+                }
+            } else if (v.status.startsWith("error")) {
+                report << "\t${k} failed with ${v.errors.size()} errors and ${v.warnings.size()} warnings:\n"
+                report << "\t\tWarnings\n"
+                v.warnings.each {
+                    report << "\t\t\t${it}\n"
+                }
+                report << "\t\tErrors\n"
+                v.errors.each {
+                    report << "\t\t\t${it}\n"
+                }
+            }
+        }
+
 
         println "Import finished. See ${report.absolutePath} for details"
     }
