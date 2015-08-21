@@ -33,6 +33,7 @@ class NSWImport {
         String DATA_FILE = opt.f
         String REPORT_FILE = opt.r ?: "report.txt"
         String PROFILE_SERVICE_IMPORT_URL = "${opt.p}/import/profile"
+        String PROFILE_SERVICE_REPORT_URL = "${opt.p}/"
         String DELIMITER = opt.d ?: "~"
 
         List profiles = []
