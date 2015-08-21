@@ -50,6 +50,7 @@ grails.project.dependency.resolution = {
         test 'org.grails:grails-datastore-test-support:1.0.1-grails-2.4'
         runtime 'au.org.ala:ala-name-matching:2.1'
         compile "com.xlson.groovycsv:groovycsv:1.0"
+        compile "com.google.apis:google-api-services-analytics:v3-rev116-1.20.0"
     }
 
     plugins {
