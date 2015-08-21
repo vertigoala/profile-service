@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.Utils
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
@@ -21,10 +22,10 @@ class Opus {
     String thumbnailUrl
     String mapAttribution // e.g. AVH (CHAH)
     String mapPointColour = "FF9900"
-    Float mapDefaultLatitude = -23.6
-    Float mapDefaultLongitude = 133.6
-    Integer mapZoom = 3
-    String mapBaseLayer = "https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png"
+    Float mapDefaultLatitude = Utils.DEFAULT_MAP_LATITUDE
+    Float mapDefaultLongitude = Utils.DEFAULT_MAP_LONGITUDE
+    Integer mapZoom = Utils.DEFAULT_MAP_ZOOM
+    String mapBaseLayer = Utils.DEFAULT_MAP_BASE_LAYER
     String biocacheUrl    // e.g.  http://avh.ala.org.au/
     String biocacheName    ///e.g. Australian Virtual Herbarium
     String attributeVocabUuid

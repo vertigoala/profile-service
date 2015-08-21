@@ -10,13 +10,17 @@ package au.org.ala.profile
 class StatisticsService {
 
 	Profile lastEditedProfile(Opus opus) {
-		Profile profile = Profile.withCriteria {
+		List<Profile> profiles = Profile.withCriteria {
 			eq("opus", opus)
 			maxResults(1)
 			order("lastUpdated", "desc")
-		}.first()
+		}
 
-		return profile
+        if (profiles) {
+            profiles.first()
+        } else {
+            null
+        }
 	}
 
 	/**

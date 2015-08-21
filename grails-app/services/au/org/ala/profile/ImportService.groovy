@@ -2,9 +2,11 @@ package au.org.ala.profile
 
 import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
 import au.org.ala.profile.util.Utils
+import grails.converters.JSON
 import groovyx.net.http.ContentType
 import groovyx.net.http.RESTClient
 import org.apache.http.HttpStatus
+import org.springframework.scheduling.annotation.Async
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentSkipListSet
@@ -42,14 +44,19 @@ class ImportService extends BaseDataAccessService {
      *
      * The two-pass approach ensures no duplicate records are created, and does not significantly impact performance.
      *
+     * @param importId a unique identifier assigned to this import process, to be returned the service consumer so they can request the import report when the import completes
      * @param opusId
      * @param profilesJson
-     * @return
      */
-    Map<String, String> importProfiles(String opusId, profilesJson) {
+    @Async
+    void importProfiles(String importId, String opusId, profilesJson) {
+        File importReportFile = new File("${grailsApplication.config.temp.file.directory}/${importId}.json.inprogress")
+        importReportFile.createNewFile()
+
         Opus opus = Opus.findByUuid(opusId);
 
         Map<String, Map> profileResults = [:] as ConcurrentHashMap
+        Date startTime = new Date()
 
         AtomicInteger success = new AtomicInteger(0)
         AtomicInteger index = new AtomicInteger(0)
@@ -61,7 +68,7 @@ class ImportService extends BaseDataAccessService {
 
         boolean enableNSLMatching = true
 
-        Map nslNamesCached = nameService.loadNSLSimpleNameDump()
+        Map nslNamesCached = enableNSLMatching ? nameService.loadNSLSimpleNameDump() : [:]
 
         if (!nslNamesCached) {
             log.warn("NSL Simple Name cache failed - using live service lookup instead")
@@ -144,7 +151,7 @@ class ImportService extends BaseDataAccessService {
                                 Map nomenclature = nameService.findNomenclature(profile.nslNameIdentifier, matchStrategy, it.nslNomenclatureMatchData)
 
                                 if (!nomenclature) {
-                                    results.warnings << "No matching nomenclature was found"
+                                    results.warnings << "No matching nomenclature was found for '${it.nslNomenclatureMatchData}'"
                                 }
 
                                 profile.nslNomenclatureIdentifier = nomenclature?.id
@@ -169,7 +176,7 @@ class ImportService extends BaseDataAccessService {
                                 Term term = vocab.get(it.title.trim())
 
                                 String text = it.stripHtml?.booleanValue() ? Utils.cleanupText(it.text) : it.text
-                                if (text) {
+                                if (text?.trim()) {
                                     Attribute attribute = new Attribute(title: term, text: text)
                                     attribute.uuid = UUID.randomUUID().toString()
 
@@ -241,7 +248,13 @@ class ImportService extends BaseDataAccessService {
         }
         log.debug "${success} of ${profilesJson.size()} records imported"
 
-        profileResults
+        Date finishTime = new Date()
+
+        importReportFile << ([started: startTime.format("dd/MM/yyyy HH:mm:ss"),
+                              finished: finishTime.format("dd/MM/yyyy HH:mm:ss"),
+                              profiles: profileResults] as JSON)
+
+        importReportFile.renameTo("${grailsApplication.config.temp.file.directory}/${importId}.json")
     }
 
     def uploadImage(String scientificName, String dataResourceId, Map metadata) {
