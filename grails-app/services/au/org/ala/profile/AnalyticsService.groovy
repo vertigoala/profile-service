@@ -7,21 +7,31 @@ import com.google.api.services.analytics.Analytics
 import com.google.api.services.analytics.AnalyticsScopes
 import com.google.api.services.analytics.model.GaData
 
+import javax.annotation.PostConstruct
+
 class AnalyticsService {
 
+	def grailsApplication
 	private static final JSON_FACTORY = JacksonFactory.getDefaultInstance()
 	private Analytics analytics
-	def grailsApplication
 	private String viewIds
 
-	def AnalyticsService() {
+	/*
+	 * We can't do this as a constructor, because grailsApplication is not
+	 * injected until after construction.
+	 */
+	@PostConstruct
+	def init() {
 		HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport()
 		GoogleCredential credential = new GoogleCredential.Builder()
 			.setTransport(httpTransport)
 			.setJsonFactory(JSON_FACTORY)
-			.setServiceAccountId("${grailsApplication.config.analytics.serviceAccountEmail}")
-			.setServiceAccountPrivateKeyFromP12File(new File("${grailsApplication.config.analytics.p12.file}"))
-			.setServiceAccountScopes(Collections.singleton(AnalyticsScopes.ANALYTICS_READONLY))
+			.setServiceAccountId(
+				(String)grailsApplication.config.analytics.serviceAccountEmail)
+			.setServiceAccountPrivateKeyFromP12File(
+				new File((String)grailsApplication.config.analytics.p12.file))
+			.setServiceAccountScopes(
+				Collections.singleton(AnalyticsScopes.ANALYTICS_READONLY))
 			.build()
 
 		analytics = new Analytics.Builder(httpTransport, JSON_FACTORY, credential)

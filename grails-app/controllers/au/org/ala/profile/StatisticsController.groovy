@@ -4,6 +4,7 @@ import grails.converters.JSON
 
 class StatisticsController extends BaseController {
 
+	AnalyticsService analyticsService
 	StatisticsService statisticsService
 	ReportService reportService
 
@@ -77,6 +78,9 @@ class StatisticsController extends BaseController {
 						value: "${profile?.scientificName ?: ""}",
                         tooltip: "Updated by ${profile?.lastUpdatedBy} on ${profile?.lastUpdated?.format('dd/MM/yyyy')}"
 				])
+
+				Map analyticsData = analyticsService.analyticsByProfile(opus, profile)
+				statistics.add(analyticsData)
 
 				render statistics as JSON
 			}
