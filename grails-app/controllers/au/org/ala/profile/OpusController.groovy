@@ -1,13 +1,16 @@
 package au.org.ala.profile
 
 import au.ala.org.ws.security.RequireApiKey
+import au.org.ala.profile.security.Role
 import au.org.ala.profile.util.ShareRequestAction
+import au.org.ala.web.AuthService
 import grails.converters.JSON
 
 @RequireApiKey
 class OpusController extends BaseController {
 
     OpusService opusService
+    AuthService authService
 
     def index() {
         render Opus.findAll() as JSON
@@ -235,7 +238,16 @@ class OpusController extends BaseController {
             if (!opus) {
                 notFound()
             } else {
-                render ([opus: [title: opus.title, opusId: opus.uuid, aboutHtml: opus.aboutHtml, citationHtml: opus.citationHtml]] as JSON)
+                render ([opus: [title: opus.title,
+                                opusId: opus.uuid,
+                                aboutHtml: opus.aboutHtml,
+                                citationHtml: opus.citationHtml,
+                                administrators: opus.authorities.collect {
+                                    if (it.role == Role.ROLE_PROFILE_ADMIN) {
+                                        [email: authService.getUserForUserId(it.user.userId, false)?.userName,
+                                         name: it.user.name]
+                                    }
+                                }]] as JSON)
             }
         }
     }
