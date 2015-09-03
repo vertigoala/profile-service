@@ -84,7 +84,7 @@ class ImportService extends BaseDataAccessService {
                     if (!it.scientificName) {
                         results.errors << "Failed to import row ${index}, does not have a scientific name"
                     } else {
-                        Map matchedName = nameService.matchName(it.fullName)
+                        Map matchedName = nameService.matchName(it.scientificName?.trim())
 
                         String scientificName = matchedName?.scientificName?.trim() ?: it.scientificName.trim()
                         String fullName = matchedName?.fullName?.trim() ?: scientificName.trim()
@@ -92,9 +92,9 @@ class ImportService extends BaseDataAccessService {
                         String guid = matchedName?.guid ?: null
 
                         if (!matchedName) {
-                            results.warnings << "No matching name for ${it.scientificName}"
+                            results.warnings << "ALA - No matching name for ${it.scientificName} in the ALA"
                         } else if (!it.scientificName.equalsIgnoreCase(matchedName.scientificName) && !it.scientificName.equalsIgnoreCase(fullName)) {
-                            results.warnings << "Provided with name ${it.scientificName}, but was matched with name ${fullName}. Using provided name."
+                            results.warnings << "ALA - Provided with name ${it.scientificName}, but was matched with name ${fullName} in the ALA. Using provided name."
                             scientificName = it.scientificName
                             fullName = it.fullName
                             nameAuthor = it.nameAuthor
@@ -137,6 +137,12 @@ class ImportService extends BaseDataAccessService {
                                     if (!profile.nameAuthor) {
                                         profile.nameAuthor = nslMatch.nameAuthor
                                     }
+
+                                    if (!it.scientificName.equalsIgnoreCase(nslMatch.scientificName) && !it.scientificName.equalsIgnoreCase(nslMatch.fullName)) {
+                                        results.warnings << "NSL - Provided with name ${it.scientificName}, but was matched with name ${nslMatch.fullName} in the NSL. Using provided name."
+                                    }
+                                } else {
+                                    results.warnings << "NSL - No matching name for ${it.scientificName} in the NSL."
                                 }
                             }
 
