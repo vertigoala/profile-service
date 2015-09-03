@@ -79,8 +79,15 @@ class StatisticsController extends BaseController {
                         tooltip: "Updated by ${profile?.lastUpdatedBy} on ${profile?.lastUpdated?.format('dd/MM/yyyy')}"
 				])
 
-				Map analyticsData = analyticsService.analyticsByProfile(opus, profile)
-				statistics.add(analyticsData)
+				Map analyticsOpusData = analyticsService.analyticsByOpus(opus)
+				if (analyticsOpusData.mostViewedProfile.pagePath) {
+					statistics.add([
+							id: 'mostViewedProfile',
+							name: 'Most Viewed Profile',
+							value: "${analyticsOpusData.mostViewedProfile?.pagePath} (${analyticsOpusData.mostViewedProfile?.pageviews} times)",
+							tooltip: "The profile that has been viewed the most in this collection"
+					])
+				}
 
 				render statistics as JSON
 			}
