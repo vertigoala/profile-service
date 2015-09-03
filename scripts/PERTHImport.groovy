@@ -8,6 +8,8 @@ import org.apache.http.impl.client.LaxRedirectStrategy
 
 class PERTHImport {
 
+	static File report
+
 	static void main(args) {
 		def cli = new CliBuilder(usage: "groovy PERTHImport -o <opusId> -f <perthServiceBaseUrl> -u <floraBaseUser> -p <floraBasePass> -s <profileServiceBaseUrl> [-r <reportFile>]")
 		cli.o(longOpt: "opusId",
@@ -38,9 +40,14 @@ class PERTHImport {
 		String FLORABASE_USER = opt.u
 		String FLORABASE_PASS = opt.p
 		String PERTH_BASE_URL = StringUtils.removeEnd(opt.f, "/");
-		String PROFILE_SERVICE_IMPORT_URL = StringUtils.removeEnd(opt.s, "/") + "/import/profile";
+		String PROFILE_SERVICE_BASE_URL = StringUtils.removeEnd(opt.s, "/");
 		String REPORT_FILE = opt.r ?: "report.txt"
-		String charset = "UTF-8"
+
+		report = new File(REPORT_FILE)
+		if (report.exists()) {
+			report.delete()
+			report.createNewFile()
+		}
 
 		Object data = requestData(PERTH_BASE_URL, FLORABASE_USER, FLORABASE_PASS)
 		if (data) {
@@ -51,7 +58,7 @@ class PERTHImport {
 
 			println(opus)
 
-			postOpus(opus, PROFILE_SERVICE_IMPORT_URL)
+			postOpus(opus, PROFILE_SERVICE_BASE_URL)
 		}
 	}
 
@@ -81,22 +88,71 @@ class PERTHImport {
 		}
 	}
 
-	static void postOpus(Map data, String url) {
-		println(url)
-		RESTClient service = new RESTClient(url)
+	static void postOpus(Map data, String baseUrl) {
+		def importUrl = "${baseUrl}/import/profile"
+		println(importUrl)
+		RESTClient service = new RESTClient(importUrl)
 		def response = service.post(body: data, requestContentType: ContentType.JSON)
+		def importId = response.data.id
 
-		if (response.status == 200) {
-			println("Data loaded")
+		def reportUrl = "${baseUrl}/import/${importId}/report"
+		println "Import report will be available at ${reportUrl}"
+
+		int sleepTime = 60 * 1000;
+		println "${new Date().format("HH:mm:ss.S")} Waiting for import to complete..."
+		Thread.sleep(sleepTime)
+
+		service = new RESTClient(reportUrl)
+		response = service.get([:]).data
+
+		while (response.status == "IN_PROGRESS") {
+			println "${new Date().format("HH:mm:ss.S")} Waiting for import to complete..."
+			Thread.sleep(sleepTime)
+
+			response = service.get([:]).data
 		}
-		else if (response.status == 400) {
-			println response.data
+
+		// Dump some report output based on the json data available in response.report.
+		// Cribbed mostly from NSWImport.groovy, but should perhaps be generalised.
+		int count = data.profiles.size()
+		int success = 0
+		int failed = 0
+		int warnings = 0
+		report << "\n\nImport results: \n"
+		report << "\nStarted: ${response.report.started}"
+		report << "\nFinished: ${response.report.finished}"
+
+		response.report.profiles.each { k, v ->
+			if (v.status.startsWith("success")) {
+				success++
+			} else if (v.status.startsWith("warning")) {
+				warnings++
+			} else {
+				failed++
+			}
 		}
-		else if (response.status == 404) {
-			println response.data
+
+		report << "\n\nImported ${success} of ${count} profiles with ${failed} errors and ${warnings} warnings\n\n"
+
+		response.report.profiles.each { k, v ->
+			if (v.status.startsWith("warning")) {
+				report << "\t${k} succeeded with ${v.warnings.size()} warnings:\n"
+				v.warnings.each {
+					report << "\t\t${it}\n"
+				}
+			} else if (v.status.startsWith("error")) {
+				report << "\t${k} failed with ${v.errors.size()} errors and ${v.warnings.size()} warnings:\n"
+				report << "\t\tWarnings\n"
+				v.warnings.each {
+					report << "\t\t\t${it}\n"
+				}
+				report << "\t\tErrors\n"
+				v.errors.each {
+					report << "\t\t\t${it}\n"
+				}
+			}
 		}
-		else {
-			println "Import failed with HTTP ${response.status}"
-		}
+
+		println "Import finished. See ${report.absolutePath} for details"
 	}
 }
