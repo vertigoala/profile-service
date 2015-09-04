@@ -105,7 +105,7 @@ class ImportService extends BaseDataAccessService {
                             log.info("Profile already exists in this opus for scientific name ${scientificName}")
                             results.errors << "'${it.scientificName}' already exists (provided as ${it.scientificName}, matched as ${fullName})"
                         } else {
-                            profile = new Profile(scientificName: scientificName, nameAuthor: nameAuthor, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: []);
+                            profile = new Profile(scientificName: scientificName, nameAuthor: nameAuthor, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: [], bibliography: []);
                             profile.fullName = fullName
 
                             if (matchedName) {
@@ -174,6 +174,13 @@ class ImportService extends BaseDataAccessService {
                             it.bhl.each {
                                 if (it) {
                                     profile.bhlLinks << createLink(it, contributors)
+                                }
+                            }
+
+                            it.bibliography.each {
+                                if (it) {
+                                    println profile.scientificName
+                                    profile.bibliography << new Bibliography(uuid: UUID.randomUUID().toString(), text: it, order: profile.bibliography.size())
                                 }
                             }
 
@@ -250,7 +257,7 @@ class ImportService extends BaseDataAccessService {
                         }
                     }
                 } catch (Exception e) {
-                    log.error "Huh?", e
+                    log.error "An exception occurred while importing the record ${it}", e
                     results.errors << "Failed to create profile ${it.scientificName}: ${e.getMessage()}"
                 }
 
