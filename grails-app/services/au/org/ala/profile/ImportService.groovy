@@ -179,7 +179,6 @@ class ImportService extends BaseDataAccessService {
 
                             it.bibliography.each {
                                 if (it) {
-                                    println profile.scientificName
                                     profile.bibliography << new Bibliography(uuid: UUID.randomUUID().toString(), text: it, order: profile.bibliography.size())
                                 }
                             }

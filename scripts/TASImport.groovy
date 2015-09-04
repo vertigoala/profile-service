@@ -79,7 +79,8 @@ class TASImport {
                         return
                     }
 
-                    blocks << [(lastHeading): references]
+                    blocks << [(lastHeading): []]
+                    blocks[lastHeading].addAll(references)
                 } else {
                     blocks[lastHeading] << it
                 }
