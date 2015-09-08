@@ -6,9 +6,6 @@ import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.services.analytics.Analytics
 import com.google.api.services.analytics.AnalyticsScopes
 import com.google.api.services.analytics.model.GaData
-
-import javax.annotation.PostConstruct
-
 /**
  * Access to Google Analytics API for eFlora.
  * <p>This service authorises itself to Google using a Service Account to permit the
@@ -43,9 +40,10 @@ class AnalyticsService {
 
 	/*
 	 * We can't do this as a constructor, because grailsApplication is not
-	 * injected until after construction.
+	 * injected until after construction. We can't do this as a @PostConstruct method
+	 * because that imposes a requirement for configuration on the Travis CI build which
+	 * we don't want.
 	 */
-	@PostConstruct
 	def init() {
 		HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport()
 		GoogleCredential credential = new GoogleCredential.Builder()
@@ -85,6 +83,10 @@ class AnalyticsService {
 	Map analyticsByProfile(Profile profile) {
 		Map ret = [:]
 
+		if (!analytics) {
+			init();
+		}
+
 		def profileUri = "${grailsApplication.config.contextPath?:''}/opus/${profile.opus.uuid}/profile/${profile.uuid}"
 
 		// Query Google Analytics for ga:sessions and ga:pageviews...
@@ -109,6 +111,10 @@ class AnalyticsService {
 	 */
 	Map analyticsByOpus(Opus opus) {
 		Map ret = [:]
+
+		if (!analytics) {
+			init();
+		}
 
 		ret.mostViewedProfile = queryMostViewedProfile(opus.uuid)
 
@@ -142,7 +148,6 @@ class AnalyticsService {
 	 * @return the data, with caveats as noted in {@link #extractData(GaData)}
 	 */
 	private Map queryMostViewedProfile(String opusId) {
-		Map ret = [:]
 		def metrics = "ga:sessions,ga:pageviews"
 		def dimensions = "ga:pagePath"
 		def sort = "-ga:pageviews"
