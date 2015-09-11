@@ -56,8 +56,6 @@ class PERTHImport {
 					profiles: data
 			]
 
-			println(opus)
-
 			postOpus(opus, PROFILE_SERVICE_BASE_URL)
 		}
 	}
