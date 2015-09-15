@@ -57,7 +57,7 @@ class VocabService extends BaseDataAccessService {
         Vocab vocab = Vocab.findByUuid(vocabId);
 
         if (vocab) {
-            term = Term.findByNameAndVocab(name, vocab)
+            term = Term.findByVocabAndNameIlike(vocab, name)
 
             if (!term) {
                 if (vocab.strict) {
@@ -78,7 +78,7 @@ class VocabService extends BaseDataAccessService {
     }
 
     int findUsagesOfTerm(String vocabId, String termName) {
-        Term term = Term.findByVocabAndName(Vocab.findByUuid(vocabId), termName)
+        Term term = Term.findByVocabAndNameIlike(Vocab.findByUuid(vocabId), termName)
 
         List<Attribute> attributes = Attribute.findAllByTitle(term)
 
@@ -102,7 +102,7 @@ class VocabService extends BaseDataAccessService {
     def replaceTerm = { vocabId, existingTermName, newTermName ->
         int replacedUsages = 0
 
-        Term existingTerm = Term.findByVocabAndName(Vocab.findByUuid(vocabId), existingTermName)
+        Term existingTerm = Term.findByVocabAndNameIlike(Vocab.findByUuid(vocabId), existingTermName)
 
         if (existingTerm) {
             Term newTerm = getOrCreateTerm(newTermName, vocabId)
