@@ -46,7 +46,7 @@ class ImportController extends BaseController {
 
                 importService.importProfiles(importId, json.opusId, json.profiles)
 
-                render ([status: "IN_PROGRES", id: importId, report: ""] as JSON)
+                render ([status: "IN_PROGRESS", id: importId, report: ""] as JSON)
             }
         }
     }

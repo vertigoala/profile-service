@@ -11,7 +11,7 @@ import static groovyx.net.http.ContentType.JSON
 import static com.xlson.groovycsv.CsvParser.parseCsv
 import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
 
-class NSWImport {
+class FOAImport {
 
     static String OPUS_ID
     static String DATA_DIR

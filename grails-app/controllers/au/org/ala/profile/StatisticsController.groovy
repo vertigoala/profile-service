@@ -4,6 +4,7 @@ import grails.converters.JSON
 
 class StatisticsController extends BaseController {
 
+	AnalyticsService analyticsService
 	StatisticsService statisticsService
 	ReportService reportService
 
@@ -77,6 +78,16 @@ class StatisticsController extends BaseController {
 						value: "${profile?.scientificName ?: ""}",
                         tooltip: "Updated by ${profile?.lastUpdatedBy} on ${profile?.lastUpdated?.format('dd/MM/yyyy')}"
 				])
+
+				Map analyticsOpusData = analyticsService.analyticsByOpus(opus)
+				if (analyticsOpusData.mostViewedProfile.pagePath) {
+					statistics.add([
+							id: 'mostViewedProfile',
+							name: 'Most Viewed Profile',
+							value: "${analyticsOpusData.mostViewedProfile?.pagePath} (${analyticsOpusData.mostViewedProfile?.pageviews} times)",
+							tooltip: "The profile that has been viewed the most in this collection"
+					])
+				}
 
 				render statistics as JSON
 			}
