@@ -79,15 +79,35 @@ class StatisticsController extends BaseController {
                         tooltip: "Updated by ${profile?.lastUpdatedBy} on ${profile?.lastUpdated?.format('dd/MM/yyyy')}"
 				])
 
-				Map analyticsOpusData = analyticsService.analyticsByOpus(opus)
-				if (analyticsOpusData.mostViewedProfile.pagePath) {
-					statistics.add([
-							id: 'mostViewedProfile',
-							name: 'Most Viewed Profile',
-							value: "${analyticsOpusData.mostViewedProfile?.pagePath} (${analyticsOpusData.mostViewedProfile?.pageviews} times)",
-							tooltip: "The profile that has been viewed the most in this collection"
-					])
-				}
+                if (analyticsService.enabled()) {
+                    try {
+                        Map analyticsOpusData = analyticsService.analyticsByOpus(opus)
+                        if (analyticsOpusData.mostViewedProfile.pagePath) {
+                            statistics.add([
+                                    id   : 'visitorCount',
+                                    name : 'Visitors',
+                                    value: "${analyticsOpusData.totalVisitorCount?.visitors ?: 0}",
+                                    tooltip: "The number of unique visitors to the collection. There have been ${analyticsOpusData.monthlyVisitorCount?.visitors ?: 0} visitors this month."
+                            ])
+
+                            statistics.add([
+                                    id   : 'downloads',
+                                    name : 'Downloads',
+                                    value: "${analyticsOpusData.totalDownloadCount?.pageviews ?: 0}",
+                                    tooltip: "The number of PDFs downloaded from this collection. There have been ${analyticsOpusData.monthlyDownloadCount?.pageviews ?: 0} downloads this month."
+                            ])
+
+                            statistics.add([
+                                    id   : 'mostViewedProfile',
+                                    name : 'Most Viewed Profile',
+                                    value: "${analyticsOpusData.mostViewedProfile?.pagePath ?: ''} (${analyticsOpusData.mostViewedProfile?.pageviews ?: 0} times)",
+                                    tooltip: "The profile that has been viewed the most in this collection."
+                            ])
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to query Google Analytics", e)
+                    }
+                }
 
 				render statistics as JSON
 			}
