@@ -19,7 +19,7 @@ class TASImport {
     static String PROFILE_SERVICE_REPORT_URL
     static String FLORA_OF_TAS_ROOT_PAGE = "http://demo1.tmag.tas.gov.au/treatments/current_accounts.html"
     static String FLORA_OF_TAS_FAMILY_PAGE = "http://demo1.tmag.tas.gov.au/treatments/"
-    static List CONNECTING_TERMS = [" subsp.", " var.", " f.", " subg.", " sect.", " subsect."]
+    static List CONNECTING_TERMS = [" subsp.", " var.", " f.", " subg.", " sect.", " subsect.", "section", "series"]
 
     static void main(args) {
         def cli = new CliBuilder(usage: "groovy TASImport  -o opusId -p <profileServiceBaseUrl> -r <reportfile>")
@@ -59,6 +59,7 @@ class TASImport {
         Map<String, List<Integer>> scientificNames = [:]
 
         families.each {
+            String familyName = it
             println "Processing family ${it}..."
 
             Document familyDoc = Jsoup.connect("${FLORA_OF_TAS_FAMILY_PAGE}${it}").get()
@@ -71,7 +72,7 @@ class TASImport {
 
             String lastHeading = null
             toImport.each {
-                if (it.attr("class") =~ "header.") {
+                if (it.attr("class") =~ "header[12]" || (it.attr("class") == "header3") && !it.children().isEmpty() && it.children().toList().get(0).attr("class") == "bold") {
                     lastHeading = cleanHeading(it)
 
                     if (!lastHeading) {
@@ -89,6 +90,12 @@ class TASImport {
             String author
             blocks.each { heading, lines ->
                 String scientificName = heading
+                if (scientificName == "REFERENCES") {
+                    return
+                } else if (!scientificName) {
+                    println "No name. Lines = ${lines}"
+                    return
+                }
 
                 List attributes = []
                 Element authorElement = lines.find { it.attr("class") == "author" }
@@ -129,7 +136,7 @@ class TASImport {
                     profiles << profile
                 }
 
-                scientificNames.get(scientificName.trim().toLowerCase(), []) << count
+                scientificNames.get(scientificName.trim().toLowerCase(), []) << familyName
             }
         }
 
@@ -172,7 +179,7 @@ class TASImport {
             report << "\n\nDuplicate scientific names (only the first record will be imported): \n"
             scientificNames.each { k, v ->
                 if (v.size() > 1 && k) {
-                    report << "\t${k}, on lines ${v}. Line ${v.first()} was imported.\n"
+                    report << "\t${k}, in families ${v}. Family ${v.first()} was imported.\n"
                     duplicates++
                 }
             }
@@ -223,7 +230,13 @@ class TASImport {
         String connectingTerm = ""
         CONNECTING_TERMS.each {
             if (fullText.contains(it)) {
-                connectingTerm = it
+                if (it == "series") {
+                    connectingTerm = "ser."
+                } else if (it == "section") {
+                    connectingTerm = "sect."
+                } else {
+                    connectingTerm = it
+                }
             }
         }
 
