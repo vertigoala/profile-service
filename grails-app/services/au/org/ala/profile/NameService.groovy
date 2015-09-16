@@ -217,6 +217,11 @@ class NameService extends BaseDataAccessService {
 
         Map result = [bySimpleName: [:], byFullName: [:]]
 
+        // Names with these statuses are considered to be 'acceptable' names in the NSL. We do not want to match to any
+        // unacceptable names
+        List validStatuses = ['legitimate', 'manuscript', 'nom. alt.', 'nom. cons.', 'nom. cons., nom. alt.',
+                              'nom. cons., orth. cons.', 'nom. et typ. cons.', 'orth. cons.', 'typ. cons.']
+
         try {
             URL url = new URL("${grailsApplication.config.nsl.simple.name.export.url}")
 
@@ -224,21 +229,23 @@ class NameService extends BaseDataAccessService {
                 def csv = parseCsv(reader)
 
                 csv.each { fields ->
-                    String simpleName = Utils.cleanupText(fields.simple_name_html)
-                    String fullName = Utils.cleanupText(fields.full_name_html)
+                    if (validStatuses.contains(fields.nom_stat)) {
+                        String simpleName = Utils.cleanupText(fields.simple_name_html)
+                        String fullName = Utils.cleanupText(fields.full_name_html)
 
-                    Map name = [scientificName    : simpleName,
-                                scientificNameHtml: fields.simple_name_html,
-                                fullName          : fullName,
-                                fullNameHtml      : fields.full_name_html,
-                                url               : fields.id,
-                                nslIdentifier     : fields.id.substring(fields.id.lastIndexOf("/") + 1),
-                                rank              : fields.rank,
-                                nameAuthor        : fields.authority,
-                                nslProtologue     : fields.proto_citation]
+                        Map name = [scientificName    : simpleName,
+                                    scientificNameHtml: fields.simple_name_html,
+                                    fullName          : fullName,
+                                    fullNameHtml      : fields.full_name_html,
+                                    url               : fields.id,
+                                    nslIdentifier     : fields.id.substring(fields.id.lastIndexOf("/") + 1),
+                                    rank              : fields.rank,
+                                    nameAuthor        : fields.authority,
+                                    nslProtologue     : fields.proto_citation]
 
-                    result.bySimpleName << [(simpleName): name]
-                    result.byFullName << [(fullName): name]
+                        result.bySimpleName << [(simpleName): name]
+                        result.byFullName << [(fullName): name]
+                    }
                 }
             }
 
