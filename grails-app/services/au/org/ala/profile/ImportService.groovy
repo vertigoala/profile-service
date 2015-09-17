@@ -116,19 +116,16 @@ class ImportService extends BaseDataAccessService {
                                 profile.nslNameIdentifier = it.nslNameIdentifier
                             } else if (enableNSLMatching) {
                                 Map nslMatch
-                                if (nslNamesCached) {
-                                    nslMatch = nameService.matchCachedNSLName(nslNamesCached, it.scientificName)
+                                boolean matchedByName
+                                if (it.nslNomenclatureIdentifier) {
+                                    nslMatch = nameService.findNslNameFromNomenclature(it.nslNomenclatureIdentifier)
+                                    matchedByName = false
+                                } else if (nslNamesCached) {
+                                    nslMatch = nameService.matchCachedNSLName(nslNamesCached, it.scientificName, it.nameAuthor, it.fullName)
+                                    matchedByName = true
                                 } else {
                                     nslMatch = nameService.matchNSLName(it.scientificName)
-                                }
-
-                                // if there is no match using the provided name, try using the ALA matched name
-                                if (!nslMatch && matchedName) {
-                                    if (nslNamesCached) {
-                                        nslMatch = nameService.matchCachedNSLName(nslNamesCached, matchedName.scientificName)
-                                    } else {
-                                        nslMatch = nameService.matchNSLName(matchedName.scientificName)
-                                    }
+                                    matchedByName = true
                                 }
 
                                 if (nslMatch) {
@@ -138,7 +135,7 @@ class ImportService extends BaseDataAccessService {
                                         profile.nameAuthor = nslMatch.nameAuthor
                                     }
 
-                                    if (!it.scientificName.equalsIgnoreCase(nslMatch.scientificName) && !it.scientificName.equalsIgnoreCase(nslMatch.fullName)) {
+                                    if (matchedByName && !it.scientificName.equalsIgnoreCase(nslMatch.scientificName) && !it.scientificName.equalsIgnoreCase(nslMatch.fullName)) {
                                         results.warnings << "NSL - Provided with name ${it.scientificName}, but was matched with name ${nslMatch.fullName} in the NSL. Using provided name."
                                     }
                                 } else {

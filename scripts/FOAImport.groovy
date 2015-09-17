@@ -4,6 +4,7 @@
 
 import groovyx.net.http.RESTClient
 import groovy.xml.MarkupBuilder
+import org.apache.commons.lang3.StringUtils
 
 import java.text.SimpleDateFormat
 
@@ -75,7 +76,7 @@ class FOAImport {
             Integer id = line.TAXA_ID as int
             String scientificName = line.NAME?.trim()
 
-            String fullName = constructFullName(line.GENUS, line.SPECIES, line.INFRASPECIES_RANK, line.INFRASPECIES, line.AUTHOR)
+            String fullName = constructFullName(line.NAME, line.GENUS, line.SPECIES, line.INFRASPECIES_RANK, line.INFRASPECIES, line.AUTHOR)
 
             List attributes = []
             Map<String, List<String>> attrs = taxaAttributes.get(id)
@@ -221,12 +222,14 @@ class FOAImport {
         println "Import finished. See ${report.absolutePath} for details"
     }
 
-    static constructFullName(String genus, String species, String infraspecificRank, String infraspecies, String author) {
+    static constructFullName(String name, String genus, String species, String infraspecificRank, String infraspecies, String author) {
         String fullName
 
         if (infraspecies && infraspecificRank) {
             if (infraspecies == species) {
                 fullName = "${genus} ${species} ${author} ${infraspecificRank} ${infraspecies}"
+            } else if (!species && infraspecies && name.contains(infraspecificRank) && name.contains(infraspecies)) {
+                fullName = "${name} ${author}"
             } else {
                 fullName = "${genus} ${species} ${infraspecificRank} ${infraspecies} ${author}"
             }

@@ -101,15 +101,65 @@ class NameService extends BaseDataAccessService {
         names
     }
 
-    Map matchCachedNSLName(Map nslCache, String name) {
+    Map matchCachedNSLName(Map<String, List> nslCache, String simpleName, String nameAuthor, String fullName) {
         Map match = [:]
 
-        if (nslCache.bySimpleName.containsKey(name)) {
-            match = nslCache.bySimpleName[name]
-        } else if (nslCache.byFullName.containsKey(name)) {
-            match = nslCache.byFullName[name]
+        fullName = fullName?.replaceAll(" +", " ")?.trim()
+        simpleName = simpleName?.replaceAll(" +", " ")?.trim()
+        if (fullName.contains("Batrachium trichophyllum") || simpleName.contains("Batrachium trichophyllum")) {
+            println fullName
+        }
+
+        if (nslCache.byFullName.containsKey(fullName)) {
+            match = findBestCachedMatch(nslCache.byFullName[fullName], nameAuthor)
+        } else if (nslCache.bySimpleName.containsKey(simpleName)) {
+            match = findBestCachedMatch(nslCache.bySimpleName[simpleName], nameAuthor)
         } else {
-            log.warn "No match found in NSL name cache for ${name}"
+            log.warn "No match found in NSL name cache for ${fullName}"
+        }
+
+        match
+    }
+
+    private Map findBestCachedMatch(List<Map> names, String author) {
+        Map match = [:]
+
+        // If there is only 1 name:
+        //   - if it is valid then use it
+        //   - if it is not valid but an author has been provided, then use it
+        //   - if it is not valid and no author was provided, then there is no match
+        // If there are multiple names:
+        //   - if there is only 1 valid name, then use it
+        //   - if there are no valid names, then there is no match
+        //   - if there are multiple valid names, then there is no match
+
+        if (names.size() == 1 && (names[0].valid || author)) {
+            match = names[0]
+        } else {
+            List validNames = names?.findAll { it.valid }
+            if (validNames.size() == 1) {
+                match = validNames[0]
+            } else if (validNames.size() > 1) {
+                List withProtologue = validNames.findAll { it.nslProtologue }
+                if (withProtologue.size() == 1) {
+                    match = withProtologue[0]
+                }
+            }
+        }
+
+        match
+    }
+
+    Map findNslNameFromNomenclature(String nslNomenclatureIdentifier) {
+        Map match = [:]
+
+        if (nslNomenclatureIdentifier) {
+            String resp = new URL("${grailsApplication.config.nsl.name.instance.url.prefix}${nslNomenclatureIdentifier}.json").text
+            def json = new JsonSlurper().parseText(resp)
+
+            String instanceLink = json?.instance?.name?._links?.permalink?.link
+            match.nslIdentifier = instanceLink.substring(instanceLink.lastIndexOf("/") + 1)
+            match.nslProtologue = json.instance?.reference?.citationHtml
         }
 
         match
@@ -215,12 +265,12 @@ class NameService extends BaseDataAccessService {
         log.info "Loading NSL Simple Name dump into memory...."
         long start = System.currentTimeMillis()
 
-        Map result = [bySimpleName: [:], byFullName: [:]]
+        Map result = [bySimpleName: [:].withDefault { [] }, byFullName: [:].withDefault { [] }]
 
         // Names with these statuses are considered to be 'acceptable' names in the NSL. We do not want to match to any
         // unacceptable names
         List validStatuses = ['legitimate', 'manuscript', 'nom. alt.', 'nom. cons.', 'nom. cons., nom. alt.',
-                              'nom. cons., orth. cons.', 'nom. et typ. cons.', 'orth. cons.', 'typ. cons.']
+                              'nom. cons., orth. cons.', 'nom. et typ. cons.', 'orth. cons.', 'typ. cons.', '[default]']
 
         try {
             URL url = new URL("${grailsApplication.config.nsl.simple.name.export.url}")
@@ -229,23 +279,23 @@ class NameService extends BaseDataAccessService {
                 def csv = parseCsv(reader)
 
                 csv.each { fields ->
-                    if (validStatuses.contains(fields.nom_stat)) {
-                        String simpleName = Utils.cleanupText(fields.simple_name_html)
-                        String fullName = Utils.cleanupText(fields.full_name_html)
+                    String simpleName = Utils.cleanupText(fields.simple_name_html)
+                    String fullName = Utils.cleanupText(fields.full_name_html)
 
-                        Map name = [scientificName    : simpleName,
-                                    scientificNameHtml: fields.simple_name_html,
-                                    fullName          : fullName,
-                                    fullNameHtml      : fields.full_name_html,
-                                    url               : fields.id,
-                                    nslIdentifier     : fields.id.substring(fields.id.lastIndexOf("/") + 1),
-                                    rank              : fields.rank,
-                                    nameAuthor        : fields.authority,
-                                    nslProtologue     : fields.proto_citation]
+                    Map name = [scientificName    : simpleName,
+                                scientificNameHtml: fields.simple_name_html,
+                                fullName          : fullName,
+                                fullNameHtml      : fields.full_name_html,
+                                url               : fields.id,
+                                nslIdentifier     : fields.id.substring(fields.id.lastIndexOf("/") + 1),
+                                rank              : fields.rank,
+                                nameAuthor        : fields.authority,
+                                nslProtologue     : fields.proto_citation,
+                                valid             : validStatuses.contains(fields.nom_stat),
+                                status            : fields.nom_stat]
 
-                        result.bySimpleName << [(simpleName): name]
-                        result.byFullName << [(fullName): name]
-                    }
+                    result.bySimpleName[simpleName] << name
+                    result.byFullName[fullName] << name
                 }
             }
 
