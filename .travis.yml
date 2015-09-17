@@ -15,7 +15,7 @@ before_install:
 - chmod 775 ~/install_gvm.sh
 - ~/install_gvm.sh
 - echo "sdkman_auto_answer=true" > ~/.sdkman/etc/config
-- source ~/.sdkman/bin/gvm-init.sh
+- source ~/.sdkman/bin/sdkman-init.sh
 - GRAILS_VERSION=`grep '^app\.grails\.version=' ./application.properties | sed -e
   's/^app\.grails\.version=//g'`
 - gvm install grails $GRAILS_VERSION || true
