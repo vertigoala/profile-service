@@ -106,9 +106,6 @@ class NameService extends BaseDataAccessService {
 
         fullName = fullName?.replaceAll(" +", " ")?.trim()
         simpleName = simpleName?.replaceAll(" +", " ")?.trim()
-        if (fullName.contains("Batrachium trichophyllum") || simpleName.contains("Batrachium trichophyllum")) {
-            println fullName
-        }
 
         if (nslCache.byFullName.containsKey(fullName)) {
             match = findBestCachedMatch(nslCache.byFullName[fullName], nameAuthor)
