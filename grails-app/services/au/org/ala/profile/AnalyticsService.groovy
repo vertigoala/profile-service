@@ -100,7 +100,7 @@ class AnalyticsService {
 
         def opusId = profile.opus.shortName ?: profile.opus.uuid
 
-        def profileUri = "${grailsApplication.config.contextPath ?: ''}/opus/${opusId}/profile/${profile.fullName}"
+        def profileUri = "${grailsApplication.config.contextPath ?: ''}/opus/${opusId}/profile/${profile.scientificName}"
 
         // Query Google Analytics for ga:sessions and ga:pageviews...
         ret.allTime = queryForViews(profileUri, ALL_TIME)
@@ -176,7 +176,7 @@ class AnalyticsService {
         def metrics = "ga:sessions,ga:pageviews"
         def dimensions = "ga:pagePath"
         def sort = "-ga:pageviews"
-        def filters = "ga:pagePath=~^/opus/${opus.shortName?:opus.uuid}/profile/.*"
+        def filters = "ga:pagePath=~^/opus/${opus.shortName ?: opus.uuid}/profile/.*"
 
         GaData result = analytics.data().ga()
                 .get(viewIds, from, "today", metrics)
@@ -197,7 +197,7 @@ class AnalyticsService {
     private Map queryVisitorCount(Opus opus, String from) {
         String metrics = "ga:visitors"
         String dimensions = "ga:pagePath"
-        String filters = "ga:pagePath=~^/opus/${opus.shortName?:opus.uuid}/.*"
+        String filters = "ga:pagePath=~^/opus/${opus.shortName ?: opus.uuid}/.*"
 
         GaData result = analytics.data().ga()
                 .get(viewIds, from, "today", metrics)
@@ -219,7 +219,7 @@ class AnalyticsService {
         def metrics = "ga:sessions,ga:pageviews"
         def dimensions = "ga:pagePath"
         def sort = "-ga:pageviews"
-        def filters = "ga:pagePath=~^/opus/${opus.shortName?:opus.uuid}/profile/.*/(publication|pdf)/.*"
+        def filters = "ga:pagePath=~^/opus/${opus.shortName ?: opus.uuid}/profile/.*/(publication|pdf)/.*"
 
         GaData result = analytics.data().ga()
                 .get(viewIds, from, "today", metrics)
