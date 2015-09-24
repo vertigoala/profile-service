@@ -98,7 +98,9 @@ class AnalyticsService {
             init();
         }
 
-        def profileUri = "${grailsApplication.config.contextPath ?: ''}/opus/${profile.opus.uuid}/profile/${profile.uuid}"
+        def opusId = profile.opus.shortName ?: profile.opus.uuid
+
+        def profileUri = "${grailsApplication.config.contextPath ?: ''}/opus/${opusId}/profile/${profile.fullName}"
 
         // Query Google Analytics for ga:sessions and ga:pageviews...
         ret.allTime = queryForViews(profileUri, ALL_TIME)
@@ -135,11 +137,11 @@ class AnalyticsService {
 
         String fromStr = from ? from.format("yyyy-MM-dd") : ALL_TIME
 
-        ret.mostViewedProfile = queryMostViewedProfile(opus.uuid, ALL_TIME)
-        ret.totalVisitorCount = queryVisitorCount(opus.uuid, ALL_TIME)
-        ret.totalDownloadCount = queryDownloadCount(opus.uuid, ALL_TIME)
-        ret.monthlyVisitorCount = queryVisitorCount(opus.uuid, fromStr)
-        ret.monthlyDownloadCount = queryDownloadCount(opus.uuid, fromStr)
+        ret.mostViewedProfile = queryMostViewedProfile(opus, ALL_TIME)
+        ret.totalVisitorCount = queryVisitorCount(opus, ALL_TIME)
+        ret.totalDownloadCount = queryDownloadCount(opus, ALL_TIME)
+        ret.monthlyVisitorCount = queryVisitorCount(opus, fromStr)
+        ret.monthlyDownloadCount = queryDownloadCount(opus, fromStr)
 
         return ret
     }
@@ -170,11 +172,11 @@ class AnalyticsService {
      * Perform a Google Analytics query for the most viewed profile.
      * @return the data, with caveats as noted in {@link #extractData(GaData)}
      */
-    private Map queryMostViewedProfile(String opusId, String from) {
+    private Map queryMostViewedProfile(Opus opus, String from) {
         def metrics = "ga:sessions,ga:pageviews"
         def dimensions = "ga:pagePath"
         def sort = "-ga:pageviews"
-        def filters = "ga:pagePath=~^/opus/${opusId}/profile/.*"
+        def filters = "ga:pagePath=~^/opus/${opus.shortName?:opus.uuid}/profile/.*"
 
         GaData result = analytics.data().ga()
                 .get(viewIds, from, "today", metrics)
@@ -192,10 +194,10 @@ class AnalyticsService {
     /**
      * Perform a Google Analytics query for the number of unique visitors to the opus.
      */
-    private Map queryVisitorCount(String opusId, String from) {
+    private Map queryVisitorCount(Opus opus, String from) {
         String metrics = "ga:visitors"
         String dimensions = "ga:pagePath"
-        String filters = "ga:pagePath=~^/opus/${opusId}/.*"
+        String filters = "ga:pagePath=~^/opus/${opus.shortName?:opus.uuid}/.*"
 
         GaData result = analytics.data().ga()
                 .get(viewIds, from, "today", metrics)
@@ -213,11 +215,11 @@ class AnalyticsService {
      * Perform a Google Analytics query for the number of hits to PDF download urls (ad-hoc PDFs or publications).
      * @return the data, with caveats as noted in {@link #extractData(GaData)}
      */
-    private Map queryDownloadCount(String opusId, String from) {
+    private Map queryDownloadCount(Opus opus, String from) {
         def metrics = "ga:sessions,ga:pageviews"
         def dimensions = "ga:pagePath"
         def sort = "-ga:pageviews"
-        def filters = "ga:pagePath=~^/opus/${opusId}/profile/.*/(publication|pdf)/.*"
+        def filters = "ga:pagePath=~^/opus/${opus.shortName?:opus.uuid}/profile/.*/(publication|pdf)/.*"
 
         GaData result = analytics.data().ga()
                 .get(viewIds, from, "today", metrics)
