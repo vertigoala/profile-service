@@ -4,6 +4,7 @@
 
 import groovyx.net.http.RESTClient
 import groovy.xml.MarkupBuilder
+import org.apache.commons.lang3.StringUtils
 
 import java.text.SimpleDateFormat
 
@@ -12,6 +13,8 @@ import static com.xlson.groovycsv.CsvParser.parseCsv
 import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
 
 class FOAImport {
+
+    static final String FILE_ENCODING = "utf-8"
 
     static String OPUS_ID
     static String DATA_DIR
@@ -57,89 +60,65 @@ class FOAImport {
             report.createNewFile()
         }
 
-        Map<String, String> volumes = loadVolumes()
-
         Map<Integer, String> attributeTitles = loadAttributeTitles()
 
         Map<Integer, Map<String, List<String>>> taxaAttributes = loadAttributes(attributeTitles)
-
-        Map<Integer, String> contributors = loadContributors()
-
-        Map<Integer, List<String>> taxaContributors = loadTaxaContributors(contributors)
-
-        Map<Integer, Integer> nslConcepts = loadNslConcepts()
 
         Map<Integer, List<Map<String, String>>> images = loadImages()
         Map<Integer, List<String>> maps = loadMaps()
 
         List collectionImages = []
 
-        int doubtful = 0
-
-        def csv = parseCsv(new File("${DATA_DIR}/taxa.csv").newReader("utf-8"))
+        def csv = parseCsv(new File("${DATA_DIR}/foa_export_name.csv").newReader(FILE_ENCODING))
         csv.each { line ->
-            // exclude the oceanic volumes (ids 14 and 15)
-            if (line.VOLUME_ID == "14" || line.VOLUME_ID== "15") {
-                return
-            }
-
-            // exclude doubtful names
-            if (line.DOUBTFUL_EXCLUDED_OR_OTHER == "Y") {
-                doubtful++
-                return
-            }
-
             if (count++ % 50 == 0) println "Processing taxa line ${count}..."
 
-            Integer id = line.ID as int
+            Integer id = line.TAXA_ID as int
             String scientificName = line.NAME?.trim()
 
-            List connectingTerms = ["subsp.", "var.", "f.", "ser.", "subg.", "sect.", "subsect."]
-
-            String fullName = null
-
-            // full name is the binomial name plus the name author, possibly with an autonym author
-            if (line.AUTHOR_AUTONYM) {
-                connectingTerms.each {
-                    if (scientificName.contains(it)) {
-                        fullName = new StringBuilder(scientificName).insert(scientificName.indexOf(it), "${line.AUTHOR_AUTONYM} ").toString()
-                    }
-                }
-            } else {
-                fullName = "${scientificName} ${line.AUTHOR}"
-            }
-            fullName = fullName.trim()
+            String fullName = constructFullName(line.NAME, line.GENUS, line.SPECIES, line.INFRASPECIES_RANK, line.INFRASPECIES, line.AUTHOR)
 
             List attributes = []
             Map<String, List<String>> attrs = taxaAttributes.get(id)
             if (attrs) {
                 attrs.each { k, v ->
-                    if (v) {
-                        attributes << [title: k, text: v.join("<p/>"), creators: [], stripHtml: false]
+                    if (v && k != "Author") {
+                        StringBuilder text = new StringBuilder()
+                        v.each { text.append "<p>${it}</p>" }
+
+                        attributes << [title: k, text: text.toString(), creators: [], stripHtml: false]
                     }
                 }
             }
 
-            List<Map<String, String>> imgs = images.get(id)
-            imgs?.each {
-                it.identifier = "http://anbg.gov.au/abrs-archive/Flora_Australia_Online/web_images/vol" + volumes[line.VOLUME_ID] + "/" + it.fileName
-                it.scientificName = scientificName
-                collectionImages << it
-            }
-            List<String> mapList = maps.get(id)
-            mapList?.each {
-                Map metadata = [title: "Distribution Map",
-                                identifier: "http://anbg.gov.au/abrs-archive/Flora_Australia_Online/web_images/vol" + volumes[line.VOLUME_ID] + "/" + it,
-                                scientificName: scientificName]
-                collectionImages << metadata
-            }
+            StringBuilder volume = new StringBuilder("<p>")
+            volume.append(cleanupText(line.VOLUME_REFERENCE))
+            volume.append("</p>")
+            attributes << [title: "Source citation", text: volume.toString(), creators: [], stripHtml: false]
+
+//            List<Map<String, String>> imgs = images.get(id)
+//            imgs?.each {
+//                it.identifier = "http://anbg.gov.au/abrs-archive/Flora_Australia_Online/web_images/vol" + volumes[line.VOLUME_ID] + "/" + it.fileName
+//                it.scientificName = scientificName
+//                collectionImages << it
+//            }
+//            List<String> mapList = maps.get(id)
+//            mapList?.each {
+//                Map metadata = [title: "Distribution Map",
+//                                identifier: "http://anbg.gov.au/abrs-archive/Flora_Australia_Online/web_images/vol" + volumes[line.VOLUME_ID] + "/" + it,
+//                                scientificName: scientificName]
+//                collectionImages << metadata
+//            }
+
+            String author = attrs ? attrs["Author"]?.join(", ") : null
 
             Map profile = [scientificName: scientificName,
                            nameAuthor: line.AUTHOR,
                            fullName: fullName,
                            attributes: attributes,
-                           nslNomenclatureIdentifier: nslConcepts.get(id) ?: "",
-                           authorship: [[category: "Author", text: taxaContributors[id]?.join(", ")]]]
+                           nslNomenclatureIdentifier: line.NSL_ID,
+                           authorship: author ? [[category: "Author", text: author]] : []
+            ]
 
             if (!scientificNames.containsKey(scientificName.trim().toLowerCase())) {
                 profiles << profile
@@ -156,7 +135,6 @@ class FOAImport {
         println "Creating image files..."
         createImageFiles(collectionImages)
 
-        report << "Ignoring ${doubtful} doubtful names\n\n"
         println "Importing ${profiles.size()} profiles..."
 
         def service = new RESTClient(PROFILE_SERVICE_IMPORT_URL)
@@ -167,7 +145,8 @@ class FOAImport {
 
         println "Import report will be available at ${PROFILE_SERVICE_REPORT_URL}import/${importId}/report"
 
-        int sleepTime = 5 * 60 * 1000
+//        int sleepTime = 5 * 60 * 1000
+        int sleepTime = 1 * 30 * 1000
         println "${new Date().format("HH:mm:ss.S")} Waiting for import to complete..."
         Thread.sleep(sleepTime)
 
@@ -181,6 +160,11 @@ class FOAImport {
             resp = service.get([:]).data
         }
 
+        report << "\n\nImport results \n"
+        report << "-------------- \n"
+        report << "\nStarted: ${resp.report.started}"
+        report << "\nFinished: ${resp.report.finished}"
+
         if (invalidLines) {
             report << "Invalid lines from source file:\n"
             invalidLines.each {k, v ->
@@ -188,11 +172,13 @@ class FOAImport {
             }
         }
 
+        int duplicates = 0
         if (scientificNames.any {k, v -> v.size() > 1 && k != null}) {
             report << "\n\nDuplicate scientific names (only the first record will be imported): \n"
             scientificNames.each { k, v ->
                 if (v.size() > 1 && k) {
                     report << "\t${k}, on lines ${v}. Line ${v.first()} was imported.\n"
+                    duplicates++
                 }
             }
         }
@@ -200,9 +186,6 @@ class FOAImport {
         int success = 0
         int failed = 0
         int warnings = 0
-        report << "\n\nImport results: \n"
-        report << "\nStarted: ${resp.report.started}"
-        report << "\nFinished: ${resp.report.finished}"
 
         resp.report.profiles.each { k, v ->
             if (v.status.startsWith("success")) {
@@ -214,7 +197,7 @@ class FOAImport {
             }
         }
 
-        report << "\n\nImported ${success} of ${count} profiles with ${failed} errors and ${warnings} warnings\n\n"
+        report << "\n\nImported ${success + warnings} of ${count} profiles with ${warnings} warning(s), ${duplicates} duplicates and ${failed} error(s)\n\n"
 
         resp.report.profiles.each { k, v ->
             if (v.status.startsWith("warning")) {
@@ -223,7 +206,7 @@ class FOAImport {
                     report << "\t\t${it}\n"
                 }
             } else if (v.status.startsWith("error")) {
-                report << "\t${k} failed with ${v.errors.size()} errors and ${v.warnings.size()} warnings:\n"
+                report << "\t${k} failed with ${v.errors.size()} error(s) and ${v.warnings.size()} warning(s):\n"
                 report << "\t\tWarnings\n"
                 v.warnings.each {
                     report << "\t\t\t${it}\n"
@@ -239,12 +222,32 @@ class FOAImport {
         println "Import finished. See ${report.absolutePath} for details"
     }
 
+    static constructFullName(String name, String genus, String species, String infraspecificRank, String infraspecies, String author) {
+        String fullName
+
+        if (infraspecies && infraspecificRank) {
+            if (infraspecies == species) {
+                fullName = "${genus} ${species} ${author} ${infraspecificRank} ${infraspecies}"
+            } else if (!species && infraspecies && name.contains(infraspecificRank) && name.contains(infraspecies)) {
+                fullName = "${name} ${author}"
+            } else {
+                fullName = "${genus} ${species} ${infraspecificRank} ${infraspecies} ${author}"
+            }
+        } else {
+            fullName = "${genus} ${species} ${author}"
+        }
+
+        fullName
+    }
+
     static Map<Integer, String> loadAttributeTitles() {
         Map<Integer, String> attributeTitles = [:]
-        def csv = parseCsv(new File("${DATA_DIR}/properties.csv").newReader("utf-8"))
+        def csv = parseCsv(new File("${DATA_DIR}/foa_export_attr.csv").newReader(FILE_ENCODING))
         csv.each { line ->
             try {
-                attributeTitles << [(line.ID as Integer): line.LABEL.trim()]
+                String propertyName = line.PROPERTY_NAME?.replaceAll("_", " ")?.trim()
+                propertyName = StringUtils.capitalize(propertyName)
+                attributeTitles << [(line.PROPERTY_ID as Integer): propertyName]
             } catch (e) {
                 println "Failed to extract attribute titles from line [${line}]"
             }
@@ -254,25 +257,15 @@ class FOAImport {
     }
 
     static Map<Integer, Map<String, List<String>>> loadAttributes(Map<Integer, String> attributeTitles) {
-        List<String> excludedTitles = ["1", "8", "9", "10", "11", "12", "13", "14", "20", "21", "22"]
-
         Map<Integer, Map<String, List<String>>> attributes = [:]
         int count = 0
-        def csv = parseCsv(new File("${DATA_DIR}/taxa_properties.csv").newReader("utf-8"))
+        def csv = parseCsv(new File("${DATA_DIR}/foa_export_attr.csv").newReader(FILE_ENCODING))
         csv.each { line ->
             if (count++ % 50 == 0) println "Processing attribute line ${count}..."
             try {
-                if (excludedTitles.contains(line.PROPERTY_ID)) {
-                    return
-                }
-
-                if (line.PARENT_ID) {
-                    println "Line ${line.ID} (prop id ${line.PROPERTY_ID}) has a parent id of ${line.PARENT_ID}"
-                }
-
                 String title = attributeTitles[line.PROPERTY_ID as Integer]
 
-                attributes.get(line.TAXON_ID as Integer, [:]).get(title, []) << "<p>${line.VAL}</p>"
+                attributes.get(line.TAXA_ID as Integer, [:]).get(title, []) << cleanupText(line.VAL)
             } catch (e) {
                 println "${e.message} - ${line}"
             }
@@ -281,118 +274,55 @@ class FOAImport {
         attributes
     }
 
-    static Map<Integer, String> loadContributors() {
-        Map<Integer, String> contributors = [:]
-
-        def csv = parseCsv(new File("${DATA_DIR}/contributors.csv").newReader("utf-8"))
-        csv.each { line ->
-            try {
-                contributors << [(line.ID as Integer): line.NAME_STRING.trim()]
-            } catch (e) {
-                println "Failed to extract contributors from line [${line}]"
-            }
-        }
-
-        contributors
-    }
-
-    static Map<Integer, List<String>> loadTaxaContributors(Map<Integer, String> contributors) {
-        Map<Integer, List<String>> taxaContributors = [:]
-
-        def csv = parseCsv(new File("${DATA_DIR}/taxa_contributors.csv").newReader("utf-8"))
-        csv.each { line ->
-            try {
-                Integer taxa = line.TAXON_ID as Integer
-                Integer contr = line.CONTRIBUTOR_ID as Integer
-                taxaContributors.get(taxa, []) << contributors[contr]
-            } catch (e) {
-                println "Failed to extract taxa contributors from line [${line}]"
-            }
-        }
-
-        taxaContributors
-    }
-
     static Map<Integer, List<Map<String, String>>> loadImages() {
-        Map<Integer, Map<String, String>> images = [:]
-
-        def csv = parseCsv(new File("${DATA_DIR}/figures.csv").newReader("utf-8"))
-        csv.each { line ->
-            try {
-                images << [(line.ID as Integer): [fileName: line.FILE_NAME,
-                                                  title: cleanupText(line.CAPTION),
-                                                  creator: cleanupText(line.ILLUSTRATOR)]]
-            } catch (e) {
-                println "Failed to extract figure from line [${line}]"
-            }
-        }
-
-        Map<Integer, List<Map<String, String>>> taxaImages = [:]
-
-        csv = parseCsv(new File("${DATA_DIR}/taxa_figures.csv").newReader("utf-8"))
-        csv.each { line ->
-            try {
-                taxaImages.get(line.TAXON_ID as Integer, []) << images[line.FIGURE_ID as Integer]
-            } catch (e) {
-                println "Failed to extract figure from line [${line}]"
-            }
-        }
-
-        taxaImages
+//        Map<Integer, Map<String, String>> images = [:]
+//
+//        def csv = parseCsv(new File("${DATA_DIR}/figures.csv").newReader(FILE_ENCODING))
+//        csv.each { line ->
+//            try {
+//                images << [(line.ID as Integer): [fileName: line.FILE_NAME,
+//                                                  title: cleanupText(line.CAPTION),
+//                                                  creator: cleanupText(line.ILLUSTRATOR)]]
+//            } catch (e) {
+//                println "Failed to extract figure from line [${line}]"
+//            }
+//        }
+//
+//        Map<Integer, List<Map<String, String>>> taxaImages = [:]
+//
+//        csv = parseCsv(new File("${DATA_DIR}/taxa_figures.csv").newReader(FILE_ENCODING))
+//        csv.each { line ->
+//            try {
+//                taxaImages.get(line.TAXON_ID as Integer, []) << images[line.FIGURE_ID as Integer]
+//            } catch (e) {
+//                println "Failed to extract figure from line [${line}]"
+//            }
+//        }
+//
+//        taxaImages
     }
 
     static Map<Integer, List<String>> loadMaps() {
-        Map<Integer, List<String>> maps = [:]
-
-        def csv = parseCsv(new File("${DATA_DIR}/distribution_maps.csv").newReader("utf-8"))
-        csv.each { line ->
-            try {
-                maps.get(line.TAXON_ID as Integer, []) << line.FILE_NAME
-            } catch (e) {
-                println "Failed to extract figure from line [${line}]"
-            }
-        }
-
-        maps
-    }
-
-    static Map<String, String> loadVolumes() {
-        Map<String, String> volumes = [:]
-
-        def csv = parseCsv(new File("${DATA_DIR}/volumes.csv").newReader("utf-8"))
-        csv.each { line ->
-            try {
-                volumes << [(line.ID): line.NUM]
-            } catch (e) {
-                println "Failed to extract volume from line [${line}]"
-            }
-        }
-
-        volumes
-    }
-
-    static Map<String, String> loadNslConcepts() {
-        Map<String, String> nslConcepts = [:]
-
-        def csv = parseCsv(new File("${DATA_DIR}/nsl_foa_concept.csv").newReader("utf-8"))
-        csv.each { line ->
-            try {
-                nslConcepts << [(line.foa_id as Integer): line.nsl_id as Integer]
-            } catch (e) {
-                println "Failed to extract nsl from line [${line}]: ${e.message}"
-            }
-        }
-
-        nslConcepts
+//        Map<Integer, List<String>> maps = [:]
+//
+//        def csv = parseCsv(new File("${DATA_DIR}/distribution_maps.csv").newReader(FILE_ENCODING))
+//        csv.each { line ->
+//            try {
+//                maps.get(line.TAXON_ID as Integer, []) << line.FILE_NAME
+//            } catch (e) {
+//                println "Failed to extract figure from line [${line}]"
+//            }
+//        }
+//
+//        maps
     }
 
     static cleanupText(str) {
         if (str) {
             str = unescapeHtml4(str)
-            // preserve line breaks as new lines, remove all other html
-            str = str.replaceAll(/<p\/?>|<br\/?>/, "\n").replaceAll(/<.+?>/, "").replaceAll("\\p{Pd}", "-").replaceAll("\u2014", "-").trim()
         }
-        return str
+
+        str
     }
 
     static createImageFiles(List collectionImages) {

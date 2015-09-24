@@ -8,6 +8,7 @@ class SearchServiceSpec extends BaseIntegrationSpec {
 
     def "setup"() {
         service.authService = Mock(AuthService)
+        service.userService = Mock(UserService)
     }
 
     def "findByScientificName should fail when no scientific name is provided"() {
@@ -49,7 +50,7 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         Profile profile3 = save new Profile(scientificName: "name", opus: opus3, classification: [new Classification(rank: "kingdom", name: "Plantae")])
 
         service.authService.userInRole("ROLE_ADMIN") >> false
-        service.authService.getUserId() >> null
+        service.userService.getCurrentUserDetails() >> [userId: null]
 
         when:
         List result = service.findByScientificName("name", null)
@@ -70,7 +71,7 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         Profile profile3 = save new Profile(scientificName: "name", opus: opus3, classification: [new Classification(rank: "kingdom", name: "Plantae")])
 
         service.authService.userInRole("ROLE_ADMIN") >> false
-        service.authService.getUserId() >> "1234"
+        service.userService.getCurrentUserDetails() >> [userId: "1234"]
 
         when:
         List result = service.findByScientificName("name", null)
@@ -92,7 +93,7 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         Profile profile3 = save new Profile(scientificName: "name", opus: opus3, classification: [new Classification(rank: "kingdom", name: "Plantae")])
 
         service.authService.userInRole("ROLE_ADMIN") >> true
-        service.authService.getUserId() >> "1234"
+        service.userService.getCurrentUserDetails() >> [userId: "1234"]
 
         when:
         List result = service.findByScientificName("name", null)

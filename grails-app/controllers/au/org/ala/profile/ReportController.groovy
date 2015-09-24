@@ -80,4 +80,59 @@ class ReportController extends BaseController {
             }
         }
     }
+
+    def nslMatchingReport() {
+        if (!params.opusId) {
+            badRequest "opusId is a required parameter. It can be a comma-separated list to produce a report for multiple collections"
+        } else {
+            boolean mismatchOnly = params.mismatchOnly?.toBoolean()
+
+            List opusIds = params.opusId.split(",")
+
+            Map nslMatches = [:].withDefault { [] }
+
+            opusIds.each {
+                Opus opus = Opus.findByUuid(it)
+
+                List<Profile> profiles = Profile.findAllByOpus(opus)
+
+                profiles.sort { it.scientificName }
+
+                profiles.each {
+                    nslMatches[it.scientificName] << [it.nslNameIdentifier, it.nslNomenclatureIdentifier]
+                }
+            }
+
+            StringBuilder csv = new StringBuilder()
+
+            List header = ["Profile"]
+            opusIds.each {
+                header << "${it}[nameId,nomenId]"
+            }
+            csv.append("${header.join(",")}\n")
+
+            nslMatches.each { k, v ->
+                boolean mismatch = false
+
+                opusIds.eachWithIndex { def entry, int i ->
+                    int next = i < opusIds.size() - 1 ? i + 1 : i
+                    mismatch |= v && v[i] && v[next] && (v[i][0] != v[next][0] || v[i][1] != v[next][1])
+                }
+
+                if (!mismatchOnly || (mismatchOnly && mismatch)) {
+                    csv.append(k)
+                    csv.append(",")
+                    csv.append(v.join(","))
+                    if (!mismatchOnly && mismatch) {
+                        csv.append(",*****")
+                    }
+                    csv.append("\n")
+                }
+
+            }
+
+            response.setContentType("text/plain")
+            render csv
+        }
+    }
 }

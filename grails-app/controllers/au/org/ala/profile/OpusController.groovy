@@ -242,6 +242,7 @@ class OpusController extends BaseController {
                                 opusId: opus.uuid,
                                 aboutHtml: opus.aboutHtml,
                                 citationHtml: opus.citationHtml,
+                                copyright: opus.copyrightText,
                                 administrators: opus.authorities.collect {
                                     if (it.role == Role.ROLE_PROFILE_ADMIN) {
                                         [email: authService.getUserForUserId(it.user.userId, false)?.userName,
