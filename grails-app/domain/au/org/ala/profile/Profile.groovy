@@ -36,7 +36,8 @@ class Profile {
     List<Bibliography> bibliography
     List<Publication> publications
 
-    List<StagedImage> stagedImages = null // this is only used when dealing with draft profiles
+    List<LocalImage> privateImages = null
+    List<LocalImage> stagedImages = null // this is only used when dealing with draft profiles
 
     String lastAttributeChange
 
@@ -52,7 +53,7 @@ class Profile {
     String archivedBy
     String archivedWithName
 
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'matchedName']
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'matchedName', 'privateImages']
 
     static hasMany = [attributes: Attribute]
 

@@ -52,6 +52,7 @@ class Opus {
     List<SupportingOpus> supportingOpuses
     List<SupportingOpus> sharingDataWith
     boolean autoApproveShareRequests = true
+    boolean keepImagesPrivate = false
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority]
     static embedded = ['supportingOpuses', 'sharingDataWith']

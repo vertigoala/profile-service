@@ -388,9 +388,39 @@ class ProfileService extends BaseDataAccessService {
         checkState profile
         checkState profile.draft // can only stage images for a draft profile - otherwise images are to be automatically updated
 
+        boolean success = recordImage(profile.draft.stagedImages, json)
+
+        if (success) {
+            success = save profile
+        } else {
+            log.error "Failed to record image (prior to saving the profile)"
+        }
+
+        success
+    }
+
+    boolean recordPrivateImage(String profileId, Map json) {
+        checkArgument profileId
+        checkArgument json
+
+        Profile profile = Profile.findByUuid(profileId)
+        checkState profile
+
+        boolean success = recordImage(profileOrDraft(profile).privateImages, json)
+
+        if (success) {
+            success = save profile
+        } else {
+            log.error "Failed to record image (prior to saving the profile)"
+        }
+
+        success
+    }
+
+    private static boolean recordImage(List<LocalImage> imageStore, Map json) {
         boolean success = false
         if (json.action == "add") {
-            StagedImage image = new StagedImage()
+            LocalImage image = new LocalImage()
             image.creator = json.multimedia[0].creator
             image.dateCreated = json.multimedia[0].dateCreated ? new SimpleDateFormat("yyyy-MM-dd").parse(json.multimedia[0].dateCreated) : null
             image.description = json.multimedia[0].description
@@ -401,17 +431,12 @@ class ProfileService extends BaseDataAccessService {
             image.rightsHolder = json.multimedia[0].rightsHolder
             image.title = json.multimedia[0].title
 
-            if (profile.draft.stagedImages == null) {
-                profile.draft.stagedImages = []
-            }
-            profile.draft.stagedImages << image
+            imageStore  << image
             success = true
         } else if (json.action == "delete") {
-            StagedImage image = profile.draft.stagedImages.find { it.imageId == json.imageId }
-            success = profile.draft.stagedImages.remove(image)
+            LocalImage image = imageStore.find { it.imageId == json.imageId }
+            success = imageStore.remove(image)
         }
-
-        save profile
 
         success
     }
