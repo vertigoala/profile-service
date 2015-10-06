@@ -6,6 +6,7 @@ import au.org.ala.profile.Bibliography
 import au.org.ala.profile.Classification
 import au.org.ala.profile.DraftProfile
 import au.org.ala.profile.Link
+import au.org.ala.profile.LocalImage
 import au.org.ala.profile.Name
 import au.org.ala.profile.Profile
 import au.org.ala.profile.Publication
@@ -34,6 +35,7 @@ class DraftUtil {
         profile.bhlLinks = profile.draft.bhlLinks
         profile.bibliography = profile.draft.bibliography
         profile.publications = profile.draft.publications
+        profile.privateImages = profile.draft.privateImages
 
         // Update the existing record rather than replacing it with the draft object,
         // otherwise, the hibernate dirty check will fail (dirty check looks for changes since the entity
@@ -74,6 +76,7 @@ class DraftUtil {
         clone.bibliography = profile.bibliography?.collect { cloneBibliography(it) }
         clone.publications = profile.publications?.collect { clonePublication(it) }
         clone.attributes = profile.attributes?.collect { cloneAttribute(it) }
+        clone.privateImages = profile.privateImages?.collect { cloneImage(it) }
 
         clone.dateCreated = profile.dateCreated
 
@@ -157,6 +160,22 @@ class DraftUtil {
         clone.original = source.original
         clone.creators = source.creators?.collect()
         clone.editors = source.editors?.collect()
+
+        clone
+    }
+
+    static LocalImage cloneImage(LocalImage source) {
+        LocalImage clone = new LocalImage()
+
+        clone.creator = source.creator
+        clone.dateCreated = source.dateCreated
+        clone.description = source.description
+        clone.imageId = source.imageId
+        clone.licence = source.licence
+        clone.originalFileName = source.originalFileName
+        clone.rights = source.rights
+        clone.rightsHolder = source.rightsHolder
+        clone.title = source.title
 
         clone
     }
