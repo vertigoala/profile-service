@@ -5,7 +5,7 @@ import groovy.transform.ToString
 
 @EqualsAndHashCode
 @ToString
-class StagedImage {
+class LocalImage {
 
     String imageId
     String originalFileName

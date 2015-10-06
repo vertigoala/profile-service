@@ -31,7 +31,8 @@ class ProfileMarshaller {
                     bhl                      : profile.bhlLinks,
                     primaryImage             : profile.primaryImage,
                     excludedImages           : profile.excludedImages ?: [],
-                    stagedImages             : profile.stagedImages ?: null,
+                    stagedImages             : profile.stagedImages ?: [],
+                    privateImages            : profile.privateImages ?: [],
                     specimenIds              : profile.specimenIds ?: [],
                     authorship               : profile.authorship?.collect {
                         [category: it.category.name, text: it.text]

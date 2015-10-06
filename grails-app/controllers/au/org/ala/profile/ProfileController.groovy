@@ -351,4 +351,18 @@ class ProfileController extends BaseController {
             render([success: success] as JSON)
         }
     }
+
+    def recordPrivateImage() {
+        def json = request.getJSON()
+
+        if (!params.profileId || !json) {
+            badRequest "profileId and a json body are required"
+        } else {
+            Profile profile = getProfile()
+
+            boolean success = profileService.recordPrivateImage(profile.uuid, json)
+
+            render([success: success] as JSON)
+        }
+    }
 }
