@@ -240,10 +240,10 @@ class NameService extends BaseDataAccessService {
 
                 def json = new JsonSlurper().parseText(resp)
 
-                if (json && json.instance) {
-                    concept.name = json.instance.citation
-                    concept.nameHtml = json.instance.citationHtml
-                    concept.url = json.instance._links.permalink.link
+                if (json && json.citation) {
+                    concept.name = json.citation
+                    concept.nameHtml = json.citationHtml
+                    concept.url = json._links.permalink.link
                     concept.id = concept.url.substring(concept.url.lastIndexOf("/") + 1)
                     log.debug("Matched '${text}' to ${concept.id} (${concept.name})")
                 } else {
