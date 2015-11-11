@@ -62,8 +62,6 @@ grails {
                 staticparts = 'none' // escapes output from static template parts
             }
         }
-        // escapes all not-encoded output at final stage of outputting
-        // filteringCodecForContentType.'text/html' = 'html'
     }
 }
 
@@ -110,6 +108,17 @@ environments {
                 props = ["mail.debug": "true"]
             }
         }
+        elasticSearch {
+            client.mode = "transport"
+            cluster.name = "profiles-local"
+        }
+    }
+    test {
+        elasticSearch {
+            client.mode = 'local'
+            index.store.type = 'memory' // store local node in memory and not on disk
+            cluster.name = "profiles-test"
+        }
     }
     production {
         grails.logging.jul.usebridge = false
@@ -119,6 +128,10 @@ environments {
                 port = 25
                 props = ["mail.debug": "false"]
             }
+        }
+        elasticSearch {
+            client.mode = "transport"
+            cluster.name = "profiles-prod"
         }
     }
 }
@@ -163,3 +176,9 @@ log4j = {
             "au.org.ala"
 }
 
+elasticSearch {
+    // see http://noamt.github.io/elasticsearch-grails-plugin/guide/configuration.html for defaults
+    client.hosts = [[host: "localhost", port: 9300]]
+    datastoreImpl = "mongoDatastore"
+    bulkIndexOnStartup = false
+}

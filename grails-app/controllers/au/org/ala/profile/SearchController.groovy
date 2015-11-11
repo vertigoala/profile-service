@@ -3,15 +3,17 @@ package au.org.ala.profile
 import grails.converters.JSON
 
 class SearchController extends BaseController {
-    /*
-     * Basic search
-     * TODO add a free text search index backed search.
-     * http://grails.github.io/grails-data-mapping/mongodb/manual/guide/3.%20Mapping%20Domain%20Classes%20to%20MongoDB%20Collections.html#3.7%20Full%20Text%20Search
-     * https://blog.codecentric.de/en/2013/01/text-search-mongodb-stemming/
-     *
-     */
-
     SearchService searchService
+
+    def search() {
+        if (!params.term) {
+            badRequest "term is a required parameter"
+        } else {
+            List<String> opusIds = params.opusId?.split(",") ?: []
+
+            render searchService.nameSearch(opusIds, params.term, params.nameOnly?.toBoolean()) as JSON
+        }
+    }
 
     def findByScientificName() {
         if (!params.scientificName) {
