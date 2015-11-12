@@ -1,5 +1,9 @@
 package au.org.ala.profile
 
+import org.elasticsearch.index.query.BoolQueryBuilder
+import org.elasticsearch.index.query.MatchQueryBuilder
+import org.elasticsearch.index.query.MultiMatchQueryBuilder
+
 import static org.elasticsearch.index.query.FilterBuilders.*
 import static org.elasticsearch.index.query.QueryBuilders.*
 
@@ -18,6 +22,7 @@ class SearchService extends BaseDataAccessService {
 
     AuthService authService
     UserService userService
+    BieService bieService
     ElasticSearchService elasticSearchService
 
     def nameSearch(List<String> opusIds, String term, boolean nameOnly = false) {
@@ -31,6 +36,8 @@ class SearchService extends BaseDataAccessService {
             FilterBuilder filter = boolFilter()
                     .must(missingFilter("archivedDate"))
                     .must(nestedFilter("opus", boolFilter().must(termsFilter("opus.uuid", accessibleCollections))))
+
+            log.debug(query.toString())
 
             def rawResults = elasticSearchService.search(query, filter, params)
 
@@ -74,14 +81,31 @@ class SearchService extends BaseDataAccessService {
      * @param term The term to look for
      * @return An ElasticSearch QueryBuilder that can be passed to the {@link ElasticSearchService#search} method.
      */
-    private static QueryBuilder buildNameSearch(String term) {
-        // todo bie lookup to find other names, then add all name terms
+    private QueryBuilder buildNameSearch(String term) {
+        Set<String> otherNames = bieService.getOtherNames(term) ?: []
+        otherNames.remove(term)
+
+        BoolQueryBuilder query = buildBaseNameSearch(term)
+
+        if (otherNames) {
+            BoolQueryBuilder nestedQuery = null
+            otherNames.each {
+                nestedQuery = buildBaseNameSearch(it)
+            }
+
+            query.should(nestedQuery)
+        }
+
+        query
+    }
+
+    private static BoolQueryBuilder buildBaseNameSearch(String term) {
         QueryBuilder attributesWithNames = boolQuery()
                 .must(nestedQuery("attributes.title", boolQuery().must(matchQuery("attributes.title.name", "name"))))
-                .must(matchQuery("text", term))
+                .must(matchPhrasePrefixQuery("text", term).operator(MatchQueryBuilder.Operator.AND))
 
         boolQuery()
-                .should(multiMatchQuery(term, NAME_FIELDS))
+                .should(multiMatchQuery(term, NAME_FIELDS).type(MultiMatchQueryBuilder.Type.PHRASE_PREFIX).operator(MatchQueryBuilder.Operator.AND))
                 .should(nestedQuery("attributes", attributesWithNames))
     }
 
