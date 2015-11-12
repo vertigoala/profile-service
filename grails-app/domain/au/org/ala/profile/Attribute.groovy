@@ -7,12 +7,13 @@ import groovy.transform.ToString
 @ToString
 class Attribute implements Comparable<Attribute> {
 
-//    static auditable = true
-//
-//    static searchable = {
-//        root false
-//        only "text"
-//    }
+    static auditable = true
+
+    static searchable = {
+        root = false
+        only = ["text", "title"]
+        title component: true, index: "not_analyzed"
+    }
 
     String uuid
     Term title

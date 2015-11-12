@@ -1,14 +1,12 @@
 package au.org.ala.profile
 
+import static org.elasticsearch.index.query.FilterBuilders.*
+import static org.elasticsearch.index.query.QueryBuilders.*
+
 import au.org.ala.web.AuthService
 import org.elasticsearch.index.query.FilterBuilder
-import org.elasticsearch.index.query.FilterBuilders
 import org.elasticsearch.index.query.QueryBuilder
-import org.elasticsearch.search.highlight.HighlightBuilder
 
-import javax.swing.text.Highlighter
-
-import static org.elasticsearch.index.query.QueryBuilders.*
 import org.grails.plugins.elasticsearch.ElasticSearchService
 
 class SearchService extends BaseDataAccessService {
@@ -16,8 +14,7 @@ class SearchService extends BaseDataAccessService {
     static final List<String> RANKS = ["kingdom", "phylum", "class", "subclass", "order", "family", "genus", "species"]
     static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 25
     static final Integer DEFAULT_MAX_BROAD_SEARCH_RESULTS = 50
-    static final String[] NAME_FIELDS = ["scientificName", "matchedName", "fullName"]
-    static final String ALL_FIELD = "_all"
+    static final String[] NAME_FIELDS = ["scientificName", "matchedName", "fullName", "attributes"]
 
     AuthService authService
     UserService userService
@@ -29,27 +26,33 @@ class SearchService extends BaseDataAccessService {
         Map results = [:]
         if (accessibleCollections) {
             Map params = [score: true]
-            String[] fields = nameOnly ? NAME_FIELDS : [ALL_FIELD]
 
-            QueryBuilder query = boolQuery()
-                    .must(multiMatchQuery(term, fields))
-                    .must(nestedQuery("opus", boolQuery().must(termsQuery("uuid", accessibleCollections))))
-            log.trace(query.toString())
+            QueryBuilder query = nameOnly ? buildNameSearch(term) : buildTextSearch(term)
+            FilterBuilder filter = boolFilter()
+                    .must(missingFilter("archivedDate"))
+                    .must(nestedFilter("opus", boolFilter().must(termsFilter("opus.uuid", accessibleCollections))))
 
-            FilterBuilder filter = FilterBuilders.boolFilter().must(FilterBuilders.missingFilter("archivedDate"))
-
-            Map rawResults = elasticSearchService.search(query, filter, params)
+            def rawResults = elasticSearchService.search(query, filter, params)
 
             results.total = rawResults.total
             results.items = rawResults.searchResults.collect { Profile it ->
                 [
                         scientificName: it.scientificName,
-                        uuid: it.uuid,
-                        rank: it.rank,
-                        opusShortName: it.opus.shortName,
-                        opusName: it.opus.title,
-                        opusId: it.opus.uuid,
-                        score: rawResults.scores[it.id.toString()]
+                        uuid          : it.uuid,
+                        guid          : it.guid,
+                        rank          : it.rank,
+                        primaryImage  : it.primaryImage,
+                        opusShortName : it.opus.shortName,
+                        opusName      : it.opus.title,
+                        opusId        : it.opus.uuid,
+                        score         : rawResults.scores[it.id.toString()],
+                        attributes    : it.attributes.findResults {
+                            if (nameOnly) {
+                                it.title.name.toLowerCase().contains("name") ? [title: it.title.name, text: it.text] : null
+                            } else {
+                                [title: it.title.name, text: it.text]
+                            }
+                        }
                 ]
             }
 
@@ -59,6 +62,37 @@ class SearchService extends BaseDataAccessService {
         }
 
         results
+    }
+
+    /**
+     * A name search will look for the term(s) in:
+     * <ul>
+     *     <li>any of the {@link #NAME_FIELDS} fields
+     *     <li>or any Attribute where the title contains 'name'
+     * </ul>
+     *
+     * @param term The term to look for
+     * @return An ElasticSearch QueryBuilder that can be passed to the {@link ElasticSearchService#search} method.
+     */
+    private static QueryBuilder buildNameSearch(String term) {
+        // todo bie lookup to find other names, then add all name terms
+        QueryBuilder attributesWithNames = boolQuery()
+                .must(nestedQuery("attributes.title", boolQuery().must(matchQuery("attributes.title.name", "name"))))
+                .must(matchQuery("text", term))
+
+        boolQuery()
+                .should(multiMatchQuery(term, NAME_FIELDS))
+                .should(nestedQuery("attributes", attributesWithNames))
+    }
+
+    /**
+     * A text search will look for the term(s) in any indexed field
+     *
+     * @param term The term to look for
+     * @return An ElasticSearch QueryBuilder that can be passed to the {@link ElasticSearchService#search} method.
+     */
+    private static QueryBuilder buildTextSearch(String term) {
+        boolQuery().must(queryStringQuery(term))
     }
 
     List<Profile> findByScientificName(String scientificName, List<String> opusIds, boolean useWildcard = true, int max = -1, int startFrom = 0) {

@@ -13,11 +13,13 @@ class Profile {
     private static final String NOT_ANALYZED_INDEX = "not_analyzed"
 
     static searchable = {
-        only = ["uuid", "scientificName", "fullName", "matchedName", "rank", "primaryImage", "opus", "lastUpdated", "archivedDate"]
+        only = ["uuid", "guid", "scientificName", "fullName", "matchedName", "rank", "primaryImage", "opus", "attributes", "lastUpdated", "archivedDate"]
         scientificName: boost:20
         matchedName component: true
         opus component: true
+        attributes component: true
         uuid index: NOT_ANALYZED_INDEX
+        guid index: NOT_ANALYZED_INDEX
         lastUpdated index: NOT_ANALYZED_INDEX
         rank index: NOT_ANALYZED_INDEX
         primaryImage index: NOT_ANALYZED_INDEX
