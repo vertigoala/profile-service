@@ -9,6 +9,7 @@ class Term implements Comparable<Term> {
 
     static searchable = {
         only = "name"
+        name index: "not_analyzed"
     }
 
     String uuid

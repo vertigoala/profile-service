@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.Utils
 import groovy.json.JsonSlurper
 
 class BieService {
@@ -31,15 +32,18 @@ class BieService {
         Set otherNames = [] as HashSet
 
         try {
-            String resp = new URL("${grailsApplication.config.bie.base.url}/ws/species/${name}").text
-            Map json = new JsonSlurper().parseText(resp)
+            String resp = new URL("${grailsApplication.config.bie.base.url}/ws/species/${Utils.enc(name)}").text
 
-            json.synonyms?.each {
-                otherNames << it.nameString?.trim()
-            }
+            if (resp) {
+                Map json = new JsonSlurper().parseText(resp)
 
-            json.commonNames?.each {
-                otherNames << it.nameString.trim()
+                json.synonyms?.each {
+                    otherNames << it.nameString?.trim()
+                }
+
+                json.commonNames?.each {
+                    otherNames << it.nameString.trim()
+                }
             }
         } catch (Exception e) {
             log.error("Failed to find other names for ${name}", e)

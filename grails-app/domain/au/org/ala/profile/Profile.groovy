@@ -14,8 +14,8 @@ class Profile {
 
     static searchable = {
         only = ["uuid", "guid", "scientificName", "fullName", "matchedName", "rank", "primaryImage", "opus", "attributes", "lastUpdated", "archivedDate"]
-        scientificName: boost:20
-        matchedName component: true
+        scientificName multi_field: true, boost:20
+        matchedName component: true, boost: 10
         opus component: true
         attributes component: true
         uuid index: NOT_ANALYZED_INDEX

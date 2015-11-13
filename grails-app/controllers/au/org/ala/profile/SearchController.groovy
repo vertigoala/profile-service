@@ -13,7 +13,7 @@ class SearchController extends BaseController {
 
             boolean nameOnly = params.nameOnly ? params.nameOnly.equalsIgnoreCase("true") : false
 
-            render searchService.nameSearch(opusIds, params.term, nameOnly) as JSON
+            render searchService.search(opusIds, params.term, nameOnly) as JSON
         }
     }
 

@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.Utils
 import org.elasticsearch.index.query.BoolQueryBuilder
 import org.elasticsearch.index.query.MatchQueryBuilder
 import org.elasticsearch.index.query.MultiMatchQueryBuilder
@@ -18,28 +19,28 @@ class SearchService extends BaseDataAccessService {
     static final List<String> RANKS = ["kingdom", "phylum", "class", "subclass", "order", "family", "genus", "species"]
     static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 25
     static final Integer DEFAULT_MAX_BROAD_SEARCH_RESULTS = 50
-    static final String[] NAME_FIELDS = ["scientificName", "matchedName", "fullName", "attributes"]
+    static final String[] NAME_FIELDS = ["scientificName", "matchedName"]
+    static final String[] ALL_FIELDS = ["attribute.text", "scientificName", "matchedName"]
 
     AuthService authService
     UserService userService
     BieService bieService
     ElasticSearchService elasticSearchService
 
-    def nameSearch(List<String> opusIds, String term, boolean nameOnly = false) {
+    def search(List<String> opusIds, String term, boolean nameOnly = false) {
         String[] accessibleCollections = getAccessibleCollections(opusIds)?.collect { it.uuid } as String[]
 
         Map results = [:]
         if (accessibleCollections) {
-            Map params = [score: true]
+            Map params = [
+                    score: true
+            ]
 
-            QueryBuilder query = nameOnly ? buildNameSearch(term) : buildTextSearch(term)
-            FilterBuilder filter = boolFilter()
-                    .must(missingFilter("archivedDate"))
-                    .must(nestedFilter("opus", boolFilter().must(termsFilter("opus.uuid", accessibleCollections))))
+            QueryBuilder query = nameOnly ? buildNameSearch(term, accessibleCollections) : buildTextSearch(term, accessibleCollections)
 
             log.debug(query.toString())
 
-            def rawResults = elasticSearchService.search(query, filter, params)
+            def rawResults = elasticSearchService.search(query, null, params)
 
             results.total = rawResults.total
             results.items = rawResults.searchResults.collect { Profile it ->
@@ -53,13 +54,9 @@ class SearchService extends BaseDataAccessService {
                         opusName      : it.opus.title,
                         opusId        : it.opus.uuid,
                         score         : rawResults.scores[it.id.toString()],
-                        attributes    : it.attributes.findResults {
-                            if (nameOnly) {
-                                it.title.name.toLowerCase().contains("name") ? [title: it.title.name, text: it.text] : null
-                            } else {
-                                [title: it.title.name, text: it.text]
-                            }
-                        }
+                        otherNames    : it.attributes ? it.attributes.findResults {
+                                it.title.name.toLowerCase().contains("name") ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
+                        } : []
                 ]
             }
 
@@ -78,25 +75,25 @@ class SearchService extends BaseDataAccessService {
      *     <li>or any Attribute where the title contains 'name'
      * </ul>
      *
-     * @param term The term to look for
-     * @return An ElasticSearch QueryBuilder that can be passed to the {@link ElasticSearchService#search} method.
      */
-    private QueryBuilder buildNameSearch(String term) {
+    private QueryBuilder buildNameSearch(String term, String[] accessibleCollections) {
         Set<String> otherNames = bieService.getOtherNames(term) ?: []
         otherNames.remove(term)
 
-        BoolQueryBuilder query = buildBaseNameSearch(term)
+        BoolQueryBuilder query = boolQuery()
+
+        // rank matches using the provided text higher than matches based on other names from the BIE
+        BoolQueryBuilder providedNameQuery = buildBaseNameSearch(term).boost(100)
+
+        query.should(providedNameQuery)
 
         if (otherNames) {
-            BoolQueryBuilder nestedQuery = null
             otherNames.each {
-                nestedQuery = buildBaseNameSearch(it)
+                query.should(buildBaseNameSearch(it))
             }
-
-            query.should(nestedQuery)
         }
 
-        query
+        filteredQuery(query, buildFilter(accessibleCollections))
     }
 
     private static BoolQueryBuilder buildBaseNameSearch(String term) {
@@ -105,18 +102,27 @@ class SearchService extends BaseDataAccessService {
                 .must(matchPhrasePrefixQuery("text", term).operator(MatchQueryBuilder.Operator.AND))
 
         boolQuery()
+                .should(matchQuery("scientificName.untouched", term).boost(200)) // rank exact matches on the profile name highest of all
                 .should(multiMatchQuery(term, NAME_FIELDS).type(MultiMatchQueryBuilder.Type.PHRASE_PREFIX).operator(MatchQueryBuilder.Operator.AND))
                 .should(nestedQuery("attributes", attributesWithNames))
+    }
+
+    private static FilterBuilder buildFilter(String[] accessibleCollections) {
+        boolFilter()
+                .must(missingFilter("archivedDate"))
+                .must(nestedFilter("opus", boolFilter().must(termsFilter("opus.uuid", accessibleCollections))))
     }
 
     /**
      * A text search will look for the term(s) in any indexed field
      *
-     * @param term The term to look for
-     * @return An ElasticSearch QueryBuilder that can be passed to the {@link ElasticSearchService#search} method.
      */
-    private static QueryBuilder buildTextSearch(String term) {
-        boolQuery().must(queryStringQuery(term))
+    private static QueryBuilder buildTextSearch(String term, String[] accessibleCollections) {
+        filteredQuery(boolQuery()
+                .should(matchQuery("scientificName.untouched", term).boost(200))
+                .should(multiMatchQuery(term, ALL_FIELDS).operator(MatchQueryBuilder.Operator.AND))
+                .should(nestedQuery("attributes", boolQuery().must(matchPhrasePrefixQuery("text", term).operator(MatchQueryBuilder.Operator.AND)))),
+                buildFilter(accessibleCollections))
     }
 
     List<Profile> findByScientificName(String scientificName, List<String> opusIds, boolean useWildcard = true, int max = -1, int startFrom = 0) {
