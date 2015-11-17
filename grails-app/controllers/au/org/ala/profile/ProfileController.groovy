@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import au.ala.org.ws.security.RequireApiKey
+import au.ala.org.ws.security.SkipApiKeyCheck
 import grails.converters.JSON
 import org.apache.commons.httpclient.HttpStatus
 import org.springframework.web.multipart.MultipartFile
@@ -79,6 +80,7 @@ class ProfileController extends BaseController {
         }
     }
 
+    @SkipApiKeyCheck
     def getPublicationFile() {
         if (!params.publicationId) {
             badRequest "publicationId is a required parameter"
