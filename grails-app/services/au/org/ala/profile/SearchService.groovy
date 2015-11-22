@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.util.Utils
+import com.sun.xml.internal.ws.util.StringUtils
 import org.elasticsearch.index.query.BoolQueryBuilder
 import org.elasticsearch.index.query.MatchQueryBuilder
 import org.elasticsearch.index.query.MultiMatchQueryBuilder
@@ -26,12 +27,13 @@ class SearchService extends BaseDataAccessService {
     UserService userService
     BieService bieService
     ElasticSearchService elasticSearchService
+    NameService nameService
 
-    def search(List<String> opusIds, String term, boolean nameOnly = false) {
+    Map search(List<String> opusIds, String term, boolean nameOnly = false) {
         String[] accessibleCollections = getAccessibleCollections(opusIds)?.collect { it.uuid } as String[]
 
         Map results = [:]
-        if (accessibleCollections) {
+        if (term && accessibleCollections) {
             Map params = [
                     score: true
             ]
@@ -61,8 +63,6 @@ class SearchService extends BaseDataAccessService {
             }
 
             log.debug("Search for ${term} returned ${results.total} hits")
-        } else {
-            log.debug("The user does not have permission to view any collections")
         }
 
         results
@@ -77,7 +77,16 @@ class SearchService extends BaseDataAccessService {
      *
      */
     private QueryBuilder buildNameSearch(String term, String[] accessibleCollections) {
+        // Try to find any other names associated with the provided name - this will help with searching by synonyms
         Set<String> otherNames = bieService.getOtherNames(term) ?: []
+        String alaMatchedName = nameService.matchName(term)?.scientificName
+        if (alaMatchedName && term != alaMatchedName) {
+            otherNames << alaMatchedName
+        }
+        String nslMatchedName = nameService.matchNSLName(term)?.scientificName
+        if (nslMatchedName && term != nslMatchedName) {
+            otherNames << nslMatchedName
+        }
         otherNames.remove(term)
 
         BoolQueryBuilder query = boolQuery()
@@ -99,10 +108,10 @@ class SearchService extends BaseDataAccessService {
     private static BoolQueryBuilder buildBaseNameSearch(String term) {
         QueryBuilder attributesWithNames = boolQuery()
                 .must(nestedQuery("attributes.title", boolQuery().must(matchQuery("attributes.title.name", "name"))))
-                .must(matchPhrasePrefixQuery("text", term).operator(MatchQueryBuilder.Operator.AND))
+                .must(matchQuery("text", term).operator(MatchQueryBuilder.Operator.AND))
 
         boolQuery()
-                .should(matchQuery("scientificName.untouched", term).boost(200)) // rank exact matches on the profile name highest of all
+                .should(termQuery("scientificName.untouched", StringUtils.capitalize(term)).boost(200)) // rank exact matches on the profile name highest of all
                 .should(multiMatchQuery(term, NAME_FIELDS).type(MultiMatchQueryBuilder.Type.PHRASE_PREFIX).operator(MatchQueryBuilder.Operator.AND))
                 .should(nestedQuery("attributes", attributesWithNames))
     }
@@ -140,12 +149,15 @@ class SearchService extends BaseDataAccessService {
         List<Opus> accessibleCollections = getAccessibleCollections(opusIds)
 
         List<Profile> results
-
+println accessibleCollections
+        println opusIds
         if (!accessibleCollections && opusIds) {
+            println "here2"
             // if the original opusList was not empty but the filtered list is, then the current user does not have permission
             // to view profiles from any of the collections, so return an empty list
             results = []
         } else {
+            println "here"
             results = Profile.withCriteria {
                 if (accessibleCollections) {
                     'in' "opus", accessibleCollections
@@ -270,7 +282,7 @@ class SearchService extends BaseDataAccessService {
 
         List filteredOpusList = opusList
         if (!alaAdmin) {
-            // join queries are not supported in Mongo, so we need to do this programmatically
+            // join queries are not supported in Mongo, so we need to do this programatically
             filteredOpusList = (opusList ?: Opus.list()).findAll {
                 !it?.privateCollection || it?.authorities?.find { auth -> auth.user.userId == userId }
             }
