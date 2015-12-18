@@ -1,5 +1,7 @@
 package au.org.ala.profile
 
+import au.org.ala.names.search.HomonymException
+
 import static com.xlson.groovycsv.CsvParser.parseCsv
 import static au.org.ala.profile.util.Utils.enc
 
@@ -24,9 +26,12 @@ class NameService extends BaseDataAccessService {
         nameSearcher = new ALANameSearcher("${grailsApplication.config.name.index.location}")
     }
 
-    Map matchName(String name, String manuallyMatchedGuid = null) {
+    Map matchName(String name, Map<String, String> classification = [:], String manuallyMatchedGuid = null) {
         LinnaeanRankClassification rankClassification = new LinnaeanRankClassification()
         rankClassification.setScientificName(name)
+        populateClassification(classification, rankClassification)
+
+        Map match
         NameSearchResult result
         if (manuallyMatchedGuid) {
             result = nameSearcher.searchForRecordByLsid(manuallyMatchedGuid)
@@ -35,32 +40,97 @@ class NameService extends BaseDataAccessService {
         }
 
         if (result) {
-            Map match = [
-                    guid          : result.lsid,
-                    scientificName: result.getRankClassification().getScientificName(),
-                    nameAuthor    : result.getRankClassification().getAuthorship()
-            ]
+            match = extractMatchDetails(name, result)
+        } else {
+            // There was no match using the default ALA rules. There are some cases (e.g. homonyms) where some assumptions
+            // can be made about the possible matches that are not covered by the ALA Name Matcher.
 
-            // Autonym workaround. Autonyms have the author name in the middle, and the name service does not currently
-            // (as of 23/6/15) always return the author, even though it may match the name.
-            // Therefore, we try to find the author name by comparing the provided name with the matched name, and if
-            // they are different, but have the same start and end, then we assume that the difference is the author name.
-            // e.g. "Acacia dealbata Link subsp. dealbata" is an autonym, but "Acacia dealbata subsp. subalpina Tindale & Kodela" is a subspecies.
-            if (match.nameAuthor == null && name != match.scientificName) {
-                List suppliedName = name.split(" ")
-                List matchedName = match.scientificName.split(" ")
-                if (suppliedName.first() == matchedName.first() && suppliedName.last() == matchedName.last()) {
-                    match.nameAuthor = (suppliedName - matchedName).join(" ")
-                    match.fullName = name
+            try {
+                List<NameSearchResult> matches = nameSearcher.searchForRecords(name, null, rankClassification, 100, true, true)
+
+                match = searchPotentialMatches(name, matches)
+            } catch (HomonymException e) {
+                match = searchPotentialMatches(name, e.results)
+            } catch (Exception e) {
+                log.warn("Name matching exception thrown. No match will be returned.", e)
+                match = null
+            }
+        }
+
+        match
+    }
+
+    private Map searchPotentialMatches(String name, List<NameSearchResult> matches) {
+        Map match = null
+
+        if (matches) {
+            List<NameSearchResult> matchesWithRank = matches.findAll { it.rank }
+            if (matchesWithRank.size() == 1) {
+                match = extractMatchDetails(name, matchesWithRank[0])
+            } else {
+                List<NameSearchResult> exactMatchOnName = matches.findAll {
+                    it.rankClassification.scientificName.toLowerCase().trim() == name.toLowerCase().trim()
+                }
+                if (exactMatchOnName.size() == 1) {
+                    match = extractMatchDetails(name, exactMatchOnName[0])
                 }
             }
-            if (!match.fullName) {
-                match.fullName = "${match.scientificName} ${match.nameAuthor ?: ""}".trim()
-            }
+        }
 
-            match
-        } else {
-            null
+        match
+    }
+
+    private extractMatchDetails(String name, NameSearchResult result) {
+        Map match = [
+                guid          : result.lsid,
+                scientificName: result.getRankClassification().getScientificName(),
+                nameAuthor    : result.getRankClassification().getAuthorship()
+        ]
+
+        // Autonym workaround. Autonyms have the author name in the middle, and the name service does not currently
+        // (as of 23/6/15) always return the author, even though it may match the name.
+        // Therefore, we try to find the author name by comparing the provided name with the matched name, and if
+        // they are different, but have the same start and end, then we assume that the difference is the author name.
+        // e.g. "Acacia dealbata Link subsp. dealbata" is an autonym, but "Acacia dealbata subsp. subalpina Tindale & Kodela" is a subspecies.
+        if (match.nameAuthor == null && name != match.scientificName) {
+            List suppliedName = name.split(" ")
+            List matchedName = match.scientificName.split(" ")
+            if (suppliedName.first() == matchedName.first() && suppliedName.last() == matchedName.last()) {
+                match.nameAuthor = (suppliedName - matchedName).join(" ")
+                match.fullName = name
+            }
+        }
+        if (!match.fullName) {
+            match.fullName = "${match.scientificName} ${match.nameAuthor ?: ""}".trim()
+        }
+
+        match
+    }
+
+    private populateClassification(Map<String, String> classification, LinnaeanRankClassification rankClassification) {
+        classification?.each { rank, rankName ->
+            switch (rank?.toLowerCase()) {
+                case "kingdom":
+                    rankClassification.setKingdom(rankName)
+                    break
+                case "phylum":
+                    rankClassification.setPhylum(rankName)
+                    break
+                case "klass":
+                case "clazz":
+                case "class":
+                    rankClassification.setKlass(rankName)
+                    break
+                case "order":
+                    rankClassification.setOrder(rankName)
+                    break
+                case "family":
+                    rankClassification.setFamily(rankName)
+                    break
+                case "genus":
+                    rankClassification.setGenus(rankName)
+                    break
+            }
         }
     }
 

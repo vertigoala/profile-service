@@ -91,28 +91,19 @@ class FOAImport {
                 }
             }
 
+            Map<String, String> classification = [:]
+            classification.family = line.FAMILY
+            classification.genus = line.GENUS
+
             StringBuilder volume = new StringBuilder("<p>")
             volume.append(cleanupText(line.VOLUME_REFERENCE))
             volume.append("</p>")
             attributes << [title: "Source citation", text: volume.toString(), creators: [], stripHtml: false]
 
-//            List<Map<String, String>> imgs = images.get(id)
-//            imgs?.each {
-//                it.identifier = "http://anbg.gov.au/abrs-archive/Flora_Australia_Online/web_images/vol" + volumes[line.VOLUME_ID] + "/" + it.fileName
-//                it.scientificName = scientificName
-//                collectionImages << it
-//            }
-//            List<String> mapList = maps.get(id)
-//            mapList?.each {
-//                Map metadata = [title: "Distribution Map",
-//                                identifier: "http://anbg.gov.au/abrs-archive/Flora_Australia_Online/web_images/vol" + volumes[line.VOLUME_ID] + "/" + it,
-//                                scientificName: scientificName]
-//                collectionImages << metadata
-//            }
-
             String author = attrs ? attrs["Author"]?.join(", ") : null
 
             Map profile = [scientificName: scientificName,
+                           classification: classification,
                            nameAuthor: line.AUTHOR,
                            fullName: fullName,
                            attributes: attributes,

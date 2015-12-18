@@ -84,7 +84,7 @@ class ImportService extends BaseDataAccessService {
                     if (!it.scientificName) {
                         results.errors << "Failed to import row ${index}, does not have a scientific name"
                     } else {
-                        Map matchedName = nameService.matchName(it.scientificName?.trim())
+                        Map matchedName = nameService.matchName(it.scientificName?.trim(), it.classification ?: [:])
 
                         String scientificName = matchedName?.scientificName?.trim() ?: it.scientificName.trim()
                         String fullName = matchedName?.fullName?.trim() ?: scientificName.trim()
