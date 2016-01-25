@@ -238,7 +238,7 @@ class NameService extends BaseDataAccessService {
             case NSLNomenclatureMatchStrategy.APC_OR_LATEST:
                 List concepts = listNomenclatureConcepts(nslNameIdentifier)
                 concepts.each {
-                    if (it.APCReference?.booleanValue()) {
+                    if (it.apcAccepted?.booleanValue()) {
                         match = it
                     }
                 }

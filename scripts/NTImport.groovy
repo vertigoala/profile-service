@@ -85,7 +85,6 @@ class NTImport {
                     taxonName = taxonName.substring(taxonName.indexOf(" ")).trim()
                 }
 
-                taxonName = taxonName.cha
 
                 List attributes = []
 
@@ -114,7 +113,7 @@ class NTImport {
                 profiles: profiles
         ]
 
-        println "Importing..."
+        println "Importing to ${PROFILE_SERVICE_IMPORT_URL}..."
         def service = new RESTClient(PROFILE_SERVICE_IMPORT_URL)
 
         def resp = service.post(body: opus, requestContentType: JSON)
