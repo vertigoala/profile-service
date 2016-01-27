@@ -21,7 +21,7 @@ class SearchService extends BaseDataAccessService {
     static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 25
     static final Integer DEFAULT_MAX_BROAD_SEARCH_RESULTS = 50
     static final String[] NAME_FIELDS = ["scientificName", "matchedName"]
-    static final String[] ALL_FIELDS = ["attribute.text", "scientificName", "matchedName"]
+    static final String[] ALL_FIELDS = ["attribute.text", "scientificName^4", "matchedName^3"]
 
     AuthService authService
     UserService userService
@@ -29,13 +29,15 @@ class SearchService extends BaseDataAccessService {
     ElasticSearchService elasticSearchService
     NameService nameService
 
-    Map search(List<String> opusIds, String term, boolean nameOnly = false) {
+    Map search(List<String> opusIds, String term, int offset, int pageSize, boolean nameOnly = false) {
         String[] accessibleCollections = getAccessibleCollections(opusIds)?.collect { it.uuid } as String[]
 
         Map results = [:]
         if (term && accessibleCollections) {
             Map params = [
-                    score: true
+                    score: true,
+                    from: offset,
+                    size: pageSize
             ]
 
             QueryBuilder query = nameOnly ? buildNameSearch(term, accessibleCollections) : buildTextSearch(term, accessibleCollections)
@@ -55,7 +57,11 @@ class SearchService extends BaseDataAccessService {
                         opusShortName : it.opus.shortName,
                         opusName      : it.opus.title,
                         opusId        : it.opus.uuid,
+                        classification: it.classification ?: [],
                         score         : rawResults.scores[it.id.toString()],
+                        description   : it.attributes ? it.attributes.findResults {
+                                it.title.name.toLowerCase().contains("description") ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
+                        } : [],
                         otherNames    : it.attributes ? it.attributes.findResults {
                                 it.title.name.toLowerCase().contains("name") ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
                         } : []
@@ -92,7 +98,7 @@ class SearchService extends BaseDataAccessService {
         BoolQueryBuilder query = boolQuery()
 
         // rank matches using the provided text higher than matches based on other names from the BIE
-        BoolQueryBuilder providedNameQuery = buildBaseNameSearch(term).boost(100)
+        BoolQueryBuilder providedNameQuery = buildBaseNameSearch(term).boost(3)
 
         query.should(providedNameQuery)
 
@@ -111,7 +117,7 @@ class SearchService extends BaseDataAccessService {
                 .must(matchQuery("text", term).operator(MatchQueryBuilder.Operator.AND))
 
         boolQuery()
-                .should(termQuery("scientificName.untouched", StringUtils.capitalize(term)).boost(200)) // rank exact matches on the profile name highest of all
+                .should(termQuery("scientificName.untouched", StringUtils.capitalize(term)).boost(4)) // rank exact matches on the profile name highest of all
                 .should(multiMatchQuery(term, NAME_FIELDS).type(MultiMatchQueryBuilder.Type.PHRASE_PREFIX).operator(MatchQueryBuilder.Operator.AND))
                 .should(nestedQuery("attributes", attributesWithNames))
     }
@@ -127,10 +133,17 @@ class SearchService extends BaseDataAccessService {
      *
      */
     private static QueryBuilder buildTextSearch(String term, String[] accessibleCollections) {
+        QueryBuilder attributesWithNames = boolQuery()
+                .must(nestedQuery("attributes.title", boolQuery().must(matchQuery("attributes.title.name", "name"))))
+                .must(matchQuery("text", term).operator(MatchQueryBuilder.Operator.AND))
+
         filteredQuery(boolQuery()
-                .should(matchQuery("scientificName.untouched", term).boost(200))
-                .should(multiMatchQuery(term, ALL_FIELDS).operator(MatchQueryBuilder.Operator.AND))
-                .should(nestedQuery("attributes", boolQuery().must(matchPhrasePrefixQuery("text", term).operator(MatchQueryBuilder.Operator.AND)))),
+                .should(matchQuery("scientificName.untouched", term).boost(4))
+                .should(multiMatchQuery(term, ALL_FIELDS).operator(MatchQueryBuilder.Operator.AND).boost(2))
+                .should(multiMatchQuery(term, ALL_FIELDS).operator(MatchQueryBuilder.Operator.OR))
+                .should(nestedQuery("attributes", attributesWithNames).boost(3))
+                .should(nestedQuery("attributes", boolQuery().must(matchPhrasePrefixQuery("text", term).operator(MatchQueryBuilder.Operator.AND)).boost(2)))
+                .should(nestedQuery("attributes", boolQuery().must(matchPhrasePrefixQuery("text", term).operator(MatchQueryBuilder.Operator.OR)))),
                 buildFilter(accessibleCollections))
     }
 
@@ -149,8 +162,7 @@ class SearchService extends BaseDataAccessService {
         List<Opus> accessibleCollections = getAccessibleCollections(opusIds)
 
         List<Profile> results
-println accessibleCollections
-        println opusIds
+
         if (!accessibleCollections && opusIds) {
             println "here2"
             // if the original opusList was not empty but the filtered list is, then the current user does not have permission

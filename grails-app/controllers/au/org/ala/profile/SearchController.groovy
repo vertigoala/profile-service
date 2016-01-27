@@ -11,9 +11,12 @@ class SearchController extends BaseController {
         } else {
             List<String> opusIds = params.opusId?.split(",") ?: []
 
-            boolean nameOnly = params.nameOnly ? params.nameOnly.equalsIgnoreCase("true") : false
+            String term = params.term as String
+            boolean nameOnly = params.nameOnly?.toBoolean()
+            int pageSize = params.pageSize ? params.pageSize as int : -1
+            int offset = params.offset ? params.offset as int : 0
 
-            render searchService.search(opusIds, params.term, nameOnly) as JSON
+            render searchService.search(opusIds, term, offset, pageSize, nameOnly) as JSON
         }
     }
 
