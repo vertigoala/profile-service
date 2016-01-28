@@ -9,6 +9,12 @@ class Attribute implements Comparable<Attribute> {
 
     static auditable = true
 
+    static searchable = {
+        root = false
+        only = ["text", "title"]
+        title component: true, index: "not_analyzed"
+    }
+
     String uuid
     Term title
     String text // = "This animal lives...."
@@ -28,6 +34,8 @@ class Attribute implements Comparable<Attribute> {
     }
 
     static mapping = {
+        profile index: true
+        uuid index: true
     }
 
     def beforeValidate() {

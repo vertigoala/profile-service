@@ -7,6 +7,11 @@ import groovy.transform.ToString
 @EqualsAndHashCode
 class Name {
 
+    static searchable = {
+        root = false
+        only = ["fullName"]
+    }
+
     String scientificName
     String nameAuthor
     String fullName

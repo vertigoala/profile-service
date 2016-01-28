@@ -241,34 +241,34 @@ class OpusService extends BaseDataAccessService {
         List profiles = Profile.findAllByOpus(opus)
         Profile.deleteAll(profiles)
 
-//        if (opus.glossary) {
-//            GlossaryItem glossaryItems = GlossaryItem.findByGlossary(opus.glossary)
-//            if (glossaryItems) {
-//                GlossaryItem.deleteAll(glossaryItems)
-//            }
-//            delete opus.glossary
-//        }
-//
-//        if (opus.attributeVocabUuid) {
-//            Vocab vocab = Vocab.findByUuid(opus.attributeVocabUuid)
-//            Term.deleteAll(vocab.terms)
-//            delete vocab
-//        }
-//        if (opus.authorshipVocabUuid) {
-//            Vocab vocab = Vocab.findByUuid(opus.authorshipVocabUuid)
-//            Term.deleteAll(vocab.terms)
-//            delete vocab
-//        }
-//
-//        Opus.withCriteria {
-//            eq "supportingOpuses.uuid", opus.uuid
-//        }?.each {
-//            SupportingOpus supporting = it.supportingOpuses.find { it.uuid == opus.uuid }
-//            it.supportingOpuses.remove(supporting)
-//            save it
-//        }
-//
-//        delete opus
+        if (opus.glossary) {
+            GlossaryItem glossaryItems = GlossaryItem.findByGlossary(opus.glossary)
+            if (glossaryItems) {
+                GlossaryItem.deleteAll(glossaryItems)
+            }
+            delete opus.glossary
+        }
+
+        if (opus.attributeVocabUuid) {
+            Vocab vocab = Vocab.findByUuid(opus.attributeVocabUuid)
+            Term.deleteAll(vocab.terms)
+            delete vocab
+        }
+        if (opus.authorshipVocabUuid) {
+            Vocab vocab = Vocab.findByUuid(opus.authorshipVocabUuid)
+            Term.deleteAll(vocab.terms)
+            delete vocab
+        }
+
+        Opus.withCriteria {
+            eq "supportingOpuses.uuid", opus.uuid
+        }?.each {
+            SupportingOpus supporting = it.supportingOpuses.find { it.uuid == opus.uuid }
+            it.supportingOpuses.remove(supporting)
+            save it
+        }
+
+        delete opus
     }
 
     def updateSupportingOpuses(String opusId, Map json) {

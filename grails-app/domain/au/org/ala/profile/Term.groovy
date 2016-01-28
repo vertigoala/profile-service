@@ -7,6 +7,11 @@ import groovy.transform.ToString
 @EqualsAndHashCode
 class Term implements Comparable<Term> {
 
+    static searchable = {
+        only = "name"
+        name index: "not_analyzed"
+    }
+
     String uuid
     String name
     int order = -1

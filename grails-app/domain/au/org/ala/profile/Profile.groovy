@@ -10,6 +10,21 @@ import javax.persistence.Transient
 @ToString
 class Profile {
 
+    private static final String NOT_ANALYZED_INDEX = "not_analyzed"
+
+    static searchable = {
+        only = ["uuid", "guid", "scientificName", "fullName", "matchedName", "rank", "primaryImage", "opus", "attributes", "lastUpdated", "archivedDate"]
+        scientificName multi_field: true, boost:20
+        matchedName component: true, boost: 10
+        opus component: true
+        attributes component: true
+        uuid index: NOT_ANALYZED_INDEX
+        guid index: NOT_ANALYZED_INDEX
+        lastUpdated index: NOT_ANALYZED_INDEX
+        rank index: NOT_ANALYZED_INDEX
+        primaryImage index: NOT_ANALYZED_INDEX
+    }
+
     ObjectId id
     String uuid
     String guid                 //taxon GUID / LSID
@@ -85,6 +100,10 @@ class Profile {
     static mapping = {
         version false
         attributes cascade: "all-delete-orphan"
+        scientificName index: true
+        guid index: true
+        rank index: true
+        uuid index: true
     }
 
     def beforeValidate() {

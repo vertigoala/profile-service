@@ -8,6 +8,15 @@ import groovy.transform.ToString
 @ToString
 class Opus {
 
+    static searchable = {
+        root = false
+        only = ["title", "uuid", "shortName", "dataResourceUid"]
+        title index: "not_analyzed"
+        uuid index: "not_analyzed"
+        shortName index: "not_analyzed"
+        dataResourceUid index: "not_analyzed"
+    }
+
     String uuid
     String shortName
     String title
@@ -94,5 +103,7 @@ class Opus {
         version false
         glossary cascade: "all-delete-orphan"
         authorities cascade: "all-delete-orphan"
+        shortName index: true
+        uuid index: true
     }
 }

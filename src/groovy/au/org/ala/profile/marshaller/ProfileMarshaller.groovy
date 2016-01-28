@@ -17,6 +17,7 @@ class ProfileMarshaller {
                     dataResourceUid          : profile.opus?.dataResourceUid,
                     opusId                   : profile.opus?.uuid,
                     opusName                 : profile.opus?.title,
+                    opusShortName            : profile.opus?.shortName,
                     privateMode              : profile.privateMode,
                     rank                     : profile.rank,
                     scientificName           : profile.scientificName,

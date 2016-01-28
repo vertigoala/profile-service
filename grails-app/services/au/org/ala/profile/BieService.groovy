@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.Utils
 import groovy.json.JsonSlurper
 
 class BieService {
@@ -7,7 +8,7 @@ class BieService {
 
     def getClassification(String guid) {
         try {
-                String resp = new URL("${grailsApplication.config.bie.base.url}/ws/classification/${guid}").text
+            String resp = new URL("${grailsApplication.config.bie.base.url}/ws/classification/${guid}").text
             JsonSlurper jsonSlurper = new JsonSlurper()
             jsonSlurper.parseText(resp)
         } catch (Exception e) {
@@ -25,5 +26,30 @@ class BieService {
             log.error("Failed to retrieve species profile for ${guid}", e)
             null
         }
+    }
+
+    Set<String> getOtherNames(String name) {
+        Set otherNames = [] as HashSet
+
+        try {
+            String resp = new URL("${grailsApplication.config.bie.base.url}/ws/species/${Utils.enc(name)}").text
+
+            if (resp) {
+                Map json = new JsonSlurper().parseText(resp)
+
+                json.synonyms?.each {
+                    otherNames << it.nameString?.trim()
+                }
+
+                json.commonNames?.each {
+                    otherNames << it.nameString.trim()
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to find other names for ${name}", e)
+        }
+
+
+        otherNames
     }
 }

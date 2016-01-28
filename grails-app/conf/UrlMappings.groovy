@@ -2,6 +2,8 @@ class UrlMappings {
 
     static mappings = {
 
+        "/admin/search/reindex" controller: "search", action: [POST: "reindex"]
+
         "/audit/object/$entityId" controller: "audit", action: [GET: "auditTrailForObject"]
 
         "/audit/user/$userId" controller: "audit", action: [GET: "auditTrailForUser"]
@@ -27,7 +29,7 @@ class UrlMappings {
 
         "/opus/$opusId" controller: "opus", action: [GET: "show", POST: "updateOpus", DELETE: "deleteOpus"]
 
-        "/profile/search" controller: "search", action: "findByScientificName"
+        "/profile/search" controller: "search", action: "search"
         "/profile/search/scientificName" controller: "search", action: "findByScientificName"
         "/profile/search/taxon/name" controller: "search", action: "findByTaxonNameAndLevel"
         "/profile/search/taxon/level" controller: "search", action: "groupByTaxonLevel"
@@ -84,11 +86,6 @@ class UrlMappings {
 
         "/publication/$publicationId" controller: "profile", action: [GET: "getPublicationDetails"]
 
-        "/$controller/$action?/$id?(.$format)?" {
-            constraints {
-                // apply constraints here
-            }
-        }
 
         "/" view: "/index"
         "500" view: '/error'
