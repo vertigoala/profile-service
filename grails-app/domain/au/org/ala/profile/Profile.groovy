@@ -100,6 +100,10 @@ class Profile {
     static mapping = {
         version false
         attributes cascade: "all-delete-orphan"
+        scientificName index: true
+        guid index: true
+        rank index: true
+        uuid index: true
     }
 
     def beforeValidate() {

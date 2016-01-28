@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.ala.org.ws.security.RequireApiKey
 import grails.converters.JSON
 
 class SearchController extends BaseController {
@@ -96,5 +97,12 @@ class SearchController extends BaseController {
 
             render result as JSON
         }
+    }
+
+    @RequireApiKey
+    def reindex() {
+        searchService.reindex()
+
+        render (Status.first() as JSON)
     }
 }

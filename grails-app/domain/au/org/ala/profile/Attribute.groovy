@@ -34,6 +34,8 @@ class Attribute implements Comparable<Attribute> {
     }
 
     static mapping = {
+        profile index: true
+        uuid index: true
     }
 
     def beforeValidate() {

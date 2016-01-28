@@ -103,5 +103,7 @@ class Opus {
         version false
         glossary cascade: "all-delete-orphan"
         authorities cascade: "all-delete-orphan"
+        shortName index: true
+        uuid index: true
     }
 }

@@ -5,6 +5,7 @@ import com.sun.xml.internal.ws.util.StringUtils
 import org.elasticsearch.index.query.BoolQueryBuilder
 import org.elasticsearch.index.query.MatchQueryBuilder
 import org.elasticsearch.index.query.MultiMatchQueryBuilder
+import org.springframework.scheduling.annotation.Async
 
 import static org.elasticsearch.index.query.FilterBuilders.*
 import static org.elasticsearch.index.query.QueryBuilders.*
@@ -16,7 +17,6 @@ import org.elasticsearch.index.query.QueryBuilder
 import org.grails.plugins.elasticsearch.ElasticSearchService
 
 class SearchService extends BaseDataAccessService {
-
     static final List<String> RANKS = ["kingdom", "phylum", "class", "subclass", "order", "family", "genus", "species"]
     static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 25
     static final Integer DEFAULT_MAX_BROAD_SEARCH_RESULTS = 50
@@ -164,12 +164,10 @@ class SearchService extends BaseDataAccessService {
         List<Profile> results
 
         if (!accessibleCollections && opusIds) {
-            println "here2"
             // if the original opusList was not empty but the filtered list is, then the current user does not have permission
             // to view profiles from any of the collections, so return an empty list
             results = []
         } else {
-            println "here"
             results = Profile.withCriteria {
                 if (accessibleCollections) {
                     'in' "opus", accessibleCollections
@@ -301,5 +299,31 @@ class SearchService extends BaseDataAccessService {
         }
 
         filteredOpusList
+    }
+
+    @Async
+    def reindex() {
+        Status status
+        if (Status.count() == 0) {
+            status = new Status()
+            save status
+        }
+
+        status = Status.list()[0]
+        status.searchReindex = true
+        save status
+
+        long start = System.currentTimeMillis()
+        log.warn("Recreating search index...")
+
+        elasticSearchService.index(Profile)
+
+        int time = System.currentTimeMillis() - start
+
+        status.searchReindex = false
+        status.lastReindexDuration = time
+        save status
+
+        log.warn("Search re-index complete in ${time} milliseconds")
     }
 }

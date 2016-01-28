@@ -110,14 +110,12 @@ environments {
         }
         elasticSearch {
             client.mode = "transport"
-            cluster.name = "profiles-local"
         }
     }
     test {
         elasticSearch {
             client.mode = 'local'
             index.store.type = 'memory' // store local node in memory and not on disk
-            cluster.name = "profiles-test"
         }
     }
     production {
@@ -131,7 +129,6 @@ environments {
         }
         elasticSearch {
             client.mode = "transport"
-            cluster.name = "profiles-prod"
         }
     }
 }
@@ -173,6 +170,7 @@ log4j = {
             'grails.app.resourceMappers.org.grails.plugin.resource'
 
     debug   "grails.app",
+//            "org.grails.plugins.elasticsearch",
             "au.org.ala"
 }
 

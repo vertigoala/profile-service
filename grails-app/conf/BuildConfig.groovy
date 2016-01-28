@@ -46,7 +46,6 @@ grails.project.dependency.resolution = {
         runtime ('au.org.ala:ala-name-matching:2.1') {
             excludes 'lucene-queries', 'lucene-analyzers', 'lucene-core', 'lucene-analyzers-common', 'lucene-queryparser', 'lucene-sandbox'
         }
-//        compile "org.apache.lucene:lucene-core:4.10.4"
         compile "com.xlson.groovycsv:groovycsv:1.0"
         compile "com.google.apis:google-api-services-analytics:v3-rev116-1.20.0"
     }
@@ -58,7 +57,7 @@ grails.project.dependency.resolution = {
         runtime ":ala-ws-security:1.1"
         runtime ":mongodb:3.0.3"
         runtime (":elasticsearch:0.0.4.6") {
-            excludes 'groovy-all'
+            excludes 'groovy-all' // elasticsearch:0.0.4.6 bundles groovy-all:2.4.3; Grails 2.5.2 uses groovy-all:2.4.4
         }
         runtime ":cors:1.1.6"
         compile ":quartz:1.0.2"
