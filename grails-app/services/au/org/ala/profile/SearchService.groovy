@@ -138,7 +138,7 @@ class SearchService extends BaseDataAccessService {
                 .must(matchQuery("text", term).operator(MatchQueryBuilder.Operator.AND))
 
         filteredQuery(boolQuery()
-                .should(matchQuery("scientificName.untouched", term).boost(4))
+                .should(matchQuery("scientificName.untouched", StringUtils.capitalize(term)).boost(4))
                 .should(multiMatchQuery(term, ALL_FIELDS).operator(MatchQueryBuilder.Operator.AND).boost(2))
                 .should(multiMatchQuery(term, ALL_FIELDS).operator(MatchQueryBuilder.Operator.OR))
                 .should(nestedQuery("attributes", attributesWithNames).boost(3))

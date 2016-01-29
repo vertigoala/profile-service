@@ -362,7 +362,7 @@ class ProfileService extends BaseDataAccessService {
         checkArgument profile
         checkArgument json
 
-        if (json.primaryImage && json.primaryImage != profileOrDraft(profile).primaryImage) {
+        if (json.containsKey("primaryImage") && json.primaryImage != profileOrDraft(profile).primaryImage) {
             profileOrDraft(profile).primaryImage = json.primaryImage
         }
 
