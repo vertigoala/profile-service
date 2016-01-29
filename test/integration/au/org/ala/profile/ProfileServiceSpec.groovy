@@ -170,8 +170,8 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         save profile
         service.saveImages(profile, [primaryImage: null])
 
-        then: "there should be no change"
-        profile.primaryImage == "12345"
+        then: "the primary image should be cleared"
+        profile.primaryImage == null
 
         when: "the incoming primary image is different"
         profile = new Profile(opus: opus, scientificName: "sciName", primaryImage: "12345")
