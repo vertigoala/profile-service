@@ -509,4 +509,17 @@ class OpusService extends BaseDataAccessService {
 
         save glossary
     }
+
+    Collection<Authority> getAuthoritiesForUser(String userId, String opusId) {
+        Collection<Authority> authorities = []
+
+        Contributor user = Contributor.findByUserId(userId)
+
+        if (opusId) {
+            Opus opus = Opus.findByUuid(opusId)
+            authorities = opus.authorities?.findAll { it.user == user }
+        }
+
+        authorities
+    }
 }

@@ -86,6 +86,7 @@ class UrlMappings {
 
         "/publication/$publicationId" controller: "profile", action: [GET: "getPublicationDetails"]
 
+        "/user/details" controller: "userDetails", action: [GET: "getUserDetails"]
 
         "/" view: "/index"
         "500" view: '/error'
