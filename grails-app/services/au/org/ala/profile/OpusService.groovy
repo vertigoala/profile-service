@@ -12,6 +12,7 @@ class OpusService extends BaseDataAccessService {
     EmailService emailService
     AuthService authService
     def grailsApplication
+    def groovyPageRenderer
 
     Opus createOpus(json) {
         log.debug("Creating new opus record")
@@ -149,35 +150,36 @@ class OpusService extends BaseDataAccessService {
             opus.keybaseKeyId = json.keybaseKeyId
         }
         if (json.has("enablePhyloUpload") && json.enablePhyloUpload != opus.enablePhyloUpload) {
-            opus.enablePhyloUpload = json.enablePhyloUpload as boolean
+            opus.enablePhyloUpload = json.enablePhyloUpload?.toBoolean()
         }
         if (json.has("enableOccurrenceUpload") && json.enableOccurrenceUpload != opus.enableOccurrenceUpload) {
-            opus.enableOccurrenceUpload = json.enableOccurrenceUpload as boolean
+            opus.enableOccurrenceUpload = json.enableOccurrenceUpload?.toBoolean()
         }
         if (json.has("enableTaxaUpload") && json.enableTaxaUpload != opus.enableTaxaUpload) {
-            opus.enableTaxaUpload = json.enableTaxaUpload as boolean
+            opus.enableTaxaUpload = json.enableTaxaUpload?.toBoolean()
         }
         if (json.has("enableKeyUpload") && json.enableKeyUpload != opus.enableKeyUpload) {
-            opus.enableKeyUpload = json.enableKeyUpload as boolean
+            opus.enableKeyUpload = json.enableKeyUpload?.toBoolean()
         }
         if (json.has("showLinkedOpusAttributes") && json.showLinkedOpusAttributes != opus.showLinkedOpusAttributes) {
-            opus.showLinkedOpusAttributes = json.showLinkedOpusAttributes as boolean
+            opus.showLinkedOpusAttributes = json.showLinkedOpusAttributes?.toBoolean()
         }
         if (json.has("keepImagesPrivate") && json.keepImagesPrivate != opus.keepImagesPrivate) {
-            opus.keepImagesPrivate = json.keepImagesPrivate as boolean
+            opus.keepImagesPrivate = json.keepImagesPrivate?.toBoolean()
         }
         if (json.has("privateCollection") && json.privateCollection != opus.privateCollection) {
-            opus.privateCollection = json.privateCollection as boolean
-            if (!opus.privateCollection) {
-                // only private collections can continue to have private images
-                opus.keepImagesPrivate = false
+            opus.privateCollection = json.privateCollection?.toBoolean()
+            // if we are changing from public to private, then all other collections that have been granted access to
+            // use this collection as a Supporting Collection need to have their access revoked.
+            if (opus.privateCollection) {
+                revokeAllSupportingCollectionAccess(opus)
             }
         }
         if (json.has("allowCopyFromLinkedOpus") && json.allowCopyFromLinkedOpus != opus.allowCopyFromLinkedOpus) {
-            opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus as boolean
+            opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus?.toBoolean()
         }
         if (json.has("allowFineGrainedAttribution") && json.allowFineGrainedAttribution != opus.allowFineGrainedAttribution) {
-            opus.allowFineGrainedAttribution = json.allowFineGrainedAttribution as boolean
+            opus.allowFineGrainedAttribution = json.allowFineGrainedAttribution?.toBoolean()
         }
         if (json.has("autoApproveShareRequests") && json.autoApproveShareRequests != opus.autoApproveShareRequests) {
             opus.autoApproveShareRequests = json.autoApproveShareRequests.toBoolean()
@@ -206,7 +208,7 @@ class OpusService extends BaseDataAccessService {
         opus
     }
 
-    boolean updateUsers(String opusId, Map json) {
+    boolean updateUserAccess(String opusId, Map json) {
         checkArgument opusId
         checkArgument json
 
@@ -229,7 +231,12 @@ class OpusService extends BaseDataAccessService {
         }
 
         if (json.containsKey("privateCollection") && json.privateCollection.toBoolean() != opus.privateCollection) {
-            opus.privateCollection = json.privateCollection as boolean
+            opus.privateCollection = json.privateCollection?.toBoolean()
+            // if we are changing from public to private, then all other collections that have been granted access to
+            // use this collection as a Supporting Collection need to have their access revoked.
+            if (opus.privateCollection) {
+                revokeAllSupportingCollectionAccess(opus)
+            }
         }
 
         save opus
@@ -309,19 +316,10 @@ class OpusService extends BaseDataAccessService {
 
                         String url = "${grailsApplication.config.profile.hub.base.url}opus/${supportingOpus.uuid}/shareRequest/${opus.uuid}"
 
-                        emailService.sendEmail(administrators,
-                                "${opus.title}<no-reply@ala.org.au>",
-                                "Request to share collection information",
-                                """<html><body>
-                                <p>${user}, an administrator for the ${
-                                    opus.title
-                                } collection, would like to share information from ${supportingOpus.title}.</p>
-                                <p>You can approve or decline this request by following <a href='${url}'>this link</a>.<p/>
-                                <p>${opus.title} will not be able to see any of the ${
-                                    supportingOpus.title
-                                } data until the request has been approved by you or another ${supportingOpus.title} administrator.</p>
-                                <p>This is an automated email. Please do not reply.</p>
-                                </body></html>""")
+                        String body = groovyPageRenderer.render(template: "/email/shareRequest", model:[user: user, supportingOpus: supportingOpus, opus: opus, url: url])
+
+                        emailService.sendEmail(administrators, "${opus.title}<no-reply@ala.org.au>",
+                                "Request to share collection information", body)
                     } else {
                         SupportingOpus existingShare = supportingOpus.sharingDataWith.find { it.uuid == opus.uuid }
                         if (!existingShare) {
@@ -366,7 +364,7 @@ class OpusService extends BaseDataAccessService {
 
         SupportingOpus existing = opus.sharingDataWith.find { it.uuid == requestingOpus.uuid }
         if (action == ShareRequestAction.ACCEPT && !existing) {
-            opus.sharingDataWith << new SupportingOpus(uuid: requestingOpus.uuid, title: requestingOpus.title)
+            opus.sharingDataWith << new SupportingOpus(uuid: requestingOpus.uuid, title: requestingOpus.title, requestStatus: ShareRequestStatus.ACCEPTED, dateApproved: new Date())
             save opus
         } else if (action != ShareRequestAction.ACCEPT && existing) {
             opus.sharingDataWith.remove(existing)
@@ -379,15 +377,23 @@ class OpusService extends BaseDataAccessService {
 
         String user = authService.getUserForUserId(authService.getUserId()).displayName
 
+        String body = groovyPageRenderer.render(template: "/email/shareResponse", model:[user: user, action: action, opus: opus])
+
         emailService.sendEmail(administrators,
                 "${opus.title}<no-reply@ala.org.au>",
                 "Request to share collection information - ${action.resultingStatus.toString().toLowerCase()}",
-                """<html><body>
-                            <p>${user}, an administrator for the ${opus.title} collection, has ${action.resultingStatus.toString().toLowerCase()} your request to share information with your collection.</p>
-                            <p>This is an automated email. Please do not reply.</p>
-                            </body></html>""")
+                body)
 
         save requestingOpus
+    }
+
+    private revokeAllSupportingCollectionAccess(Opus opus) {
+        // use a shallow clone of the list to avoid possible concurrent modification errors
+        List<SupportingOpus> sharedWith = opus.sharingDataWith?.clone()
+
+        sharedWith.each {
+            respondToSupportingOpusRequest(opus.uuid, it.uuid, ShareRequestAction.REVOKE)
+        }
     }
 
     boolean deleteGlossaryItem(String glossaryItemId) {

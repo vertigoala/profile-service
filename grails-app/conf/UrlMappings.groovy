@@ -22,7 +22,7 @@ class UrlMappings {
 
         "/opus/" controller: "opus", action: [GET: "index", PUT: "create", POST: "create"]
 
-        "/opus/$opusId/updateUsers" controller: "opus", action: [POST: "updateUsers"]
+        "/opus/$opusId/updateUsers" controller: "opus", action: [POST: "updateUserAccess"]
 
         "/opus/$opusId/supportingCollections/respond/$requestingOpusId/$requestAction" controller: "opus", action: [POST: "respondToSupportingOpusRequest"]
         "/opus/$opusId/supportingCollections/update" controller: "opus", action: [POST: "updateSupportingOpuses"]

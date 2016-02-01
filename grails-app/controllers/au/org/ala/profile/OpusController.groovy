@@ -112,7 +112,7 @@ class OpusController extends BaseController {
         }
     }
 
-    def updateUsers() {
+    def updateUserAccess() {
         if (!params.opusId) {
             badRequest "You must provide an opusId"
         } else {
@@ -123,7 +123,7 @@ class OpusController extends BaseController {
             } else {
                 def json = request.getJSON()
 
-                boolean updated = opusService.updateUsers(opus.uuid, json)
+                boolean updated = opusService.updateUserAccess(opus.uuid, json)
 
                 if (!updated) {
                     saveFailed()
