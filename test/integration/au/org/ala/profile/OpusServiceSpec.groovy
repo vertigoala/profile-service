@@ -142,4 +142,31 @@ class OpusServiceSpec extends BaseIntegrationSpec {
             assert it.requestStatus == ShareRequestStatus.REVOKED
         }
     }
+
+    def "updateUserAccess should not revoke all data sharing requests when the collection has not been changed to private"() {
+        given:
+        Opus opus1 = new Opus(title: "opus", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Opus opus2 = new Opus(title: "opus", dataResourceUid: "123", glossary: new Glossary(), sharingDataWith: [new SupportingOpus(uuid: opus1.uuid, requestStatus: ShareRequestStatus.ACCEPTED)])
+        save opus2
+
+        opus1.supportingOpuses = [new SupportingOpus(uuid: opus2.uuid, requestStatus: ShareRequestStatus.ACCEPTED)]
+        save opus1
+
+        expect:
+        opus2.sharingDataWith.size() == 1
+        opus2.sharingDataWith.each {
+            assert it.requestStatus == ShareRequestStatus.ACCEPTED
+        }
+
+        when:
+        service.updateUserAccess(opus2.uuid, [privateCollection: false])
+
+        then:
+        opus2.sharingDataWith.size() == 1
+        opus1.supportingOpuses.size() == 1
+        opus1.supportingOpuses.each {
+            assert it.requestStatus == ShareRequestStatus.ACCEPTED
+        }
+    }
 }
