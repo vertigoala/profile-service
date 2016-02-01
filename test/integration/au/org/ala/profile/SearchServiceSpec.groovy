@@ -314,6 +314,26 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result.contains(profile3)
     }
 
+    def "findByTaxonNameAndLevel should recognise 'unknown' classifications"() {
+        given:
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
+        Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
+        Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3")
+
+        Profile profile1 = save new Profile(scientificName: "name", opus: opus1, classification: [new Classification(rank: "kingdom", name: "kingdom1")])
+        Profile profile2 = save new Profile(scientificName: "name", opus: opus2)
+        Profile profile3 = save new Profile(scientificName: "name", opus: opus3)
+
+        when:
+        List result = service.findByTaxonNameAndLevel(SearchService.UNKNOWN_RANK, SearchService.UNKNOWN_RANK, [opus1.uuid, opus2.uuid, opus3.uuid])
+
+        then:
+        result.size() == 2
+        !result.contains(profile1)
+        result.contains(profile2)
+        result.contains(profile3)
+    }
+
     def "findByTaxonNameAndLevel should ignore unknown opus ids"() {
         given:
         Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
@@ -428,9 +448,12 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result == [:]
     }
 
-    def "getTaxonLevels should group and count all unique classification levels"() {
+    def "getTaxonLevels should group and count all unique classification levels, including unknown classifications"() {
         given:
         Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+
+        save new Profile(scientificName: "unknown1", opus: opus)
+        save new Profile(scientificName: "unknown2", opus: opus)
 
         save new Profile(scientificName: "kingdom1", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae")])
         save new Profile(scientificName: "kingdom2", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae")])
@@ -535,6 +558,7 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         levels.order == 4
         levels.family == 4
         levels.genus == 2
+        levels[SearchService.UNKNOWN_RANK] == 2
     }
 
     def "groupByTaxonLevel should fail if no opusId or taxon are provided"() {
@@ -557,6 +581,22 @@ class SearchServiceSpec extends BaseIntegrationSpec {
 
         then:
         result == [:]
+    }
+
+    def "groupByTaxonLevel should return a count of profiles with no rank/classification when the requested rank is 'unknown'"() {
+        given:
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+
+        save new Profile(scientificName: "kingdom1", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        save new Profile(scientificName: "kingdom2", opus: opus)
+        save new Profile(scientificName: "kingdom3", opus: opus)
+
+        when: when:
+        Map result = service.groupByTaxonLevel(opus.uuid, SearchService.UNKNOWN_RANK)
+
+        then:
+        result == [(SearchService.UNKNOWN_RANK): 2]
+
     }
 
     def "groupByTaxonLevel should return a map of names of the requested level, with their counts"() {
@@ -708,7 +748,7 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result == [Arthropoda: 1, Charophyta: 2]
     }
 
-    def "groupByTaxLevel should start the result set at the specified offset"() {
+    def "groupByTaxonLevel should start the result set at the specified offset"() {
         given:
         Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
 

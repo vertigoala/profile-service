@@ -17,6 +17,7 @@ import org.elasticsearch.index.query.QueryBuilder
 import org.grails.plugins.elasticsearch.ElasticSearchService
 
 class SearchService extends BaseDataAccessService {
+    static final String UNKNOWN_RANK = "unknown" // used for profiles with no rank/classification
     static final List<String> RANKS = ["kingdom", "phylum", "class", "subclass", "order", "family", "genus", "species"]
     static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 25
     static final Integer DEFAULT_MAX_BROAD_SEARCH_RESULTS = 50
@@ -215,13 +216,18 @@ class SearchService extends BaseDataAccessService {
                 'in' "opus", opusList
             }
 
-            "classification" {
-                eq "rank", "${taxon.toLowerCase()}"
-                ilike "name", "${scientificName}${wildcard}"
-            }
+            if (UNKNOWN_RANK.equalsIgnoreCase(taxon)) {
+                isNull "rank"
+                isNull "classification"
+            } else {
+                "classification" {
+                    eq "rank", "${taxon.toLowerCase()}"
+                    ilike "name", "${scientificName}${wildcard}"
+                }
 
-            if (!recursive) {
-                eq "rank", nextRank
+                if (!recursive) {
+                    eq "rank", nextRank
+                }
             }
 
             isNull "archivedDate"
@@ -238,17 +244,21 @@ class SearchService extends BaseDataAccessService {
 
         Opus opus = Opus.findByUuid(opusId)
 
+        Map groupedRanks = [:]
+
         if (opus) {
-            Profile.collection.aggregate([[$match: [opus: opus.id, archivedDate: null]],
+            groupedRanks = Profile.collection.aggregate([[$match: [opus: opus.id, archivedDate: null]],
                                           [$unwind: '$classification'],
                                           [$group: [_id: [rank: '$classification.rank', name: '$classification.name'], cnt: [$sum: 1]]],
                                           [$group: [_id: '$_id.rank', total: [$sum: 1]]]]
             ).results().iterator().collectEntries {
                 [(it._id): it.total]
             }
-        } else {
-            [:]
+
+            groupedRanks[UNKNOWN_RANK] = Profile.countByOpusAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus)
         }
+
+        groupedRanks
     }
 
     Map<String, Integer> groupByTaxonLevel(String opusId, String taxon, int max = -1, int startFrom = 0) {
@@ -257,26 +267,26 @@ class SearchService extends BaseDataAccessService {
 
         Opus opus = Opus.findByUuid(opusId)
 
+        Map groupedTaxa = [:]
         if (opus) {
-            String nextRank = null
-            if (RANKS.indexOf(taxon) < RANKS.size() - 1 && RANKS.indexOf(taxon) > -1) {
-                nextRank = RANKS[RANKS.indexOf(taxon) + 1]
-            }
+            if (!taxon || UNKNOWN_RANK.equalsIgnoreCase(taxon)) {
+                groupedTaxa[UNKNOWN_RANK] = Profile.countByOpusAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus)
+            } else {
+                def result = Profile.collection.aggregate([$match: [opus: opus.id, archivedDate: null]],
+                        [$unwind: '$classification'],
+                        [$match: ["classification.rank": "${taxon}"]],
+                        [$group: [_id: '$classification.name', cnt: [$sum: 1]]],
+                        [$sort: ["_id": 1]],
+                        [$skip: startFrom], [$limit: max < 0 ? DEFAULT_MAX_BROAD_SEARCH_RESULTS : max]
+                )?.results()
 
-            def result = Profile.collection.aggregate([$match: [opus: opus.id, archivedDate: null]],
-                    [$unwind: '$classification'],
-                    [$match: ["classification.rank": "${taxon}"]],
-                    [$group: [_id: '$classification.name', cnt: [$sum: 1]]],
-                    [$sort: ["_id": 1]],
-                    [$skip: startFrom], [$limit: max < 0 ? DEFAULT_MAX_BROAD_SEARCH_RESULTS : max]
-            )?.results()
-
-            result.collectEntries {
-                [(it.get("_id")): it.get("cnt")]
+                groupedTaxa = result.collectEntries {
+                    [(it.get("_id")): it.get("cnt")]
+                }
             }
-        } else {
-            [:]
         }
+
+        groupedTaxa
     }
 
     private List<Opus> getAccessibleCollections(List<String> opusIds) {
