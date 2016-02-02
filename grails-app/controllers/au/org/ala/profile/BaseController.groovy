@@ -1,16 +1,14 @@
 package au.org.ala.profile
 
+import static au.org.ala.profile.util.Utils.isUuid
 import grails.converters.JSON
 
 import static org.apache.http.HttpStatus.*
 
 class BaseController {
     public static final String CONTEXT_TYPE_JSON = "application/json"
-    public static final String UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
-    boolean isUuid(String str) {
-        str =~ UUID_REGEX
-    }
+    ProfileService profileService
 
     def notFound = {String message = null ->
         sendError(SC_NOT_FOUND, message ?: "")
@@ -37,6 +35,7 @@ class BaseController {
 
     Profile getProfile() {
         Profile profile
+
         if (isUuid(params.profileId)) {
             profile = Profile.findByUuid(params.profileId)
         } else {
@@ -52,6 +51,34 @@ class BaseController {
                 profile = matches.isEmpty() ? null : matches.first()
             }
         }
+
+        if (profile && profile.classification) {
+            def classifications = profile.draft && params.latest == "true" ? profile.draft.classification : profile.classification
+            classifications.each { cl ->
+                cl.childCount = Profile.withCriteria {
+                    eq "opus", profile.opus
+                    isNull "archivedDate"
+                    ne "uuid", profile.uuid
+
+                    "classification" {
+                        eq "rank", "${cl.rank.toLowerCase()}"
+                        ilike "name", "${cl.name}"
+                    }
+
+                    projections {
+                        count()
+                    }
+                }[0]
+
+                Profile relatedProfile = Profile.findByScientificNameAndGuidAndOpusAndArchivedDateIsNull(cl.name, cl.guid, opus)
+                if (!relatedProfile) {
+                    relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(cl.guid, opus)
+                }
+                cl.profileId = relatedProfile?.uuid
+                cl.profileName = relatedProfile?.scientificName
+            }
+        }
+
         profile
     }
 

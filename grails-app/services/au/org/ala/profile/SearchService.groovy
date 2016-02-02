@@ -215,6 +215,7 @@ class SearchService extends BaseDataAccessService {
             if (opusList) {
                 'in' "opus", opusList
             }
+            ne "scientificName", scientificName
 
             if (UNKNOWN_RANK.equalsIgnoreCase(taxon)) {
                 isNull "rank"

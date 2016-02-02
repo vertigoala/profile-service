@@ -279,7 +279,7 @@ class ProfileController extends BaseController {
 
     def getByUuid() {
         log.debug("Fetching profile by profileId ${params.profileId}")
-        def profile = getProfile()
+        Profile profile = getProfile()
 
         if (profile) {
             if (profile && profile.draft && params.latest == "true") {

@@ -8,6 +8,7 @@ class Utils {
     static final double DEFAULT_MAP_LONGITUDE = 133.6
     static final double DEFAULT_MAP_ZOOM = 3
     static final String DEFAULT_MAP_BASE_LAYER = "https://{s}.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={token}"
+    static final String UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 
     static final String CHAR_ENCODING = "utf-8"
@@ -23,5 +24,9 @@ class Utils {
 
     static String enc(String str) {
         URLEncoder.encode(str, CHAR_ENCODING)
+    }
+
+    static boolean isUuid(String str) {
+        str =~ UUID_REGEX
     }
 }
