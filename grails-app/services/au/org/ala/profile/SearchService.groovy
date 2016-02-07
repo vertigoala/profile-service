@@ -18,6 +18,7 @@ import org.grails.plugins.elasticsearch.ElasticSearchService
 
 class SearchService extends BaseDataAccessService {
     static final String UNKNOWN_RANK = "unknown" // used for profiles with no rank/classification
+    static final String LOWEST_GROUPED_RANK = "species"
     static final List<String> RANKS = ["kingdom", "phylum", "class", "subclass", "order", "family", "genus", "species"]
     static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 25
     static final Integer DEFAULT_MAX_BROAD_SEARCH_RESULTS = 50
@@ -206,7 +207,7 @@ class SearchService extends BaseDataAccessService {
             max = opusList ? DEFAULT_MAX_OPUS_SEARCH_RESULTS : DEFAULT_MAX_BROAD_SEARCH_RESULTS
         }
 
-        String nextRank = null
+        String nextRank = LOWEST_GROUPED_RANK
         if (RANKS.indexOf(taxon) < RANKS.size() - 1 && RANKS.indexOf(taxon) > -1) {
             nextRank = RANKS[RANKS.indexOf(taxon) + 1]
         }
@@ -226,8 +227,14 @@ class SearchService extends BaseDataAccessService {
                     ilike "name", "${scientificName}${wildcard}"
                 }
 
-                if (!recursive) {
-                    eq "rank", nextRank
+                // we do not group infraspecific taxa, so if we are trying to find subordinate taxa for a species, then we need to grab everything below it
+                if (!recursive || taxon == LOWEST_GROUPED_RANK) {
+                    "classification" {
+                        eq "rank", "${nextRank.toLowerCase()}"
+                    }
+                    if (taxon != LOWEST_GROUPED_RANK) {
+                        ilike "rank", nextRank
+                    }
                 }
             }
 

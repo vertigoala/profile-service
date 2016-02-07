@@ -50,24 +50,41 @@ class SearchController extends BaseController {
 
     def findByTaxonNameAndLevel() {
         if (!params.taxon || !params.scientificName) {
-            badRequest "taxon (e.g. phylum, genus, species, etc) and scientificName are a required parameters. You can also optionally supply opusId (comma-separated list of opus ids), max (max records to return), offset (0 based index to start from)."
+            badRequest "taxon (e.g. phylum, genus, species, etc) and scientificName are a required parameters. You can also optionally supply opusId (comma-separated list of opus ids), max (max records to return), offset (0 based index to start from), recursive (whether to get all subordinate taxa (true) or only the next rank (false) - default is true)."
         } else {
             List<String> opusIds = params.opusId?.split(",") ?: []
 
+            boolean countChildren = params.countChildren ? params.countChildren.equalsIgnoreCase("true") : false
             boolean useWildcard = params.useWildcard ? params.useWildcard.equalsIgnoreCase("true") : false
+            boolean recursive = params.recursive ? params.recursive.equalsIgnoreCase("true") : true // default recursive search to true
             int max = params.max ? params.max as int : -1
             int startFrom = params.offset ? params.offset as int : 0
 
-            List<Profile> profiles = searchService.findByTaxonNameAndLevel(params.taxon, params.scientificName, opusIds, useWildcard, max, startFrom)
+            List<Profile> profiles = searchService.findByTaxonNameAndLevel(params.taxon, params.scientificName, opusIds, useWildcard, max, startFrom, recursive)
 
             response.setContentType("application/json")
-            render profiles.collect {
+            render profiles.collect { profile ->
                 [
-                        profileId     : it.uuid,
-                        guid          : it.guid,
-                        scientificName: it.scientificName,
-                        rank          : it.rank,
-                        opus          : [uuid: it.opus.uuid, title: it.opus.title, shortName: it.opus.shortName]
+                        profileId     : profile.uuid,
+                        guid          : profile.guid,
+                        scientificName: profile.scientificName,
+                        name          : profile.scientificName,
+                        rank          : profile.rank,
+                        opus          : [uuid: profile.opus.uuid, title: profile.opus.title, shortName: profile.opus.shortName],
+                        childCount    : countChildren ? Profile.withCriteria {
+                            eq "opus", profile.opus
+                            isNull "archivedDate"
+                            ne "uuid", profile.uuid
+
+                            "classification" {
+                                eq "rank", "${profile.rank.toLowerCase()}"
+                                ilike "name", "${profile.scientificName}"
+                            }
+
+                            projections {
+                                count()
+                            }
+                        }[0] : -1
                 ]
             } as JSON
         }
