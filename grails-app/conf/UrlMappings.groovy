@@ -79,6 +79,7 @@ class UrlMappings {
 
         "/statistics/" controller: "statistics", action: [GET: "index"]
 
+        "/import/profile" controller: "import", action: [POST: "profile"]
         "/import/$importId/report" controller: "import", action: [GET: "report"]
 
         "/status/" controller: "status", action: [GET: "status"]
