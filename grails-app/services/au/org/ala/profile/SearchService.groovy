@@ -43,8 +43,8 @@ class SearchService extends BaseDataAccessService {
         if (term && accessibleCollections) {
             Map params = [
                     score: true,
-                    from: offset,
-                    size: pageSize
+                    from : offset,
+                    size : pageSize
             ]
 
             QueryBuilder query = nameOnly ? buildNameSearch(term, accessibleCollections) : buildTextSearch(term, accessibleCollections)
@@ -67,10 +67,10 @@ class SearchService extends BaseDataAccessService {
                         classification: it.classification ?: [],
                         score         : rawResults.scores[it.id.toString()],
                         description   : it.attributes ? it.attributes.findResults {
-                                it.title.name.toLowerCase().contains("description") ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
+                            it.title.name.toLowerCase().contains("description") ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
                         } : [],
                         otherNames    : it.attributes ? it.attributes.findResults {
-                                it.title.name.toLowerCase().contains("name") ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
+                            it.title.name.toLowerCase().contains("name") ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
                         } : []
                 ]
             }
@@ -197,58 +197,49 @@ class SearchService extends BaseDataAccessService {
         results
     }
 
-    List<Profile> findByTaxonNameAndLevel(String taxon, String scientificName, List<String> opusIds, boolean useWildcard = true, int max = -1, int startFrom = 0, boolean recursive = true) {
+    List<Map> findByTaxonNameAndLevel(String taxon, String scientificName, List<String> opusIds, int max = -1, int startFrom = 0) {
         checkArgument taxon
         checkArgument scientificName
 
-        String wildcard = "%"
-        if (!useWildcard) {
-            wildcard = ""
-        }
-
         List<Opus> opusList = opusIds?.findResults { Opus.findByUuidOrShortName(it, it) }
+        Map<Long, Opus> opusMap = opusList?.collectEntries { [(it.id): it] }
 
         if (max == -1) {
             max = opusList ? DEFAULT_MAX_OPUS_SEARCH_RESULTS : DEFAULT_MAX_BROAD_SEARCH_RESULTS
         }
 
-        String nextRank = LOWEST_GROUPED_RANK
-        if (RANKS.indexOf(taxon) < RANKS.size() - 1 && RANKS.indexOf(taxon) > -1) {
-            nextRank = RANKS[RANKS.indexOf(taxon) + 1]
+        Map matchCriteria = [archivedDate: null]
+
+        if (opusList) {
+            matchCriteria << [opus: [$in: opusList*.id]]
         }
 
-        Profile.withCriteria {
-            if (opusList) {
-                'in' "opus", opusList
-            }
-            ne "scientificName", scientificName
+        if (UNKNOWN_RANK.equalsIgnoreCase(taxon)) {
+            matchCriteria << [rank: null]
+            matchCriteria << [classification: null]
+        } else {
+            // using regex to perform a case-insensitive match
+            matchCriteria << [classification: [$elemMatch: ['rank': taxon.toLowerCase(), 'name': [$regex: /${scientificName}/, $options: "i"]]]]
+        }
 
-            if (UNKNOWN_RANK.equalsIgnoreCase(taxon)) {
-                isNull "rank"
-                isNull "classification"
-            } else {
-                "classification" {
-                    eq "rank", "${taxon.toLowerCase()}"
-                    ilike "name", "${scientificName}${wildcard}"
-                }
+        def aggregation = Profile.collection.aggregate([
+                [$match: matchCriteria],
+                [$sort: ['classification.name': 1, 'classification.rank': 1, 'scientificName': 1]],
+                [$skip: startFrom], [$limit: max < 0 ? DEFAULT_MAX_CHILDREN_RESULTS : max]
+        ])
 
-                // we do not group infraspecific taxa, so if we are trying to find subordinate taxa for a species, then we need to grab everything below it
-                if (!recursive || taxon == LOWEST_GROUPED_RANK) {
-                    "classification" {
-                        eq "rank", "${nextRank.toLowerCase()}"
-                    }
-                    if (taxon != LOWEST_GROUPED_RANK) {
-                        ilike "rank", nextRank
-                    }
-                }
-            }
+        int order = 0;
+        aggregation.results().collect {
+            Opus opus = opusMap ? opusMap[it.opus] : Opus.get(it.opus)
 
-            isNull "archivedDate"
-
-            order "scientificName"
-
-            maxResults max
-            offset startFrom
+            [
+                    uuid          : it.uuid,
+                    guid          : it.guid,
+                    scientificName: it.scientificName,
+                    rank          : it.rank,
+                    opus          : [uuid: opus.uuid, title: opus.title, shortName: opus.shortName],
+                    taxonomicOrder: order++
+            ]
         }
     }
 
@@ -369,9 +360,9 @@ class SearchService extends BaseDataAccessService {
 
         if (opus) {
             groupedRanks = Profile.collection.aggregate([[$match: [opus: opus.id, archivedDate: null]],
-                                          [$unwind: '$classification'],
-                                          [$group: [_id: [rank: '$classification.rank', name: '$classification.name'], cnt: [$sum: 1]]],
-                                          [$group: [_id: '$_id.rank', total: [$sum: 1]]]]
+                                                         [$unwind: '$classification'],
+                                                         [$group: [_id: [rank: '$classification.rank', name: '$classification.name'], cnt: [$sum: 1]]],
+                                                         [$group: [_id: '$_id.rank', total: [$sum: 1]]]]
             ).results().iterator().collectEntries {
                 [(it._id): it.total]
             }

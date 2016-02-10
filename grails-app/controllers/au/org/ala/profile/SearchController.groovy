@@ -55,12 +55,10 @@ class SearchController extends BaseController {
             List<String> opusIds = params.opusId?.split(",") ?: []
 
             boolean countChildren = params.countChildren ? params.countChildren.equalsIgnoreCase("true") : false
-            boolean useWildcard = params.useWildcard ? params.useWildcard.equalsIgnoreCase("true") : false
-            boolean recursive = params.recursive ? params.recursive.equalsIgnoreCase("true") : true // default recursive search to true
             int max = params.max ? params.max as int : -1
             int startFrom = params.offset ? params.offset as int : 0
 
-            List<Profile> profiles = searchService.findByTaxonNameAndLevel(params.taxon, params.scientificName, opusIds, useWildcard, max, startFrom, recursive)
+            List<Map> profiles = searchService.findByTaxonNameAndLevel(params.taxon, params.scientificName, opusIds, max, startFrom)
 
             response.setContentType("application/json")
             render profiles.collect { profile ->
@@ -70,6 +68,7 @@ class SearchController extends BaseController {
                         scientificName: profile.scientificName,
                         name          : profile.scientificName,
                         rank          : profile.rank,
+                        taxonomicOrder: profile.taxonomicOrder,
                         opus          : [uuid: profile.opus.uuid, title: profile.opus.title, shortName: profile.opus.shortName],
                         childCount    : countChildren ? Profile.withCriteria {
                             eq "opus", profile.opus

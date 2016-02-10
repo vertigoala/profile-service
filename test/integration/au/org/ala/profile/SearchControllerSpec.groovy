@@ -67,7 +67,7 @@ class SearchControllerSpec extends BaseIntegrationSpec {
         controller.findByTaxonNameAndLevel()
 
         then:
-        1 * searchService.findByTaxonNameAndLevel("taxon", "sciName", [], false, -1, 0, true)
+        1 * searchService.findByTaxonNameAndLevel("taxon", "sciName", [], -1, 0)
     }
 
     def "findByTaxonNameAndLevel should use the provided values for the opus list, wildcard, max and offset parameters"() {
@@ -81,7 +81,7 @@ class SearchControllerSpec extends BaseIntegrationSpec {
         controller.findByTaxonNameAndLevel()
 
         then:
-        1 * searchService.findByTaxonNameAndLevel("taxon", "sciName", ["one", "two"], true, 666, 10, true)
+        1 * searchService.findByTaxonNameAndLevel("taxon", "sciName", ["one", "two"], 666, 10)
     }
 
     def "getTaxonLevels should return a 400 BAD REQUEST if no opus id was provided"() {
