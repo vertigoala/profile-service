@@ -35,3 +35,6 @@ grailsw.bat
 /.idea
 
 *.iml
+
+# spring loaded cache
+.slcache
