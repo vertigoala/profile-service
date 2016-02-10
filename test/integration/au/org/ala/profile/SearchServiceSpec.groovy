@@ -591,7 +591,7 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         save new Profile(scientificName: "kingdom2", opus: opus)
         save new Profile(scientificName: "kingdom3", opus: opus)
 
-        when: when:
+        when:
         Map result = service.groupByTaxonLevel(opus.uuid, SearchService.UNKNOWN_RANK)
 
         then:
@@ -780,6 +780,151 @@ class SearchServiceSpec extends BaseIntegrationSpec {
 
         then:
         result == [Hygrophila: 1]
+    }
+
+    def "getImmediateChildren should list the next rank after the specified for all profiles"() {
+        given:
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+
+        save new Profile(scientificName: "profile1", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Cycadidae"),
+                                                                                  new Classification(rank: "order", name: "Cycadales")])
+
+        save new Profile(scientificName: "profile2", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Lycopodiidae"),
+                                                                                  new Classification(rank: "order", name: "Isoetales"),
+                                                                                  new Classification(rank: "family", name: "Isoetaceae")])
+
+        save new Profile(scientificName: "profile3", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Arthropoda"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Lycopodiidae"),
+                                                                                  new Classification(rank: "order", name: "Lycopodiales")])
+
+        save new Profile(scientificName: "profile4", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Hygrophila"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                                                  new Classification(rank: "order", name: "Fabales")])
+
+        when: "asked for the children of subclass Lycopodiidae"
+        List result = service.getImmediateChildren(opus, "subCLass", "LycoPODiidAE") // matches should be case insensitive
+
+        then: "it should return the 2 orders directly below Lycopodiidae (in alphabetic order), but not the family below Lycopodiidae"
+        result.size() == 2
+        result[0].name == "Isoetales"
+        result[0].rank == "order"
+        result[1].name == "Lycopodiales"
+        result[1].rank == "order"
+    }
+
+    def "getImmediateChildren should page the results"() {
+        given:
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+
+        save new Profile(scientificName: "profile1", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Cycadidae"),
+                                                                                  new Classification(rank: "order", name: "Cycadales")])
+
+        save new Profile(scientificName: "profile2", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Lycopodiidae"),
+                                                                                  new Classification(rank: "order", name: "Isoetales"),
+                                                                                  new Classification(rank: "family", name: "Isoetaceae")])
+
+        save new Profile(scientificName: "profile3", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Arthropoda"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Lycopodiidae"),
+                                                                                  new Classification(rank: "order", name: "Lycopodiales")])
+
+        save new Profile(scientificName: "profile4", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Hygrophila"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                                                  new Classification(rank: "order", name: "Fabales")])
+
+        when: "asked for the children of subclass Lycopodiidae, with offset 1 and page size 1"
+        List result = service.getImmediateChildren(opus, "subclass", "Lycopodiidae", 1, 1)
+
+        then: "it should return the 2nd of the 2 orders directly below Lycopodiida"
+        result.size() == 1
+        result[0].name == "Lycopodiales"
+        result[0].rank == "order"
+    }
+
+    def "getImmediateChildren should handle mixed ranks below the specified rank"() {
+        given:
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+
+        save new Profile(scientificName: "profile1", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Cycadidae"),
+                                                                                  new Classification(rank: "order", name: "Cycadales")])
+
+        save new Profile(scientificName: "profile2", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                                                  new Classification(rank: "order", name: "Ranunculales")])
+
+        save new Profile(scientificName: "profile3", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                                                  new Classification(rank: "superorder", name: "Asteranae")])
+
+        save new Profile(scientificName: "profile4", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                                                  new Classification(rank: "order", name: "Fabales")])
+
+        when: "asked for the children of subclass Magnoliidae"
+        List result = service.getImmediateChildren(opus, "subclass", "Magnoliidae")
+
+        then: "it should return the superorder Asteranae, and the two orders Fabales and Ranunculales, sorted by rank order then name alphabetically"
+        result.size() == 3
+        result[0].name == "Asteranae"
+        result[0].rank == "superorder" // superorder is higher up the taxonomy than order, so must come first
+        result[1].name == "Fabales"
+        result[1].rank == "order"
+        result[2].name == "Ranunculales"
+        result[2].rank == "order"
+    }
+
+    def "getImmediateChildren should only return results from the specified Opus"() {
+        given:
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title1")
+        Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title2")
+
+        save new Profile(scientificName: "profile1", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Cycadidae"),
+                                                                                  new Classification(rank: "order", name: "Cycadales")])
+
+        save new Profile(scientificName: "profile1", opus: opus2, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                                                  new Classification(rank: "order", name: "Ranunculales")])
+
+        when: "asked for the children of class Equisetopsida in Opus1"
+        List result = service.getImmediateChildren(opus1, "class", "Equisetopsida")
+
+        then: "it should return not return Magnoliidae from Opus2"
+        result.size() == 1
+        result[0].name == "Cycadidae"
+        result[0].rank == "subclass"
     }
 
 }

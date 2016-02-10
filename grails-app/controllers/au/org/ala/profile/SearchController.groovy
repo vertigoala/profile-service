@@ -116,6 +116,43 @@ class SearchController extends BaseController {
         }
     }
 
+    def getImmediateChildren() {
+        Opus opus = getOpus()
+        int max = params.max ? params.max as int : -1
+        int startFrom = params.offset ? params.offset as int : 0
+
+        List children = searchService.getImmediateChildren(opus, params.rank, params.name, max, startFrom)
+        response.setContentType("application/json")
+        render children.collect { profile ->
+            Profile relatedProfile = Profile.findByScientificNameAndGuidAndOpusAndArchivedDateIsNull(profile.name, profile.guid, opus)
+
+            [
+                    profileId     : relatedProfile?.uuid,
+                    profileName   : relatedProfile?.scientificName,
+                    guid          : profile.guid,
+                    name          : profile.name,
+                    rank          : profile.rank,
+                    opus          : [uuid: opus.uuid, title: opus.title, shortName: opus.shortName],
+                    childCount    : Profile.withCriteria {
+                        eq "opus", opus
+                        isNull "archivedDate"
+                        if (relatedProfile) {
+                            ne "uuid", relatedProfile.uuid
+                        }
+
+                        "classification" {
+                            eq "rank", "${profile.rank.toLowerCase()}"
+                            ilike "name", "${profile.name}"
+                        }
+
+                        projections {
+                            count()
+                        }
+                    }[0]
+            ]
+        } as JSON
+    }
+
     @RequireApiKey
     def reindex() {
         searchService.reindex()

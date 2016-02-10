@@ -1,10 +1,14 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.util.Utils
+import com.mongodb.BasicDBObject
+import com.mongodb.MapReduceCommand
+import com.mongodb.MapReduceOutput
 import com.sun.xml.internal.ws.util.StringUtils
 import org.elasticsearch.index.query.BoolQueryBuilder
 import org.elasticsearch.index.query.MatchQueryBuilder
 import org.elasticsearch.index.query.MultiMatchQueryBuilder
+import org.gbif.ecat.voc.Rank
 import org.springframework.scheduling.annotation.Async
 
 import static org.elasticsearch.index.query.FilterBuilders.*
@@ -20,6 +24,7 @@ class SearchService extends BaseDataAccessService {
     static final String UNKNOWN_RANK = "unknown" // used for profiles with no rank/classification
     static final String LOWEST_GROUPED_RANK = "species"
     static final List<String> RANKS = ["kingdom", "phylum", "class", "subclass", "order", "family", "genus", "species"]
+    static final Integer DEFAULT_MAX_CHILDREN_RESULTS = 10
     static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 25
     static final Integer DEFAULT_MAX_BROAD_SEARCH_RESULTS = 50
     static final String[] NAME_FIELDS = ["scientificName", "matchedName"]
@@ -247,6 +252,114 @@ class SearchService extends BaseDataAccessService {
         }
     }
 
+    List getImmediateChildren(Opus opus, String topRank, String topName, int max = -1, int startFrom = 0) {
+        checkArgument topRank
+        checkArgument topName
+
+        List results = []
+        MapReduceOutput hierarchyView = null
+
+        try {
+            // Find all the classification item that is exactly 1 item below the specified topRank.
+            // This will find all immediate children of the specified rank, regardless of whether they in turn have
+            // children, or of whether there is a corresponding profile for the child.
+            String mapFunction = """function map() {
+                           if (typeof this.classification != 'undefined' && this.classification.length > 0) {
+                                for (var i = 0; i < this.classification.length; i++) {
+                                    if (this.classification[i].rank.toLowerCase() == '${topRank.toLowerCase()}' &&
+                                        this.classification[i].name.toLowerCase() == '${topName.toLowerCase()}' &&
+                                        i + 1 < this.classification.length) {
+                                        emit(this.classification[i + 1].rank, this.classification[i + 1]);
+                                    }
+                                }
+                           }
+                       }"""
+
+            // Group all taxa of the same rank into a set of unique names.
+            // MongoDB can invoke the reduce function more than once for the same key. In this case, the previous output
+            // from the reduce function for that key will become one of the input values to the next reduce function
+            // invocation for that key, so we need to ensure that we are not nesting the resulting lists.
+            String reduceFunction = """function reduce(rank, classification) {
+                            var rankList = ['${Rank.values().collect { it.name().toLowerCase() }.join("','")}'];
+                            var uniqueNames = [];
+                            var uniqueClassifications = [];
+
+                            classification.forEach(function (cl) {
+                                if (cl.hasOwnProperty(rank)) {
+                                    cl[rank].forEach( function (cl2) {
+                                        if (uniqueNames.indexOf(cl2.name) == -1) {
+                                            if (typeof cl2.rank != 'undefined' && cl2.rank) {
+                                                cl2.rankOrder = rankList.indexOf(cl2.rank.toLowerCase());
+                                            } else {
+                                                cl2.rankOrder = -1;
+                                            }
+                                            uniqueClassifications.push(cl2)
+                                            uniqueNames.push(cl2.name);
+                                        }
+                                    });
+                                } else if (uniqueNames.indexOf(cl.name) == -1) {
+                                    if (typeof cl.rank != 'undefined' && cl.rank) {
+                                        cl.rankOrder = rankList.indexOf(cl.rank.toLowerCase());
+                                    } else {
+                                        cl.rankOrder = -1;
+                                    }
+                                    uniqueClassifications.push(cl);
+                                    uniqueNames.push(cl.name);
+                                }
+                            });
+
+                            var result = {};
+                            result[rank] = uniqueClassifications;
+                            return result;
+                       }"""
+
+            // Removes one level of nesting: the reduce function must return a single object (not an array), so we return
+            // an object with a key for each rank, and the list of entries as the value. In the finalize method, we then
+            // strip that nested structure back out, so we are left with the standard mongo structure for MR results:
+            // e.g. { _id: 'family', value: [{rank: a, rankOrder: 1, name: a, guid: a}, ...] } (this is the doc structure
+            // stored in the output collection, NOT the structure passed to the finalise function).
+            //
+            // If there is only 1 item in each map output from the map function, then the reduce function is NOT called,
+            // so the input to the finalize function will be the 'raw' output map from the map function, i.e.:
+            // {rank: a, rankOrder: 1, name: a, guid: a}.
+            // If the reduce function WAS called, then the input to the finalise function will be in the form:
+            // {a: [{rank: a, rankOrder: 1, name: a, guid: a}, ...]}
+            String finalizeFunction = """function finalize(key, reducedValue) {
+                            var flattened = null;
+
+                            if (reducedValue.hasOwnProperty(key)) {
+                                flattened = reducedValue[key];
+                            } else {
+                                flattened = [reducedValue];
+                            }
+
+                            return flattened;
+                        }"""
+
+            BasicDBObject query = new BasicDBObject()
+            query.put("opus", opus.id)
+            MapReduceCommand command = new MapReduceCommand(Profile.collection, mapFunction, reduceFunction,
+                    UUID.randomUUID().toString().replaceAll("-", ""), MapReduceCommand.OutputType.REPLACE, query)
+            command.setFinalize(finalizeFunction)
+
+            hierarchyView = Profile.collection.mapReduce(command)
+
+            // Use an aggregation to extract the individual classification entries from the standard mongo 'value' object
+            // and sort them by rank then name. The results are then flattened into a single list of classification entries
+            results = hierarchyView.getOutputCollection().aggregate([
+                    [$unwind: '$value'],
+                    [$sort: ["value.rankOrder": 1, "value.name": 1]],
+                    [$skip: startFrom], [$limit: max < 0 ? DEFAULT_MAX_CHILDREN_RESULTS : max]
+            ])?.results()?.collect { it.value }.flatten()
+
+            // drop the temporary collection created during the map reduce process to clean up
+        } finally {
+            hierarchyView?.drop()
+        }
+
+        results
+    }
+
     Map<String, Integer> getTaxonLevels(String opusId) {
         checkArgument opusId
 
@@ -310,7 +423,7 @@ class SearchService extends BaseDataAccessService {
 
         List filteredOpusList = opusList
         if (!alaAdmin) {
-            // join queries are not supported in Mongo, so we need to do this programatically
+            // join queries are not supported in Mongo, so we need to do this programmatically
             filteredOpusList = (opusList ?: Opus.list()).findAll {
                 !it?.privateCollection || it?.authorities?.find { auth -> auth.user.userId == userId }
             }
