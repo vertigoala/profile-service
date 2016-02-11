@@ -155,6 +155,7 @@ class SearchService extends BaseDataAccessService {
 
     List<Map> findByScientificName(String scientificName, List<String> opusIds, ProfileSortOption sortBy = ProfileSortOption.getDefault(), boolean useWildcard = true, int max = -1, int startFrom = 0) {
         checkArgument scientificName
+        scientificName = Utils.sanitizeRegex(scientificName)
 
         String wildcard = ".*"
         if (!useWildcard) {
@@ -226,6 +227,8 @@ class SearchService extends BaseDataAccessService {
     List<Map> findByClassificationNameAndRank(String rank, String scientificName, List<String> opusIds, ProfileSortOption sortBy = ProfileSortOption.getDefault(), int max = -1, int startFrom = 0) {
         checkArgument rank
         checkArgument scientificName
+
+        scientificName = Utils.sanitizeRegex(scientificName)
 
         List<Opus> opusList = opusIds?.findResults { Opus.findByUuidOrShortName(it, it) }
         Map<Long, Opus> opusMap = opusList?.collectEntries { [(it.id): it] }
