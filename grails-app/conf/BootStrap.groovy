@@ -1,7 +1,6 @@
 import au.org.ala.profile.listener.AuditListener
 import au.org.ala.profile.listener.LastUpdateListener
 import org.codehaus.groovy.grails.commons.ApplicationAttributes
-import org.codehaus.groovy.grails.web.json.JSONObject
 import org.grails.datastore.mapping.core.Datastore
 
 class BootStrap {

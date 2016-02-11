@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import au.ala.org.ws.security.RequireApiKey
+import au.org.ala.profile.util.ProfileSortOption
 import grails.converters.JSON
 
 class SearchController extends BaseController {
@@ -30,8 +31,9 @@ class SearchController extends BaseController {
             boolean useWildcard = params.useWildcard ? params.useWildcard.equalsIgnoreCase("true") : false
             int max = params.max ? params.max as int : -1
             int startFrom = params.offset ? params.offset as int : 0
+            ProfileSortOption sortBy = ProfileSortOption.byName(params.sortBy) ?: ProfileSortOption.getDefault()
 
-            List<Profile> profiles = searchService.findByScientificName(params.scientificName, opusIds, useWildcard, max, startFrom)
+            List<Map> profiles = searchService.findByScientificName(params.scientificName, opusIds, sortBy, useWildcard, max, startFrom)
 
             response.setContentType("application/json")
             render profiles.collect {
@@ -48,7 +50,7 @@ class SearchController extends BaseController {
         }
     }
 
-    def findByTaxonNameAndLevel() {
+    def findByClassificationNameAndRank() {
         if (!params.taxon || !params.scientificName) {
             badRequest "taxon (e.g. phylum, genus, species, etc) and scientificName are a required parameters. You can also optionally supply opusId (comma-separated list of opus ids), max (max records to return), offset (0 based index to start from), recursive (whether to get all subordinate taxa (true) or only the next rank (false) - default is true)."
         } else {
@@ -57,8 +59,8 @@ class SearchController extends BaseController {
             boolean countChildren = params.countChildren ? params.countChildren.equalsIgnoreCase("true") : false
             int max = params.max ? params.max as int : -1
             int startFrom = params.offset ? params.offset as int : 0
-
-            List<Map> profiles = searchService.findByTaxonNameAndLevel(params.taxon, params.scientificName, opusIds, max, startFrom)
+            ProfileSortOption sortBy = ProfileSortOption.byName(params.sortBy) ?: ProfileSortOption.getDefault()
+            List<Map> profiles = searchService.findByClassificationNameAndRank(params.taxon, params.scientificName, opusIds, sortBy, max, startFrom)
 
             response.setContentType("application/json")
             render profiles.collect { profile ->
@@ -89,18 +91,18 @@ class SearchController extends BaseController {
         }
     }
 
-    def getTaxonLevels() {
+    def getRanks() {
         if (!params.opusId) {
             badRequest "opusId is a required parameter"
         } else {
             Opus opus = getOpus()
 
-            Map<String, Integer> result = searchService.getTaxonLevels(opus?.uuid)
+            Map<String, Integer> result = searchService.getRanks(opus?.uuid)
             render result as JSON
         }
     }
 
-    def groupByTaxonLevel() {
+    def groupByRank() {
         if (!params.opusId || !params.taxon) {
             badRequest "opusId and taxon are required parameters. You can also optionally supply max (max records to return) and offset (0 based index to start from)."
         } else {
@@ -109,7 +111,7 @@ class SearchController extends BaseController {
 
             Opus opus = getOpus()
 
-            Map<String, Integer> result = searchService.groupByTaxonLevel(opus?.uuid, params.taxon, max, startFrom)
+            Map<String, Integer> result = searchService.groupByRank(opus?.uuid, params.taxon, max, startFrom)
 
             render result as JSON
         }

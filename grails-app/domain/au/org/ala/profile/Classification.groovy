@@ -24,4 +24,9 @@ class Classification {
     static constraints = {
 
     }
+
+    static mapping = {
+        name index: true
+        rank index: true
+    }
 }

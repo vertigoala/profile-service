@@ -31,9 +31,9 @@ class UrlMappings {
 
         "/profile/search" controller: "search", action: "search"
         "/profile/search/scientificName" controller: "search", action: "findByScientificName"
-        "/profile/search/taxon/name" controller: "search", action: "findByTaxonNameAndLevel"
-        "/profile/search/taxon/level" controller: "search", action: "groupByTaxonLevel"
-        "/profile/search/taxon/levels" controller: "search", action: "getTaxonLevels"
+        "/profile/search/taxon/name" controller: "search", action: "findByClassificationNameAndRank"
+        "/profile/search/taxon/level" controller: "search", action: "groupByRank"
+        "/profile/search/taxon/levels" controller: "search", action: "getRanks"
         "/profile/search/children" controller: "search", action: "getImmediateChildren"
 
         "/opus/$opusId/profile/" controller: "profile", action: [GET: "index", PUT: "createProfile"]

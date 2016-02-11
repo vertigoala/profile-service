@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.ProfileSortOption
 import org.apache.http.HttpStatus
 
 class SearchControllerSpec extends BaseIntegrationSpec {
@@ -27,7 +28,7 @@ class SearchControllerSpec extends BaseIntegrationSpec {
         controller.findByScientificName()
 
         then:
-        1 * searchService.findByScientificName("sciName", [], false, -1, 0)
+        1 * searchService.findByScientificName("sciName", [], ProfileSortOption.getDefault(), false, -1, 0)
     }
 
     def "findByScientificName should use the provided values for the opus list, wildcard, max and offset parameters"() {
@@ -37,16 +38,17 @@ class SearchControllerSpec extends BaseIntegrationSpec {
         controller.params.opusId = "one,two"
         controller.params.max = 666
         controller.params.scientificName = "sciName"
+        controller.params.sortBy = "name"
         controller.findByScientificName()
 
         then:
-        1 * searchService.findByScientificName("sciName", ["one", "two"], true, 666, 10)
+        1 * searchService.findByScientificName("sciName", ["one", "two"], ProfileSortOption.NAME, true, 666, 10)
     }
 
-    def "findByTaxonNameAndLevel should return 400 BAD REQUEST if no scientificName or taxon are provided"() {
+    def "findByClassificationNameAndRank should return 400 BAD REQUEST if no scientificName or taxon are provided"() {
         when:
         controller.params.scientificName = "sciName"
-        controller.findByTaxonNameAndLevel()
+        controller.findByClassificationNameAndRank()
 
         then:
         controller.response.status == HttpStatus.SC_BAD_REQUEST
@@ -54,7 +56,7 @@ class SearchControllerSpec extends BaseIntegrationSpec {
 
         when:
         controller.params.taxon = "taxon"
-        controller.findByTaxonNameAndLevel()
+        controller.findByClassificationNameAndRank()
 
         then:
         controller.response.status == HttpStatus.SC_BAD_REQUEST
@@ -64,13 +66,13 @@ class SearchControllerSpec extends BaseIntegrationSpec {
         when:
         controller.params.scientificName = "sciName"
         controller.params.taxon = "taxon"
-        controller.findByTaxonNameAndLevel()
+        controller.findByClassificationNameAndRank()
 
         then:
-        1 * searchService.findByTaxonNameAndLevel("taxon", "sciName", [], -1, 0)
+        1 * searchService.findByClassificationNameAndRank("taxon", "sciName", [], ProfileSortOption.getDefault(), -1, 0)
     }
 
-    def "findByTaxonNameAndLevel should use the provided values for the opus list, wildcard, max and offset parameters"() {
+    def "findByClassificationNameAndRank should use the provided values for the opus list, wildcard, max and offset parameters"() {
         when:
         controller.params.useWildcard = "true"
         controller.params.offset = 10
@@ -78,52 +80,52 @@ class SearchControllerSpec extends BaseIntegrationSpec {
         controller.params.max = 666
         controller.params.scientificName = "sciName"
         controller.params.taxon = "taxon"
-        controller.findByTaxonNameAndLevel()
+        controller.findByClassificationNameAndRank()
 
         then:
-        1 * searchService.findByTaxonNameAndLevel("taxon", "sciName", ["one", "two"], 666, 10)
+        1 * searchService.findByClassificationNameAndRank("taxon", "sciName", ["one", "two"], ProfileSortOption.getDefault(), 666, 10)
     }
 
-    def "getTaxonLevels should return a 400 BAD REQUEST if no opus id was provided"() {
+    def "getRanks should return a 400 BAD REQUEST if no opus id was provided"() {
         when:
-        controller.getTaxonLevels()
+        controller.getRanks()
 
         then:
         controller.response.status == HttpStatus.SC_BAD_REQUEST
     }
 
-    def "groupByTaxonLevel should return 400 BAD REQUEST if no opusId or taxon are provided"() {
+    def "groupByRank should return 400 BAD REQUEST if no opusId or taxon are provided"() {
         when:
         controller.params.opusId = "opus1"
-        controller.groupByTaxonLevel()
+        controller.groupByRank()
 
         then:
         controller.response.status == HttpStatus.SC_BAD_REQUEST
     }
 
-    def "groupByTaxonLevel should return 400 BAD REQUEST if no opus id is provided"() {
+    def "groupByRank should return 400 BAD REQUEST if no opus id is provided"() {
         when:
         controller.params.taxon = "taxon"
-        controller.groupByTaxonLevel()
+        controller.groupByRank()
 
         then:
         controller.response.status == HttpStatus.SC_BAD_REQUEST
     }
 
-    def "groupByTaxonLevel should default the max (-1) and offset (0) parameters"() {
+    def "groupByRank should default the max (-1) and offset (0) parameters"() {
         given:
         save new Opus(uuid: "opusId", shortName: "opusid", title: "opusName", glossary: new Glossary(), dataResourceUid: "dr1")
 
         when:
         controller.params.opusId = "opusId"
         controller.params.taxon = "taxon"
-        controller.groupByTaxonLevel()
+        controller.groupByRank()
 
         then:
-        1 * searchService.groupByTaxonLevel("opusId", "taxon", -1, 0) >> [:]
+        1 * searchService.groupByRank("opusId", "taxon", -1, 0) >> [:]
     }
 
-    def "groupByTaxonLevel should use the provided values for the opus list, wildcard, max and offset parameters"() {
+    def "groupByRank should use the provided values for the opus list, wildcard, max and offset parameters"() {
         given:
         save new Opus(uuid: "opusId", shortName: "opusid", title: "opusName", glossary: new Glossary(), dataResourceUid: "dr1")
 
@@ -132,9 +134,9 @@ class SearchControllerSpec extends BaseIntegrationSpec {
         controller.params.opusId = "opusId"
         controller.params.max = 666
         controller.params.taxon = "taxon"
-        controller.groupByTaxonLevel()
+        controller.groupByRank()
 
         then:
-        1 * searchService.groupByTaxonLevel("opusId", "taxon", 666, 10) >> [:]
+        1 * searchService.groupByRank("opusId", "taxon", 666, 10) >> [:]
     }
 }

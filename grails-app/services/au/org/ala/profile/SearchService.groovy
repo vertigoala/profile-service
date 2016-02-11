@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.ProfileSortOption
 import au.org.ala.profile.util.Utils
 import com.mongodb.BasicDBObject
 import com.mongodb.MapReduceCommand
@@ -22,8 +23,6 @@ import org.grails.plugins.elasticsearch.ElasticSearchService
 
 class SearchService extends BaseDataAccessService {
     static final String UNKNOWN_RANK = "unknown" // used for profiles with no rank/classification
-    static final String LOWEST_GROUPED_RANK = "species"
-    static final List<String> RANKS = ["kingdom", "phylum", "class", "subclass", "order", "family", "genus", "species"]
     static final Integer DEFAULT_MAX_CHILDREN_RESULTS = 10
     static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 25
     static final Integer DEFAULT_MAX_BROAD_SEARCH_RESULTS = 50
@@ -154,51 +153,78 @@ class SearchService extends BaseDataAccessService {
                 buildFilter(accessibleCollections))
     }
 
-    List<Profile> findByScientificName(String scientificName, List<String> opusIds, boolean useWildcard = true, int max = -1, int startFrom = 0) {
+    List<Map> findByScientificName(String scientificName, List<String> opusIds, ProfileSortOption sortBy = ProfileSortOption.getDefault(), boolean useWildcard = true, int max = -1, int startFrom = 0) {
         checkArgument scientificName
 
-        String wildcard = "%"
+        String wildcard = ".*"
         if (!useWildcard) {
-            wildcard = ""
-        }
-
-        if (max == -1) {
-            max = opusIds ? DEFAULT_MAX_OPUS_SEARCH_RESULTS : DEFAULT_MAX_BROAD_SEARCH_RESULTS
+            wildcard = '$'
         }
 
         List<Opus> accessibleCollections = getAccessibleCollections(opusIds)
+        Map<Long, Opus> opusMap = accessibleCollections?.collectEntries { [(it.id): it] }
 
-        List<Profile> results
+        if (max == -1) {
+            max = accessibleCollections ? DEFAULT_MAX_OPUS_SEARCH_RESULTS : DEFAULT_MAX_BROAD_SEARCH_RESULTS
+        }
 
+        List<Map> results
         if (!accessibleCollections && opusIds) {
             // if the original opusList was not empty but the filtered list is, then the current user does not have permission
             // to view profiles from any of the collections, so return an empty list
             results = []
         } else {
-            results = Profile.withCriteria {
-                if (accessibleCollections) {
-                    'in' "opus", accessibleCollections
-                }
+            Map criteria = [
+                    $and: []
+            ]
+            criteria.$and << [archivedDate: null]
+            if (accessibleCollections) {
+                criteria.$and << [opus: [$in: accessibleCollections*.id]]
+            }
 
-                or {
-                    ilike "scientificName", "${scientificName}${wildcard}"
-                    ilike "fullName", "${scientificName}${wildcard}"
-                }
+            // using regex to perform a case-insensitive match on EITHER the scientificName OR fullName
+            criteria.$and << [$or: [
+                    [scientificName: [$regex: /^${scientificName}${wildcard}/, $options: "i"],
+                     fullName      : [$regex: /^${scientificName}${wildcard}/, $options: "i"]]
+            ]]
 
-                isNull "archivedDate"
+            // Create a projection containing the commonly used Profile attributes, and calculated fields 'unknownRank'
+            // and 'rankOrder' as required for taxonomic sorting
+            Map projection = constructProfileSearchProjection()
 
-                order "scientificName"
+            Map sort = constructSortCriteria(sortBy)
 
-                maxResults max
-                offset startFrom
+            // Using a MongoDB Aggregation instead of a GORM Criteria query so we can take advantage of the ability to
+            // calculate derived properties in the projection, and sort based on the contents of an array
+            def aggregation = Profile.collection.aggregate([
+                    [$match: criteria],
+                    [$project: projection],
+                    [$sort: sort],
+                    [$skip: startFrom], [$limit: max]
+            ])
+
+            int order = 0;
+            results = aggregation.results().collect {
+                Opus opus = opusMap ? opusMap[it.opus] : Opus.get(it.opus)
+
+                [
+                        uuid          : it.uuid,
+                        guid          : it.guid,
+                        scientificName: it.scientificName,
+                        nameAuthor    : it.nameAuthor,
+                        fullName      : it.fullName,
+                        rank          : it.rank,
+                        opus          : [uuid: opus.uuid, title: opus.title, shortName: opus.shortName],
+                        taxonomicOrder: order++
+                ]
             }
         }
 
         results
     }
 
-    List<Map> findByTaxonNameAndLevel(String taxon, String scientificName, List<String> opusIds, int max = -1, int startFrom = 0) {
-        checkArgument taxon
+    List<Map> findByClassificationNameAndRank(String rank, String scientificName, List<String> opusIds, ProfileSortOption sortBy = ProfileSortOption.getDefault(), int max = -1, int startFrom = 0) {
+        checkArgument rank
         checkArgument scientificName
 
         List<Opus> opusList = opusIds?.findResults { Opus.findByUuidOrShortName(it, it) }
@@ -214,18 +240,31 @@ class SearchService extends BaseDataAccessService {
             matchCriteria << [opus: [$in: opusList*.id]]
         }
 
-        if (UNKNOWN_RANK.equalsIgnoreCase(taxon)) {
+        if (UNKNOWN_RANK.equalsIgnoreCase(rank)) {
             matchCriteria << [rank: null]
             matchCriteria << [classification: null]
         } else {
-            // using regex to perform a case-insensitive match
-            matchCriteria << [classification: [$elemMatch: ['rank': taxon.toLowerCase(), 'name': [$regex: /${scientificName}/, $options: "i"]]]]
+            // using regex to perform a case-insensitive match on the 'rank' and 'name' attributes of any element in the
+            // Classification list
+            matchCriteria << [classification: [$elemMatch: [
+                    'rank': rank.toLowerCase(),
+                    'name': [$regex: /^${scientificName}/, $options: "i"]]
+            ]]
         }
 
+        // Create a projection containing the commonly used Profile attributes, and calculated fields 'unknownRank'
+        // and 'rankOrder' as required for taxonomic sorting
+        Map projection = constructProfileSearchProjection()
+
+        Map sort = constructSortCriteria(sortBy)
+
+        // Using a MongoDB Aggregation instead of a GORM Criteria query so we can take advantage of the ability to
+        // calculate derived properties in the projection, and sort based on the contents of an array
         def aggregation = Profile.collection.aggregate([
                 [$match: matchCriteria],
-                [$sort: ['classification.name': 1, 'classification.rank': 1, 'scientificName': 1]],
-                [$skip: startFrom], [$limit: max < 0 ? DEFAULT_MAX_CHILDREN_RESULTS : max]
+                [$project: projection],
+                [$sort: sort],
+                [$skip: startFrom], [$limit: max]
         ])
 
         int order = 0;
@@ -341,7 +380,7 @@ class SearchService extends BaseDataAccessService {
                     [$unwind: '$value'],
                     [$sort: ["value.rankOrder": 1, "value.name": 1]],
                     [$skip: startFrom], [$limit: max < 0 ? DEFAULT_MAX_CHILDREN_RESULTS : max]
-            ])?.results()?.collect { it.value }.flatten()
+            ])?.results()?.collect { it.value }?.flatten()
 
             // drop the temporary collection created during the map reduce process to clean up
         } finally {
@@ -351,7 +390,7 @@ class SearchService extends BaseDataAccessService {
         results
     }
 
-    Map<String, Integer> getTaxonLevels(String opusId) {
+    Map<String, Integer> getRanks(String opusId) {
         checkArgument opusId
 
         Opus opus = Opus.findByUuid(opusId)
@@ -373,7 +412,7 @@ class SearchService extends BaseDataAccessService {
         groupedRanks
     }
 
-    Map<String, Integer> groupByTaxonLevel(String opusId, String taxon, int max = -1, int startFrom = 0) {
+    Map<String, Integer> groupByRank(String opusId, String taxon, int max = -1, int startFrom = 0) {
         checkArgument opusId
         checkArgument taxon
 
@@ -421,6 +460,60 @@ class SearchService extends BaseDataAccessService {
         }
 
         filteredOpusList
+    }
+
+    /**
+     * Sort either alphabetically on scientificName, or 'taxonomically' so that species are always listed after
+     * their genus, genera are always listed after their family, etc etc. This relies on the rankOrder and
+     * unknownRank properties created by the #constructProfileSearchProjection() method.
+     */
+    private static Map constructSortCriteria(ProfileSortOption sortBy) {
+        sortBy = sortBy ?: ProfileSortOption.getDefault()
+        Map sort
+
+        if (sortBy == ProfileSortOption.NAME) {
+            sort = ['scientificName': 1]
+        } else {
+            sort = ['unknownRank': 1, 'classification.name': 1, 'rankOrder': 1, 'scientificName': 1]
+        }
+
+        sort
+    }
+
+    /**
+     * Constructs a MongoDB Aggregation $project clause which will include an 'unknownRank' flag for profiles without a
+     * known taxonomy, and a 'rankOrder' attribute which will be the index order of the profile's rank property within
+     * the GBIG org.gbif.ecat.voc.Rank enumeration or 999 for profiles with no rank (this can be used for sorting by taxonomy).
+     *
+     * The other fields in the projection are commonly required properties of the Profile (name, rank, id, authors, etc).
+     */
+    private static Map constructProfileSearchProjection() {
+        Map projection = [rankOrder: [:]]
+        def previousStep = projection.rankOrder
+
+        Rank.values().eachWithIndex { rank, index ->
+            Map cond = [
+                    'if'  : ['$eq': ['$rank', rank.name().toLowerCase()]],
+                    'then': index,
+                    'else': (index == Rank.values().size() - 1) ? [] : [:]
+            ]
+            previousStep << [$cond: cond]
+            previousStep = cond.else
+        }
+
+        previousStep << 999
+
+        projection << [unknownRank: [$cond: [[$eq: [[$ifNull: ['$rank', null]], null]], 1, 0]]]
+        projection << [uuid: 1]
+        projection << [guid: 1]
+        projection << [scientificName: 1]
+        projection << [classification: 1]
+        projection << [rank: 1]
+        projection << [fullName: 1]
+        projection << [nameAuthor: 1]
+        projection << [opus: 1]
+
+        projection
     }
 
     @Async

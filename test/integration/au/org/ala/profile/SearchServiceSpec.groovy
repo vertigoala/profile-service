@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.ProfileSortOption
 import au.org.ala.web.AuthService
 
 
@@ -25,18 +26,18 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
         Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3")
 
-        Profile profile1 = save new Profile(scientificName: "name", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile2 = save new Profile(scientificName: "name", opus: opus2, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile3 = save new Profile(scientificName: "name", opus: opus3, classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile1 = save new Profile(scientificName: "name1", fullName: "name1", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile2 = save new Profile(scientificName: "name2", fullName: "name2", opus: opus2, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile3 = save new Profile(scientificName: "name3", fullName: "name3", opus: opus3, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
 
         when:
         List result = service.findByScientificName("name", null)
 
         then:
         result.size() == 3
-        result.contains(profile1)
-        result.contains(profile2)
-        result.contains(profile3)
+        result.find { it.scientificName == profile1.scientificName } != null
+        result.find { it.scientificName == profile2.scientificName } != null
+        result.find { it.scientificName == profile3.scientificName } != null
     }
 
     def "findByScientificName should exclude matches from private collections when there is no logged in user"() {
@@ -45,9 +46,9 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2", privateCollection: true, authorities: [[user: [userId: "9876"], role: "ROLE_USER"]])
         Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3", privateCollection: true, authorities: [[user: [userId: "1234"], role: "ROLE_USER"]])
 
-        Profile profile1 = save new Profile(scientificName: "name", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile2 = save new Profile(scientificName: "name", opus: opus2, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile3 = save new Profile(scientificName: "name", opus: opus3, classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile1 = save new Profile(scientificName: "name1", fullName: "name1", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile2 = save new Profile(scientificName: "name2", fullName: "name2", opus: opus2, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile3 = save new Profile(scientificName: "name3", fullName: "name3", opus: opus3, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
 
         service.authService.userInRole("ROLE_ADMIN") >> false
         service.userService.getCurrentUserDetails() >> [userId: null]
@@ -57,7 +58,9 @@ class SearchServiceSpec extends BaseIntegrationSpec {
 
         then:
         result.size() == 1
-        result.contains(profile1)
+        result.find { it.scientificName == profile1.scientificName } != null
+        result.find { it.scientificName == profile2.scientificName } == null
+        result.find { it.scientificName == profile3.scientificName } == null
     }
 
     def "findByScientificName should include matches from private collections when the logged in user is registered with that collection"() {
@@ -66,9 +69,9 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2", privateCollection: true, authorities: [[user: [userId: "9876"], role: "ROLE_USER"]])
         Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3", privateCollection: true, authorities: [[user: [userId: "1234"], role: "ROLE_USER"]])
 
-        Profile profile1 = save new Profile(scientificName: "name", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile2 = save new Profile(scientificName: "name", opus: opus2, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile3 = save new Profile(scientificName: "name", opus: opus3, classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile1 = save new Profile(scientificName: "name1", fullName: "name1", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile2 = save new Profile(scientificName: "name2", fullName: "name2", opus: opus2, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile3 = save new Profile(scientificName: "name3", fullName: "name3", opus: opus3, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
 
         service.authService.userInRole("ROLE_ADMIN") >> false
         service.userService.getCurrentUserDetails() >> [userId: "1234"]
@@ -78,8 +81,9 @@ class SearchServiceSpec extends BaseIntegrationSpec {
 
         then:
         result.size() == 2
-        result.contains(profile1)
-        result.contains(profile3)
+        result.find { it.scientificName == profile1.scientificName } != null
+        result.find { it.scientificName == profile2.scientificName } == null
+        result.find { it.scientificName == profile3.scientificName } != null
     }
 
     def "findByScientificName should include matches from all private collections when the logged in user is an ALA admin"() {
@@ -88,9 +92,9 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2", privateCollection: true, authorities: [[user: [userId: "9876"], role: "ROLE_USER"]])
         Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3", privateCollection: true, authorities: [[user: [userId: "1234"], role: "ROLE_USER"]])
 
-        Profile profile1 = save new Profile(scientificName: "name", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile2 = save new Profile(scientificName: "name", opus: opus2, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile3 = save new Profile(scientificName: "name", opus: opus3, classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile1 = save new Profile(scientificName: "name1", fullName: "name1", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile2 = save new Profile(scientificName: "name2", fullName: "name2", opus: opus2, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile3 = save new Profile(scientificName: "name3", fullName: "name3", opus: opus3, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
 
         service.authService.userInRole("ROLE_ADMIN") >> true
         service.userService.getCurrentUserDetails() >> [userId: "1234"]
@@ -100,9 +104,9 @@ class SearchServiceSpec extends BaseIntegrationSpec {
 
         then:
         result.size() == 3
-        result.contains(profile1)
-        result.contains(profile2)
-        result.contains(profile3)
+        result.find { it.scientificName == profile1.scientificName } != null
+        result.find { it.scientificName == profile2.scientificName } != null
+        result.find { it.scientificName == profile3.scientificName } != null
     }
 
     def "findByScientificName should match only the specified opus ids"() {
@@ -111,18 +115,18 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
         Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3")
 
-        Profile profile1 = save new Profile(scientificName: "name", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile2 = save new Profile(scientificName: "name", opus: opus2, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile3 = save new Profile(scientificName: "name", opus: opus3, classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile1 = save new Profile(scientificName: "name1", fullName: "name1", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile2 = save new Profile(scientificName: "name2", fullName: "name2", opus: opus2, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile3 = save new Profile(scientificName: "name3", fullName: "name3", opus: opus3, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
 
         when:
         List result = service.findByScientificName("name", [opus1.uuid, opus3.uuid])
 
         then:
         result.size() == 2
-        result.contains(profile1)
-        !result.contains(profile2)
-        result.contains(profile3)
+        result.find { it.scientificName == profile1.scientificName } != null
+        result.find { it.scientificName == profile2.scientificName } == null
+        result.find { it.scientificName == profile3.scientificName } != null
     }
 
     def "findByScientificName should ignore unknown opus ids"() {
@@ -131,141 +135,29 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
         Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3")
 
-        Profile profile1 = save new Profile(scientificName: "name", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile2 = save new Profile(scientificName: "name", opus: opus2, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile3 = save new Profile(scientificName: "name", opus: opus3, classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile1 = save new Profile(scientificName: "name1", fullName: "name1", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile2 = save new Profile(scientificName: "name2", fullName: "name2", opus: opus2, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile3 = save new Profile(scientificName: "name3", fullName: "name3", opus: opus3, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
 
         when:
         List result = service.findByScientificName("name", [opus1.uuid, "unknown"])
 
         then:
         result.size() == 1
-        result.contains(profile1)
-        !result.contains(profile2)
-        !result.contains(profile3)
+        result.find { it.scientificName == profile1.scientificName } != null
+        result.find { it.scientificName == profile2.scientificName } == null
+        result.find { it.scientificName == profile3.scientificName } == null
     }
 
     def "findByScientificName should default to using a wildcard"() {
         given:
         Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
-        Profile profile1 = save new Profile(scientificName: "name", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile2 = save new Profile(scientificName: "name two", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile3 = save new Profile(scientificName: "nameThree", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile1 = save new Profile(scientificName: "name", fullName: "name", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile2 = save new Profile(scientificName: "name two", fullName: "name two", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile3 = save new Profile(scientificName: "nameThree", fullName: "nameThree", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
 
         when:
         List result = service.findByScientificName("name", [opus1.uuid])
-
-        then:
-        result.size() == 3
-        result.contains(profile1)
-        result.contains(profile2)
-        result.contains(profile3)
-    }
-
-    def "findByScientificName should perform exact match (case-insensitive) when useWildcard is false"() {
-        given:
-        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
-        Profile profile1 = save new Profile(scientificName: "name", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile2 = save new Profile(scientificName: "name two", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile3 = save new Profile(scientificName: "nameThree", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-
-        when:
-        List result = service.findByScientificName("NAME", [opus1.uuid], false)
-
-        then:
-        result.size() == 1
-        result.contains(profile1)
-        !result.contains(profile2)
-        !result.contains(profile3)
-    }
-
-    def "findByScientificName should limit the results to the specified maximum (names sorted alphabetically"() {
-        given:
-        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
-
-        Profile profile1 = save new Profile(scientificName: "ab", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae")])
-        save new Profile(scientificName: "ac", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae")])
-        Profile profile3 = save new Profile(scientificName: "aa", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae")])
-        save new Profile(scientificName: "ad", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae")])
-
-        when:
-        List result = service.findByScientificName("a", [opus.uuid], true, 1)
-
-        then:
-        result == [profile3]
-
-        when:
-        result = service.findByScientificName("a", [opus.uuid], true, 2)
-
-        then:
-        result == [profile3, profile1]
-    }
-
-    def "findByScientificName should start the result set at the specified offset"() {
-        given:
-        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
-
-        Profile profile1 = save new Profile(scientificName: "ab", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae")])
-        Profile profile2 = save new Profile(scientificName: "ac", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae")])
-        save new Profile(scientificName: "aa", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae")])
-        Profile profile4 = save new Profile(scientificName: "ad", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae")])
-
-        when:
-        List result = service.findByScientificName("a", [opus.uuid], true, 1, 1)
-
-        then:
-        result == [profile1]
-
-        when:
-        result = service.findByScientificName("a", [opus.uuid], true, 2, 2)
-
-        then:
-        result == [profile2, profile4]
-    }
-
-    def "findByScientificName should perform exclude archived profiles"() {
-        given:
-        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
-        Profile profile1 = save new Profile(scientificName: "name", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile2 = save new Profile(scientificName: "name two", opus: opus1, archivedDate: new Date(), classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile3 = save new Profile(scientificName: "nameThree", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Plantae")])
-
-        when:
-        List result = service.findByScientificName("NAME", [opus1.uuid], true)
-
-        then:
-        result.size() == 2
-        result.contains(profile1)
-        !result.contains(profile2)
-        result.contains(profile3)
-    }
-
-    def "findByTaxonNameAndLevel should fail when no scientific name is provided"() {
-        when:
-        service.findByTaxonNameAndLevel(null, "name", ["opus"])
-
-        then:
-        thrown IllegalArgumentException
-
-        when:
-        service.findByTaxonNameAndLevel("taxon", null, ["opus"])
-
-        then:
-        thrown IllegalArgumentException
-    }
-
-    def "findByTaxonNameAndLevel should match any opus when no opusId list is provided"() {
-        given:
-        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
-        Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
-        Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3")
-
-        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, classification: [new Classification(rank: "kingdom", name: "plantae")])
-        Profile profile2 = save new Profile(scientificName: "name2", opus: opus2, classification: [new Classification(rank: "kingdom", name: "plantae")])
-        Profile profile3 = save new Profile(scientificName: "name3", opus: opus3, classification: [new Classification(rank: "kingdom", name: "plantae")])
-
-        when:
-        List result = service.findByTaxonNameAndLevel("kingdom", "plantae", null)
 
         then:
         result.size() == 3
@@ -274,18 +166,92 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result.find { it.scientificName == profile3.scientificName } != null
     }
 
-    def "findByTaxonNameAndLevel should exclude archived profiles"() {
+    def "findByScientificName should perform exact match (case-insensitive) when useWildcard is false"() {
         given:
         Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
-        Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
-        Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3")
-
-        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, classification: [new Classification(rank: "kingdom", name: "plantae")])
-        Profile profile2 = save new Profile(scientificName: "name2", opus: opus2, archivedDate: new Date(), classification: [new Classification(rank: "kingdom", name: "plantae")])
-        Profile profile3 = save new Profile(scientificName: "name3", opus: opus3, classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile1 = save new Profile(scientificName: "name", fullName: "name", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile2 = save new Profile(scientificName: "name two", fullName: "name two", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile3 = save new Profile(scientificName: "nameThree", fullName: "nameThree", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
 
         when:
-        List result = service.findByTaxonNameAndLevel("kingdom", "plantae", null)
+        List result = service.findByScientificName("NAME", [opus1.uuid], ProfileSortOption.getDefault(), false)
+
+        then:
+        result.size() == 1
+        result.find { it.scientificName == profile1.scientificName } != null
+        result.find { it.scientificName == profile2.scientificName } == null
+        result.find { it.scientificName == profile3.scientificName } == null
+    }
+
+    def "findByScientificName should limit the results to the specified maximum (names sorted alphabetically"() {
+        given:
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+
+        Profile profile1 = save new Profile(scientificName: "ab", fullName: "ab", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile2 = save new Profile(scientificName: "ac", fullName: "ac", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile3 = save new Profile(scientificName: "aa", fullName: "aa", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile4 = save new Profile(scientificName: "ad", fullName: "ad", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+
+        when:
+        List result = service.findByScientificName("a", [opus.uuid], ProfileSortOption.getDefault(), true, 1)
+
+        then:
+        result.size() == 1
+        result.find { it.scientificName == profile1.scientificName } == null
+        result.find { it.scientificName == profile2.scientificName } == null
+        result.find { it.scientificName == profile3.scientificName } != null
+        result.find { it.scientificName == profile4.scientificName } == null
+
+        when:
+        result = service.findByScientificName("a", [opus.uuid], ProfileSortOption.getDefault(), true, 2)
+
+        then:
+        result.size() == 2
+        result.find { it.scientificName == profile1.scientificName } != null
+        result.find { it.scientificName == profile2.scientificName } == null
+        result.find { it.scientificName == profile3.scientificName } != null
+        result.find { it.scientificName == profile4.scientificName } == null
+    }
+
+    def "findByScientificName should start the result set at the specified offset"() {
+        given:
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+
+        Profile profile1 = save new Profile(scientificName: "ab", fullName: "ab", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile2 = save new Profile(scientificName: "ac", fullName: "ac", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile3 = save new Profile(scientificName: "aa", fullName: "aa", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile4 = save new Profile(scientificName: "ad", fullName: "ad", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+
+        when:
+        List result = service.findByScientificName("a", [opus.uuid], ProfileSortOption.getDefault(), true, 1, 1)
+
+        then:
+        result.size() == 1
+        result.find { it.scientificName == profile1.scientificName } != null
+        result.find { it.scientificName == profile2.scientificName } == null
+        result.find { it.scientificName == profile3.scientificName } == null
+        result.find { it.scientificName == profile4.scientificName } == null
+
+        when:
+        result = service.findByScientificName("a", [opus.uuid], ProfileSortOption.getDefault(), true, 2, 2)
+
+        then:
+        result.size() == 2
+        result.find { it.scientificName == profile1.scientificName } == null
+        result.find { it.scientificName == profile2.scientificName } != null
+        result.find { it.scientificName == profile3.scientificName } == null
+        result.find { it.scientificName == profile4.scientificName } != null
+    }
+
+    def "findByScientificName should exclude archived profiles"() {
+        given:
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
+        Profile profile1 = save new Profile(scientificName: "name", fullName: "name", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile2 = save new Profile(scientificName: "name two", fullName: "name two", opus: opus1, archivedDate: new Date(), rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile3 = save new Profile(scientificName: "nameThree", fullName: "nameThree", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+
+        when:
+        List result = service.findByScientificName("NAME", [opus1.uuid], ProfileSortOption.getDefault(), true)
 
         then:
         result.size() == 2
@@ -294,18 +260,138 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result.find { it.scientificName == profile3.scientificName } != null
     }
 
-    def "findByTaxonNameAndLevel should match only the specified opus ids"() {
+    def "findByScientificName should sort the results by taxonomic hierarchy when sortOrder = TAXONOMY"() {
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+
+        save new Profile(scientificName: "Austrobaileyaceae", fullName: "Austrobaileyaceae",
+                opus: opus, rank: "family", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                             new Classification(rank: "phylum", name: "Charophyta"),
+                                                             new Classification(rank: "class", name: "Equisetopsida"),
+                                                             new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                             new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                             new Classification(rank: "order", name: "Austrobaileyales"),
+                                                             new Classification(rank: "family", name: "Austrobaileyaceae")])
+
+        save new Profile(scientificName: "Austrobaileya", fullName: "Austrobaileya", opus:
+                opus, rank: "genus", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                      new Classification(rank: "phylum", name: "Charophyta"),
+                                                      new Classification(rank: "class", name: "Equisetopsida"),
+                                                      new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                      new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                      new Classification(rank: "order", name: "Austrobaileyales"),
+                                                      new Classification(rank: "family", name: "Austrobaileyaceae"),
+                                                      new Classification(rank: "genus", name: "Austrobaileya")])
+
+        save new Profile(scientificName: "Austrobaileya scandens", fullName: "Austrobaileya scandens",
+                opus: opus, rank: "species", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                              new Classification(rank: "phylum", name: "Charophyta"),
+                                                              new Classification(rank: "class", name: "Equisetopsida"),
+                                                              new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                              new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                              new Classification(rank: "order", name: "Austrobaileyales"),
+                                                              new Classification(rank: "family", name: "Austrobaileyaceae"),
+                                                              new Classification(rank: "genus", name: "Austrobaileya"),
+                                                              new Classification(rank: "species", name: "Austrobaileya scandens")])
+
+        when:
+        def result = service.findByScientificName("Austro", [opus.uuid], ProfileSortOption.TAXONOMY)
+
+        then:
+        result.size() == 3
+        result[0].scientificName == "Austrobaileyaceae" // family
+        result[1].scientificName == "Austrobaileya" // genus
+        result[2].scientificName == "Austrobaileya scandens" // species
+    }
+
+    def "findByScientificName should sort the results alphabetically by name when sortOrder = NAME"() {
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+
+        save new Profile(scientificName: "Austrobaileyaceae", fullName: "Austrobaileyaceae",
+                opus: opus, rank: "family", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                             new Classification(rank: "phylum", name: "Charophyta"),
+                                                             new Classification(rank: "class", name: "Equisetopsida"),
+                                                             new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                             new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                             new Classification(rank: "order", name: "Austrobaileyales"),
+                                                             new Classification(rank: "family", name: "Austrobaileyaceae")])
+
+        save new Profile(scientificName: "Austrobaileya", fullName: "Austrobaileya",
+                opus: opus, rank: "genus", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                            new Classification(rank: "phylum", name: "Charophyta"),
+                                                            new Classification(rank: "class", name: "Equisetopsida"),
+                                                            new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                            new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                            new Classification(rank: "order", name: "Austrobaileyales"),
+                                                            new Classification(rank: "family", name: "Austrobaileyaceae"),
+                                                            new Classification(rank: "genus", name: "Austrobaileya")])
+
+        save new Profile(scientificName: "Austrobaileya scandens", fullName: "Austrobaileya scandens",
+                opus: opus, rank: "species", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                              new Classification(rank: "phylum", name: "Charophyta"),
+                                                              new Classification(rank: "class", name: "Equisetopsida"),
+                                                              new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                              new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                              new Classification(rank: "order", name: "Austrobaileyales"),
+                                                              new Classification(rank: "family", name: "Austrobaileyaceae"),
+                                                              new Classification(rank: "genus", name: "Austrobaileya"),
+                                                              new Classification(rank: "species", name: "Austrobaileya scandens")])
+
+        when:
+        def result = service.findByScientificName("Austro", [opus.uuid], ProfileSortOption.NAME)
+
+        then:
+        result.size() == 3
+        result[0].scientificName == "Austrobaileya" // genus
+        result[1].scientificName == "Austrobaileya scandens" // species
+        result[2].scientificName == "Austrobaileyaceae" // family
+    }
+
+    def "findByClassificationNameAndRank should fail when no scientific name is provided"() {
+        when:
+        service.findByClassificationNameAndRank(null, "name", ["opus"])
+
+        then:
+        thrown IllegalArgumentException
+
+        when:
+        service.findByClassificationNameAndRank("taxon", null, ["opus"])
+
+        then:
+        thrown IllegalArgumentException
+    }
+
+    def "findByClassificationNameAndRank should match any opus when no opusId list is provided"() {
         given:
         Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
         Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
         Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3")
 
-        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, classification: [new Classification(rank: "kingdom", name: "plantae")])
-        Profile profile2 = save new Profile(scientificName: "name2", opus: opus2, classification: [new Classification(rank: "kingdom", name: "plantae")])
-        Profile profile3 = save new Profile(scientificName: "name3", opus: opus3, classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile2 = save new Profile(scientificName: "name2", opus: opus2, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile3 = save new Profile(scientificName: "name3", opus: opus3, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
 
         when:
-        List result = service.findByTaxonNameAndLevel("kingdom", "plantae", [opus1.uuid, opus3.uuid])
+        List result = service.findByClassificationNameAndRank("kingdom", "plantae", null)
+
+        then:
+        result.size() == 3
+        result.find { it.scientificName == profile1.scientificName } != null
+        result.find { it.scientificName == profile2.scientificName } != null
+        result.find { it.scientificName == profile3.scientificName } != null
+    }
+
+    def "findByClassificationNameAndRank should exclude archived profiles"() {
+        given:
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
+        Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
+        Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3")
+
+        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile2 = save new Profile(scientificName: "name2", opus: opus2, archivedDate: new Date(), rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile3 = save new Profile(scientificName: "name3", opus: opus3, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+
+        when:
+        List result = service.findByClassificationNameAndRank("kingdom", "plantae", null)
 
         then:
         result.size() == 2
@@ -314,18 +400,38 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result.find { it.scientificName == profile3.scientificName } != null
     }
 
-    def "findByTaxonNameAndLevel should recognise 'unknown' classifications"() {
+    def "findByClassificationNameAndRank should match only the specified opus ids"() {
         given:
         Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
         Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
         Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3")
 
-        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile2 = save new Profile(scientificName: "name2", opus: opus2, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile3 = save new Profile(scientificName: "name3", opus: opus3, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+
+        when:
+        List result = service.findByClassificationNameAndRank("kingdom", "plantae", [opus1.uuid, opus3.uuid])
+
+        then:
+        result.size() == 2
+        result.find { it.scientificName == profile1.scientificName } != null
+        result.find { it.scientificName == profile2.scientificName } == null
+        result.find { it.scientificName == profile3.scientificName } != null
+    }
+
+    def "findByClassificationNameAndRank should recognise 'unknown' classifications"() {
+        given:
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
+        Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
+        Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3")
+
+        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
         Profile profile2 = save new Profile(scientificName: "name2", opus: opus2)
         Profile profile3 = save new Profile(scientificName: "name3", opus: opus3)
 
         when:
-        List result = service.findByTaxonNameAndLevel(SearchService.UNKNOWN_RANK, "plantae", [opus1.uuid, opus2.uuid, opus3.uuid])
+        List result = service.findByClassificationNameAndRank(SearchService.UNKNOWN_RANK, "plantae", [opus1.uuid, opus2.uuid, opus3.uuid])
 
         then:
         result.size() == 2
@@ -334,18 +440,18 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result.find { it.scientificName == profile3.scientificName } != null
     }
 
-    def "findByTaxonNameAndLevel should ignore unknown opus ids"() {
+    def "findByClassificationNameAndRank should ignore unknown opus ids"() {
         given:
         Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
         Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
         Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3")
 
-        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, classification: [new Classification(rank: "kingdom", name: "plantae")])
-        Profile profile2 = save new Profile(scientificName: "name2", opus: opus2, classification: [new Classification(rank: "kingdom", name: "plantae")])
-        Profile profile3 = save new Profile(scientificName: "name3", opus: opus3, classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile2 = save new Profile(scientificName: "name2", opus: opus2, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile3 = save new Profile(scientificName: "name3", opus: opus3, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
 
         when:
-        List result = service.findByTaxonNameAndLevel("kingdom", "plantae", [opus1.uuid, "unknown"])
+        List result = service.findByClassificationNameAndRank("kingdom", "plantae", [opus1.uuid, "unknown"])
 
         then:
         result.size() == 1
@@ -354,15 +460,15 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result.find { it.scientificName == profile3.scientificName } == null
     }
 
-    def "findByTaxonNameAndLevel should perform exact match (case-insensitive)"() {
+    def "findByClassificationNameAndRank should perform exact match (case-insensitive)"() {
         given:
         Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
-        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, classification: [new Classification(rank: "kingdom", name: "plANtae")])
-        Profile profile2 = save new Profile(scientificName: "name2", opus: opus1, classification: [new Classification(rank: "kingdom", name: "fungi")])
-        Profile profile3 = save new Profile(scientificName: "name3", opus: opus1, classification: [new Classification(rank: "kingdom", name: "Animalae")])
+        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plANtae")])
+        Profile profile2 = save new Profile(scientificName: "name2", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "fungi")])
+        Profile profile3 = save new Profile(scientificName: "name3", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Animalae")])
 
         when:
-        List result = service.findByTaxonNameAndLevel("kingdom", "PLANTAE", [opus1.uuid])
+        List result = service.findByClassificationNameAndRank("kingdom", "PLANTAE", [opus1.uuid])
 
         then:
         result.size() == 1
@@ -371,23 +477,23 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result.find { it.scientificName == profile3.scientificName } == null
     }
 
-    def "findByTaxonNameAndLevel should limit the results to the specified maximum (names sorted alphabetically"() {
+    def "findByClassificationNameAndRank should limit the results to the specified maximum (names sorted alphabetically"() {
         given:
         Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
 
-        Profile profile1 = save new Profile(scientificName: "ab", opus: opus, classification: [new Classification(rank: "kingdom", name: "aa")])
-        save new Profile(scientificName: "ac", opus: opus, classification: [new Classification(rank: "kingdom", name: "ac")])
-        Profile profile3 = save new Profile(scientificName: "aa", opus: opus, classification: [new Classification(rank: "kingdom", name: "aa")])
-        save new Profile(scientificName: "ad", opus: opus, classification: [new Classification(rank: "kingdom", name: "ad")])
+        Profile profile1 = save new Profile(scientificName: "ab", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "aa")])
+        save new Profile(scientificName: "ac", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "ac")])
+        Profile profile3 = save new Profile(scientificName: "aa", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "aa")])
+        save new Profile(scientificName: "ad", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "ad")])
 
         when:
-        List result = service.findByTaxonNameAndLevel("kingdom", "aa", [opus.uuid], 1)
+        List result = service.findByClassificationNameAndRank("kingdom", "aa", [opus.uuid], ProfileSortOption.NAME, 1)
 
         then:
         result[0].scientificName == profile3.scientificName
 
         when:
-        result = service.findByTaxonNameAndLevel("kingdom", "aa", [opus.uuid], 2)
+        result = service.findByClassificationNameAndRank("kingdom", "aa", [opus.uuid], ProfileSortOption.NAME, 2)
 
         then:
         result.size() == 2
@@ -395,23 +501,23 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result.find { it.scientificName == profile3.scientificName } != null
     }
 
-    def "findByTaxonNameAndLevel should start the result set at the specified offset, sorted taxonomically"() {
+    def "findByClassificationNameAndRank should start the result set at the specified offset, sorted taxonomically"() {
         given:
         Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
 
-        Profile profile1 = save new Profile(scientificName: "ab", opus: opus, classification: [new Classification(rank: "kingdom", name: "a")])
-        Profile profile2 = save new Profile(scientificName: "ac", opus: opus, classification: [new Classification(rank: "kingdom", name: "a")])
-        Profile profile3 = save new Profile(scientificName: "aa", opus: opus, classification: [new Classification(rank: "kingdom", name: "a")])
-        Profile profile4 = save new Profile(scientificName: "ad", opus: opus, classification: [new Classification(rank: "kingdom", name: "a")])
+        Profile profile1 = save new Profile(scientificName: "ab", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "a")])
+        Profile profile2 = save new Profile(scientificName: "ac", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "a")])
+        Profile profile3 = save new Profile(scientificName: "aa", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "a")])
+        Profile profile4 = save new Profile(scientificName: "ad", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "a")])
 
         when:
-        List result = service.findByTaxonNameAndLevel("kingdom", "a", [opus.uuid], 1, 1)
+        List result = service.findByClassificationNameAndRank("kingdom", "a", [opus.uuid], ProfileSortOption.TAXONOMY, 1, 1)
 
         then:
         result[0].scientificName == profile1.scientificName
 
         when:
-        result = service.findByTaxonNameAndLevel("kingdom", "a", [opus.uuid], 2, 2)
+        result = service.findByClassificationNameAndRank("kingdom", "a", [opus.uuid], ProfileSortOption.TAXONOMY, 2, 2)
 
         then: "the results should be [aa, ab] (i.e. [profile3, profile1]"
         result.size() == 2
@@ -421,65 +527,71 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result.find { it.scientificName == profile4.scientificName } != null
     }
 
-    def "findByTaxonNameAndLevel should sort the results by taxonomic hierarchy"() {
+    def "findByClassificationNameAndRank should sort the results by taxonomic hierarchy when sortOrder = TAXONOMY"() {
         Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
 
-        save new Profile(scientificName: "Trimeniaceae", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae"),
-                                                                                      new Classification(rank: "phylum", name: "Charophyta"),
-                                                                                      new Classification(rank: "class", name: "Equisetopsida"),
-                                                                                      new Classification(rank: "subclass", name: "Magnoliidae"),
-                                                                                      new Classification(rank: "superorder", name: "Austrobaileyanae"),
-                                                                                      new Classification(rank: "order", name: "Austrobaileyales"),
-                                                                                      new Classification(rank: "family", name: "Trimeniaceae")])
+        save new Profile(scientificName: "Trimeniaceae",
+                opus: opus, rank: "family", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                             new Classification(rank: "phylum", name: "Charophyta"),
+                                                             new Classification(rank: "class", name: "Equisetopsida"),
+                                                             new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                             new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                             new Classification(rank: "order", name: "Austrobaileyales"),
+                                                             new Classification(rank: "family", name: "Trimeniaceae")])
 
-        save new Profile(scientificName: "Trimenia", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae"),
-                                                                                  new Classification(rank: "phylum", name: "Charophyta"),
-                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
-                                                                                  new Classification(rank: "subclass", name: "Magnoliidae"),
-                                                                                  new Classification(rank: "superorder", name: "Austrobaileyanae"),
-                                                                                  new Classification(rank: "order", name: "Austrobaileyales"),
-                                                                                  new Classification(rank: "family", name: "Trimeniaceae"),
-                                                                                  new Classification(rank: "genus", name: "Trimenia")])
+        save new Profile(scientificName: "Trimenia",
+                opus: opus, rank: "genus", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                            new Classification(rank: "phylum", name: "Charophyta"),
+                                                            new Classification(rank: "class", name: "Equisetopsida"),
+                                                            new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                            new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                            new Classification(rank: "order", name: "Austrobaileyales"),
+                                                            new Classification(rank: "family", name: "Trimeniaceae"),
+                                                            new Classification(rank: "genus", name: "Trimenia")])
 
-        save new Profile(scientificName: "Trimenia moorei", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae"),
-                                                                                         new Classification(rank: "phylum", name: "Charophyta"),
-                                                                                         new Classification(rank: "class", name: "Equisetopsida"),
-                                                                                         new Classification(rank: "subclass", name: "Magnoliidae"),
-                                                                                         new Classification(rank: "superorder", name: "Austrobaileyanae"),
-                                                                                         new Classification(rank: "order", name: "Austrobaileyales"),
-                                                                                         new Classification(rank: "family", name: "Trimeniaceae"),
-                                                                                         new Classification(rank: "genus", name: "Trimenia"),
-                                                                                         new Classification(rank: "species", name: "Trimenia moorei")])
+        save new Profile(scientificName: "Trimenia moorei",
+                opus: opus, rank: "species", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                              new Classification(rank: "phylum", name: "Charophyta"),
+                                                              new Classification(rank: "class", name: "Equisetopsida"),
+                                                              new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                              new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                              new Classification(rank: "order", name: "Austrobaileyales"),
+                                                              new Classification(rank: "family", name: "Trimeniaceae"),
+                                                              new Classification(rank: "genus", name: "Trimenia"),
+                                                              new Classification(rank: "species", name: "Trimenia moorei")])
 
-        save new Profile(scientificName: "Austrobaileyaceae", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae"),
-                                                                                           new Classification(rank: "phylum", name: "Charophyta"),
-                                                                                           new Classification(rank: "class", name: "Equisetopsida"),
-                                                                                           new Classification(rank: "subclass", name: "Magnoliidae"),
-                                                                                           new Classification(rank: "superorder", name: "Austrobaileyanae"),
-                                                                                           new Classification(rank: "order", name: "Austrobaileyales"),
-                                                                                           new Classification(rank: "family", name: "Austrobaileyaceae")])
+        save new Profile(scientificName: "Austrobaileyaceae",
+                opus: opus, rank: "family", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                             new Classification(rank: "phylum", name: "Charophyta"),
+                                                             new Classification(rank: "class", name: "Equisetopsida"),
+                                                             new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                             new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                             new Classification(rank: "order", name: "Austrobaileyales"),
+                                                             new Classification(rank: "family", name: "Austrobaileyaceae")])
 
-        save new Profile(scientificName: "Austrobaileya", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae"),
-                                                                                       new Classification(rank: "phylum", name: "Charophyta"),
-                                                                                       new Classification(rank: "class", name: "Equisetopsida"),
-                                                                                       new Classification(rank: "subclass", name: "Magnoliidae"),
-                                                                                       new Classification(rank: "superorder", name: "Austrobaileyanae"),
-                                                                                       new Classification(rank: "order", name: "Austrobaileyales"),
-                                                                                       new Classification(rank: "family", name: "Austrobaileyaceae"),
-                                                                                       new Classification(rank: "genus", name: "Austrobaileya")])
+        save new Profile(scientificName: "Austrobaileya",
+                opus: opus, rank: "genus", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                            new Classification(rank: "phylum", name: "Charophyta"),
+                                                            new Classification(rank: "class", name: "Equisetopsida"),
+                                                            new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                            new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                            new Classification(rank: "order", name: "Austrobaileyales"),
+                                                            new Classification(rank: "family", name: "Austrobaileyaceae"),
+                                                            new Classification(rank: "genus", name: "Austrobaileya")])
 
-        save new Profile(scientificName: "Austrobaileya scandens", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae"),
-                                                                                                new Classification(rank: "phylum", name: "Charophyta"),
-                                                                                                new Classification(rank: "class", name: "Equisetopsida"),
-                                                                                                new Classification(rank: "subclass", name: "Magnoliidae"),
-                                                                                                new Classification(rank: "superorder", name: "Austrobaileyanae"),
-                                                                                                new Classification(rank: "order", name: "Austrobaileyales"),
-                                                                                                new Classification(rank: "family", name: "Austrobaileyaceae"),
-                                                                                                new Classification(rank: "genus", name: "Austrobaileya"),
-                                                                                                new Classification(rank: "species", name: "Austrobaileya scandens")])
+        save new Profile(scientificName: "Austrobaileya scandens",
+                opus: opus, rank: "species", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                              new Classification(rank: "phylum", name: "Charophyta"),
+                                                              new Classification(rank: "class", name: "Equisetopsida"),
+                                                              new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                              new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                              new Classification(rank: "order", name: "Austrobaileyales"),
+                                                              new Classification(rank: "family", name: "Austrobaileyaceae"),
+                                                              new Classification(rank: "genus", name: "Austrobaileya"),
+                                                              new Classification(rank: "species", name: "Austrobaileya scandens")])
 
         when:
-        def result = service.findByTaxonNameAndLevel("order", "Austrobaileyales", [opus.uuid])
+        def result = service.findByClassificationNameAndRank("order", "Austrobaileyales", [opus.uuid], ProfileSortOption.TAXONOMY)
 
         then:
         result.size() == 6
@@ -491,35 +603,114 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result[5].scientificName == "Trimenia moorei"
     }
 
-    def "findByTaxonNameAndLevel should sort the results alphabetically within the same rank"() {
+    def "findByClassificationNameAndRank should sort the results alphabetically by name when sortOrder = NAME"() {
         Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
 
-        save new Profile(scientificName: "b", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae"),
-                                                                           new Classification(rank: "phylum", name: "Charophyta"),
-                                                                           new Classification(rank: "class", name: "Equisetopsida"),
-                                                                           new Classification(rank: "subclass", name: "Magnoliidae"),
-                                                                           new Classification(rank: "superorder", name: "Austrobaileyanae"),
-                                                                           new Classification(rank: "order", name: "Austrobaileyales"),
-                                                                           new Classification(rank: "family", name: "Trimeniaceae")])
+        save new Profile(scientificName: "Trimeniaceae",
+                opus: opus, rank: "family", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                             new Classification(rank: "phylum", name: "Charophyta"),
+                                                             new Classification(rank: "class", name: "Equisetopsida"),
+                                                             new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                             new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                             new Classification(rank: "order", name: "Austrobaileyales"),
+                                                             new Classification(rank: "family", name: "Trimeniaceae")])
 
-        save new Profile(scientificName: "a", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae"),
-                                                                           new Classification(rank: "phylum", name: "Charophyta"),
-                                                                           new Classification(rank: "class", name: "Equisetopsida"),
-                                                                           new Classification(rank: "subclass", name: "Magnoliidae"),
-                                                                           new Classification(rank: "superorder", name: "Austrobaileyanae"),
-                                                                           new Classification(rank: "order", name: "Austrobaileyales"),
-                                                                           new Classification(rank: "family", name: "Trimeniaceae")])
+        save new Profile(scientificName: "Trimenia",
+                opus: opus, rank: "genus", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                            new Classification(rank: "phylum", name: "Charophyta"),
+                                                            new Classification(rank: "class", name: "Equisetopsida"),
+                                                            new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                            new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                            new Classification(rank: "order", name: "Austrobaileyales"),
+                                                            new Classification(rank: "family", name: "Trimeniaceae"),
+                                                            new Classification(rank: "genus", name: "Trimenia")])
 
-        save new Profile(scientificName: "c", opus: opus, classification: [new Classification(rank: "kingdom", name: "plantae"),
-                                                                           new Classification(rank: "phylum", name: "Charophyta"),
-                                                                           new Classification(rank: "class", name: "Equisetopsida"),
-                                                                           new Classification(rank: "subclass", name: "Magnoliidae"),
-                                                                           new Classification(rank: "superorder", name: "Austrobaileyanae"),
-                                                                           new Classification(rank: "order", name: "Austrobaileyales"),
-                                                                           new Classification(rank: "family", name: "Trimeniaceae")])
+        save new Profile(scientificName: "Trimenia moorei",
+                opus: opus, rank: "species", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                              new Classification(rank: "phylum", name: "Charophyta"),
+                                                              new Classification(rank: "class", name: "Equisetopsida"),
+                                                              new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                              new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                              new Classification(rank: "order", name: "Austrobaileyales"),
+                                                              new Classification(rank: "family", name: "Trimeniaceae"),
+                                                              new Classification(rank: "genus", name: "Trimenia"),
+                                                              new Classification(rank: "species", name: "Trimenia moorei")])
+
+        save new Profile(scientificName: "Austrobaileyaceae",
+                opus: opus, rank: "family", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                             new Classification(rank: "phylum", name: "Charophyta"),
+                                                             new Classification(rank: "class", name: "Equisetopsida"),
+                                                             new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                             new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                             new Classification(rank: "order", name: "Austrobaileyales"),
+                                                             new Classification(rank: "family", name: "Austrobaileyaceae")])
+
+        save new Profile(scientificName: "Austrobaileya",
+                opus: opus, rank: "genus", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                            new Classification(rank: "phylum", name: "Charophyta"),
+                                                            new Classification(rank: "class", name: "Equisetopsida"),
+                                                            new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                            new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                            new Classification(rank: "order", name: "Austrobaileyales"),
+                                                            new Classification(rank: "family", name: "Austrobaileyaceae"),
+                                                            new Classification(rank: "genus", name: "Austrobaileya")])
+
+        save new Profile(scientificName: "Austrobaileya scandens",
+                opus: opus, rank: "species", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                              new Classification(rank: "phylum", name: "Charophyta"),
+                                                              new Classification(rank: "class", name: "Equisetopsida"),
+                                                              new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                              new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                              new Classification(rank: "order", name: "Austrobaileyales"),
+                                                              new Classification(rank: "family", name: "Austrobaileyaceae"),
+                                                              new Classification(rank: "genus", name: "Austrobaileya"),
+                                                              new Classification(rank: "species", name: "Austrobaileya scandens")])
 
         when:
-        def result = service.findByTaxonNameAndLevel("family", "Trimeniaceae", [opus.uuid])
+        def result = service.findByClassificationNameAndRank("order", "Austrobaileyales", [opus.uuid], ProfileSortOption.NAME)
+
+        then:
+        result.size() == 6
+        result[0].scientificName == "Austrobaileya"
+        result[1].scientificName == "Austrobaileya scandens"
+        result[2].scientificName == "Austrobaileyaceae"
+        result[3].scientificName == "Trimenia"
+        result[4].scientificName == "Trimenia moorei"
+        result[5].scientificName == "Trimeniaceae"
+    }
+
+    def "findByClassificationNameAndRank should sort the results alphabetically within the same rank"() {
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+
+        save new Profile(scientificName: "b",
+                opus: opus, rank: "family", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                             new Classification(rank: "phylum", name: "Charophyta"),
+                                                             new Classification(rank: "class", name: "Equisetopsida"),
+                                                             new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                             new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                             new Classification(rank: "order", name: "Austrobaileyales"),
+                                                             new Classification(rank: "family", name: "Trimeniaceae")])
+
+        save new Profile(scientificName: "a",
+                opus: opus, rank: "family", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                             new Classification(rank: "phylum", name: "Charophyta"),
+                                                             new Classification(rank: "class", name: "Equisetopsida"),
+                                                             new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                             new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                             new Classification(rank: "order", name: "Austrobaileyales"),
+                                                             new Classification(rank: "family", name: "Trimeniaceae")])
+
+        save new Profile(scientificName: "c",
+                opus: opus, rank: "family", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                             new Classification(rank: "phylum", name: "Charophyta"),
+                                                             new Classification(rank: "class", name: "Equisetopsida"),
+                                                             new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                             new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                             new Classification(rank: "order", name: "Austrobaileyales"),
+                                                             new Classification(rank: "family", name: "Trimeniaceae")])
+
+        when:
+        def result = service.findByClassificationNameAndRank("family", "Trimeniaceae", [opus.uuid])
 
         then:
         result.size() == 3
@@ -528,23 +719,23 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result[2].scientificName == "c"
     }
 
-    def "getTaxonLevels should fail if no opus id is provided"() {
+    def "getRanks should fail if no opus id is provided"() {
         when:
-        service.getTaxonLevels(null)
+        service.getRanks(null)
 
         then:
         thrown IllegalArgumentException
     }
 
-    def "getTaxonLevels should return an empty Map the opus does not exist"() {
+    def "getRanks should return an empty Map the opus does not exist"() {
         when:
-        Map result = service.getTaxonLevels("unknown")
+        Map result = service.getRanks("unknown")
 
         then:
         result == [:]
     }
 
-    def "getTaxonLevels should group and count all unique classification levels, including unknown classifications"() {
+    def "getRanks should group and count all unique classification levels, including unknown classifications"() {
         given:
         Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
 
@@ -644,7 +835,7 @@ class SearchServiceSpec extends BaseIntegrationSpec {
 
 
         when:
-        Map levels = service.getTaxonLevels(opus.uuid)
+        Map levels = service.getRanks(opus.uuid)
 
         then:
         levels.kingdom == 2
@@ -657,29 +848,29 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         levels[SearchService.UNKNOWN_RANK] == 2
     }
 
-    def "groupByTaxonLevel should fail if no opusId or taxon are provided"() {
+    def "groupByRank should fail if no opusId or taxon are provided"() {
         when:
-        service.groupByTaxonLevel(null, "taxon")
+        service.groupByRank(null, "taxon")
 
         then:
         thrown IllegalArgumentException
 
         when:
-        service.groupByTaxonLevel("opus", null)
+        service.groupByRank("opus", null)
 
         then:
         thrown IllegalArgumentException
     }
 
-    def "groupByTaxonLevel should return an empty map when the opus does not exist"() {
+    def "groupByRank should return an empty map when the opus does not exist"() {
         when:
-        Map result = service.groupByTaxonLevel("unknown", "kingdom")
+        Map result = service.groupByRank("unknown", "kingdom")
 
         then:
         result == [:]
     }
 
-    def "groupByTaxonLevel should return a count of profiles with no rank/classification when the requested rank is 'unknown'"() {
+    def "groupByRank should return a count of profiles with no rank/classification when the requested rank is 'unknown'"() {
         given:
         Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
 
@@ -688,14 +879,14 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         save new Profile(scientificName: "kingdom3", opus: opus)
 
         when:
-        Map result = service.groupByTaxonLevel(opus.uuid, SearchService.UNKNOWN_RANK)
+        Map result = service.groupByRank(opus.uuid, SearchService.UNKNOWN_RANK)
 
         then:
         result == [(SearchService.UNKNOWN_RANK): 2]
 
     }
 
-    def "groupByTaxonLevel should return a map of names of the requested level, with their counts"() {
+    def "groupByRank should return a map of names of the requested level, with their counts"() {
         given:
         Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
 
@@ -792,25 +983,25 @@ class SearchServiceSpec extends BaseIntegrationSpec {
 
 
         when:
-        Map result = service.groupByTaxonLevel(opus.uuid, "kingdom")
+        Map result = service.groupByRank(opus.uuid, "kingdom")
 
         then:
         result == [Animalia: 3, Plantae: 17]
 
         when:
-        result = service.groupByTaxonLevel(opus.uuid, "phylum")
+        result = service.groupByRank(opus.uuid, "phylum")
 
         then:
         result == [Charophyta: 15, Hygrophila: 1, Arthropoda: 1]
 
         when:
-        result = service.groupByTaxonLevel(opus.uuid, "genus")
+        result = service.groupByRank(opus.uuid, "genus")
 
         then:
         result == [Abildgaardia: 1, Abrophyllum: 2]
     }
 
-    def "groupByTaxonLevel should limit the results to the specified maximum (names sorted alphabetically"() {
+    def "groupByRank should limit the results to the specified maximum (names sorted alphabetically"() {
         given:
         Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
 
@@ -832,19 +1023,19 @@ class SearchServiceSpec extends BaseIntegrationSpec {
                                                                                    new Classification(rank: "subclazz", name: "Ophioglossidae")])
 
         when:
-        Map result = service.groupByTaxonLevel(opus.uuid, "phylum", 1)
+        Map result = service.groupByRank(opus.uuid, "phylum", 1)
 
         then:
         result == [Arthropoda: 1]
 
         when:
-        result = service.groupByTaxonLevel(opus.uuid, "phylum", 2)
+        result = service.groupByRank(opus.uuid, "phylum", 2)
 
         then:
         result == [Arthropoda: 1, Charophyta: 2]
     }
 
-    def "groupByTaxonLevel should start the result set at the specified offset"() {
+    def "groupByRank should start the result set at the specified offset"() {
         given:
         Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
 
@@ -866,13 +1057,13 @@ class SearchServiceSpec extends BaseIntegrationSpec {
                                                                                    new Classification(rank: "subclazz", name: "Ophioglossidae")])
 
         when:
-        Map result = service.groupByTaxonLevel(opus.uuid, "phylum", 1, 1)
+        Map result = service.groupByRank(opus.uuid, "phylum", 1, 1)
 
         then:
         result == [Charophyta: 2]
 
         when:
-        result = service.groupByTaxonLevel(opus.uuid, "phylum", 2, 2)
+        result = service.groupByRank(opus.uuid, "phylum", 2, 2)
 
         then:
         result == [Hygrophila: 1]
