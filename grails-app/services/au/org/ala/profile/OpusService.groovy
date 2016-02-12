@@ -77,7 +77,7 @@ class OpusService extends BaseDataAccessService {
             }
             opus.featureLists.addAll(json.featureLists)
         }
-        if (json.featureListSectionName && json.featureListSectionName != opus.featureListSectionName) {
+        if (json.containsKey("featureListSectionName") && json.featureListSectionName != opus.featureListSectionName) {
             opus.featureListSectionName = json.featureListSectionName
         }
         if (json.containsKey("recordSources") && json.recordSources != opus.recordSources) {
