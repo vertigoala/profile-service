@@ -25,7 +25,8 @@ class Opus {
     List<String> imageSources            // a list of drs that are providing images we can include
     List<String> recordSources         // a list of drs that are providing images we can include
     List<String> approvedLists
-    List<String> bioStatusLists
+    List<String> featureLists
+    String featureListSectionName
     String logoUrl
     String bannerUrl
     String thumbnailUrl
@@ -90,6 +91,7 @@ class Opus {
         email nullable: true
         facebook nullable: true
         twitter nullable: true
+        featureListSectionName nullable: true
     }
 
     def beforeValidate() {
