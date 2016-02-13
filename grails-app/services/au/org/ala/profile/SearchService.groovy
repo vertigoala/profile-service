@@ -494,16 +494,13 @@ class SearchService extends BaseDataAccessService {
         Map projection = [rankOrder: [:]]
         def previousStep = projection.rankOrder
 
+        // Note: the if-then-else map form of the $cond aggregation operation resulted in an unexplained StackOverflowError
+        // when running against MongoDB 2.6 and 3.0.0 on Ubuntu 14.04, despite working correctly on a Mac.
         Rank.values().eachWithIndex { rank, index ->
-            Map cond = [
-                    'if'  : ['$eq': ['$rank', rank.name().toLowerCase()]],
-                    'then': index,
-                    'else': (index == Rank.values().size() - 1) ? [] : [:]
-            ]
+            List cond = [['$eq': ['$rank', rank.name().toLowerCase()]], index, []]
             previousStep << [$cond: cond]
-            previousStep = cond.else
+            previousStep = cond[2]
         }
-
         previousStep << 999
 
         projection << [unknownRank: [$cond: [[$eq: [[$ifNull: ['$rank', null]], null]], 1, 0]]]
