@@ -400,6 +400,26 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result.find { it.scientificName == profile3.scientificName } != null
     }
 
+    def "findByClassificationNameAndRank should exclude the specified name and rank"() {
+        given:
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
+        Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
+        Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3")
+
+        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile2 = save new Profile(scientificName: "name2", opus: opus2, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile3 = save new Profile(scientificName: "plantae", opus: opus3, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+
+        when:
+        List result = service.findByClassificationNameAndRank("kingdom", "plantae", null)
+
+        then:
+        result.size() == 2
+        result.find { it.scientificName == profile1.scientificName } != null
+        result.find { it.scientificName == profile2.scientificName } != null
+        result.find { it.scientificName == profile3.scientificName } == null
+    }
+
     def "findByClassificationNameAndRank should match only the specified opus ids"() {
         given:
         Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
@@ -481,10 +501,10 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         given:
         Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
 
-        Profile profile1 = save new Profile(scientificName: "ab", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "aa")])
-        save new Profile(scientificName: "ac", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "ac")])
-        Profile profile3 = save new Profile(scientificName: "aa", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "aa")])
-        save new Profile(scientificName: "ad", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "ad")])
+        Profile profile1 = save new Profile(scientificName: "zab", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "aa")])
+        save new Profile(scientificName: "zac", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "ac")])
+        Profile profile3 = save new Profile(scientificName: "zaa", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "aa")])
+        save new Profile(scientificName: "zad", opus: opus, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "ad")])
 
         when:
         List result = service.findByClassificationNameAndRank("kingdom", "aa", [opus.uuid], ProfileSortOption.NAME, 1)

@@ -238,6 +238,7 @@ class SearchService extends BaseDataAccessService {
         }
 
         Map matchCriteria = [archivedDate: null]
+        matchCriteria << ["scientificName": ['$ne': scientificName]]
 
         if (opusList) {
             matchCriteria << [opus: [$in: opusList*.id]]
