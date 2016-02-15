@@ -48,6 +48,7 @@ grails.project.dependency.resolution = {
         }
         compile "com.xlson.groovycsv:groovycsv:1.0"
         compile "com.google.apis:google-api-services-analytics:v3-rev116-1.20.0"
+        compile 'com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer:20160203.1'
     }
 
     plugins {

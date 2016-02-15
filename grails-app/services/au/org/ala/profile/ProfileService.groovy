@@ -3,10 +3,18 @@ package au.org.ala.profile
 import au.org.ala.profile.util.DraftUtil
 import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
+import org.owasp.html.Sanitizers
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 
 import java.text.SimpleDateFormat
+
+import static org.owasp.html.Sanitizers.BLOCKS
+import static org.owasp.html.Sanitizers.FORMATTING
+import static org.owasp.html.Sanitizers.IMAGES
+import static org.owasp.html.Sanitizers.LINKS
+import static org.owasp.html.Sanitizers.STYLES
+import static org.owasp.html.Sanitizers.TABLES
 
 @Transactional
 class ProfileService extends BaseDataAccessService {
@@ -603,10 +611,12 @@ class ProfileService extends BaseDataAccessService {
 
         Term titleTerm = vocabService.getOrCreateTerm(data.title, profile.opus.attributeVocabUuid)
 
+        def sanitizer = FORMATTING.and(STYLES).and(LINKS).and(BLOCKS).and(IMAGES).and(TABLES)
+
         Attribute attribute = new Attribute(
                 uuid: UUID.randomUUID().toString(),
                 title: titleTerm,
-                text: data.text,
+                text: sanitizer.sanitize(data.text),
                 source: data.source
         )
         attribute.creators = creators
