@@ -22,6 +22,7 @@ class DraftUtil {
         profile.scientificName = profile.draft.scientificName
         profile.nameAuthor = profile.draft.nameAuthor
         profile.fullName = profile.draft.fullName
+        profile.taxonomyTree = profile.draft.taxonomyTree
         profile.matchedName = cloneName(profile.draft.matchedName)
         profile.rank = profile.draft.rank
         profile.nslNameIdentifier = profile.draft.nslNameIdentifier

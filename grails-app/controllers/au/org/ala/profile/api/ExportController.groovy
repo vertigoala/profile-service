@@ -61,7 +61,6 @@ class ExportController extends BaseController {
 
                 int totalProfileCount = getProfileCount(opus, includeArchived)
 
-
                 // result sets can be large, so we don't want to load them all into memory then transform them.
                 // Therefore, write objects from the db cursor (stream) directly to the output stream, transforming as
                 // we go.
@@ -77,7 +76,7 @@ class ExportController extends BaseController {
                                 name             : data.scientificName,
                                 fullName         : data.fullName,
                                 rank             : data.rank,
-                                taxonomy         : data.classification,
+                                taxonomy         : [ source: data.taxonomyTree, classification: data.classification],
                                 matchedName      : data.matchedName,
                                 nameAuthor       : data.nameAuthor,
                                 nslNameId        : data.nslNameIdentifier,

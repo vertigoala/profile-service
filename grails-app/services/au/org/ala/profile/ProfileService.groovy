@@ -183,6 +183,9 @@ class ProfileService extends BaseDataAccessService {
 
                     new Classification(rank: it.rank, guid: it.guid, name: it.scientificName)
                 }
+
+                Map speciesProfile = bieService.getSpeciesProfile(profile.guid)
+                profile.taxonomyTree = speciesProfile?.taxonConcept?.infoSourceName
             } else {
                 log.info("Unable to find species classification for ${profile.scientificName}, with GUID ${profile.guid}")
             }

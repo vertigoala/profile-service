@@ -16,7 +16,7 @@ class DraftProfile {
     String rank
     String nslNameIdentifier
     String nslNomenclatureIdentifier
-
+    String taxonomyTree
     String primaryImage
     List<String> excludedImages
     List<String> specimenIds
@@ -47,6 +47,7 @@ class DraftProfile {
         rank nullable: true
         fullName nullable: true
         matchedName nullable: true
+        taxonomyTree nullable: true
         createdBy nullable: true
         lastAttributeChange nullable: true
     }

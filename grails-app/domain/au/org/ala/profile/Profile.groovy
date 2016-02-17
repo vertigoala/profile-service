@@ -40,7 +40,7 @@ class Profile {
     boolean privateMode = false
 
     Name matchedName
-
+    String taxonomyTree
     String primaryImage
     List<String> excludedImages
     List<String> specimenIds
@@ -87,6 +87,7 @@ class Profile {
         nslProtologue nullable: true
         rank nullable: true
         draft nullable: true
+        taxonomyTree nullable: true
         matchedName nullable: true
         createdBy nullable: true
         lastUpdatedBy nullable: true
