@@ -134,6 +134,38 @@ class OpusController extends BaseController {
         }
     }
 
+    def generateAccessToken() {
+        if (!params.opusId) {
+            badRequest "You must provide an opusId"
+        } else {
+            Opus opus = getOpus()
+
+            if (!opus) {
+                notFound()
+            } else {
+                String token = opusService.generateAccessToken(opus.uuid)
+
+                render ([token: token] as JSON)
+            }
+        }
+    }
+
+    def revokeAccessToken() {
+        if (!params.opusId) {
+            badRequest "You must provide an opusId"
+        } else {
+            Opus opus = getOpus()
+
+            if (!opus) {
+                notFound()
+            } else {
+                opusService.revokeAccessToken(opus.uuid)
+
+                render ([revoked: true] as JSON)
+            }
+        }
+    }
+
     def getGlossary() {
         Glossary glossary = null
 

@@ -245,6 +245,30 @@ class OpusService extends BaseDataAccessService {
         save opus
     }
 
+    String generateAccessToken(String opusId) {
+        checkArgument opusId
+
+        Opus opus = Opus.findByUuid(opusId)
+        checkState opus
+
+        String token = UUID.randomUUID().toString()
+
+        opus.accessToken = token
+        save opus
+
+        token
+    }
+
+    void revokeAccessToken(String opusId) {
+        checkArgument opusId
+
+        Opus opus = Opus.findByUuid(opusId)
+        checkState opus
+
+        opus.accessToken = null
+        save opus
+    }
+
     boolean deleteOpus(String opusId) {
         Opus opus = Opus.findByUuid(opusId);
 

@@ -23,4 +23,8 @@ class StatusController extends BaseController {
 
         render health as JSON
     }
+
+    def ping() {
+        render "server is up!"
+    }
 }

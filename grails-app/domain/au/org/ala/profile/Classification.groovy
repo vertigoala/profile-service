@@ -15,7 +15,7 @@ class Classification {
     // the following transient fields are populated whenever a profile is retrieved, and are used for hierarchical
     // navigation based on the profile's taxonomy
     @Transient
-    int childCount
+    Integer childCount
     @Transient
     String profileId
     @Transient

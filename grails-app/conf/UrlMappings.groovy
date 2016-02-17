@@ -2,6 +2,11 @@ class UrlMappings {
 
     static mappings = {
 
+        // Public API
+        "/api/v1/opus/$opusId/export" controller: "export", action: [GET: "exportCollection"]
+        "/api/v1/opus/$opusId/count" controller: "export", action: [GET: "countProfiles"]
+
+        // 'Internal' ALA API
         "/admin/search/reindex" controller: "search", action: [POST: "reindex"]
 
         "/audit/object/$entityId" controller: "audit", action: [GET: "auditTrailForObject"]
@@ -23,6 +28,7 @@ class UrlMappings {
         "/opus/" controller: "opus", action: [GET: "index", PUT: "create", POST: "create"]
 
         "/opus/$opusId/updateUsers" controller: "opus", action: [POST: "updateUserAccess"]
+        "/opus/$opusId/access/token" controller: "opus", action: [POST: "generateAccessToken", PUT: "generateAccessToken", DELETE: "revokeAccessToken"]
 
         "/opus/$opusId/supportingCollections/respond/$requestingOpusId/$requestAction" controller: "opus", action: [POST: "respondToSupportingOpusRequest"]
         "/opus/$opusId/supportingCollections/update" controller: "opus", action: [POST: "updateSupportingOpuses"]
@@ -90,7 +96,8 @@ class UrlMappings {
 
         "/user/details" controller: "userDetails", action: [GET: "getUserDetails"]
 
-        "/" view: "/index"
         "500" view: '/error'
+
+        "/" view: "/index"
     }
 }

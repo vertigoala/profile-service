@@ -4,6 +4,8 @@ import au.org.ala.profile.util.Utils
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
+import javax.persistence.Transient
+
 @EqualsAndHashCode
 @ToString
 class Opus {
@@ -63,6 +65,10 @@ class Opus {
     List<SupportingOpus> sharingDataWith
     boolean autoApproveShareRequests = true
     boolean keepImagesPrivate = false
+    String accessToken
+
+    @Transient
+    int profileCount
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority]
     static embedded = ['supportingOpuses', 'sharingDataWith']
@@ -92,6 +98,7 @@ class Opus {
         facebook nullable: true
         twitter nullable: true
         featureListSectionName nullable: true
+        accessToken nullable: true
     }
 
     def beforeValidate() {
