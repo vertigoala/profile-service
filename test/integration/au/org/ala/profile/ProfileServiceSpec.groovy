@@ -984,6 +984,28 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.draft.attributes[0].text == "text"
     }
 
+    def "createAttribute should sanitize HTML"() {
+        given:
+        Vocab vocab = new Vocab(name: "vocab1")
+        Term term = new Term(uuid: "1", name: "title")
+        vocab.addToTerms(term)
+        save vocab
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title", attributeVocabUuid: vocab.uuid)
+        save opus
+        Profile profile = new Profile(opus: opus, scientificName: "sciName", uuid: "123")
+        save profile
+
+        service.vocabService = new VocabService()
+
+        when:
+        service.createAttribute(profile.uuid, [title: "title", text: "<p>text</p><script>alert('me');</script>", userId: "123", editors: ["bob"]])
+
+        then:
+        profile.attributes.size() == 1
+        profile.attributes[0].text == "<p>text</p>"
+
+    }
+
     def "createAttribute should not update the creator but should set the original attribute when there is an original attribute in the incoming data"() {
         given:
         Vocab vocab = new Vocab(name: "vocab1")
