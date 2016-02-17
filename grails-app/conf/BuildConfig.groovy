@@ -63,7 +63,5 @@ grails.project.dependency.resolution = {
         runtime ":cors:1.1.6"
         compile ":quartz:1.0.2"
         compile ":mail:1.0.7"
-        runtime ":jquery:1.11.1"
-        runtime ':twitter-bootstrap:3.3.2.1'
     }
 }
