@@ -40,7 +40,7 @@ class AccessTokenFiltersSpec extends Specification {
 
         when: "there is an invalid access token in the header"
         params.opusId = "abc"
-        request.addHeader("accessToken", "garbage")
+        request.addHeader("ACCESS-TOKEN", "garbage")
 
         withFilters(controller: "export", action: "countProfiles") {
             Mock(ExportController).countProfiles()
@@ -57,7 +57,7 @@ class AccessTokenFiltersSpec extends Specification {
 
         when: "there is a valid access token in the header"
         params.opusId = "abc"
-        request.addHeader("accessToken", "1234")
+        request.addHeader("ACCESS-TOKEN", "1234")
 
         withFilters(controller: "export", action: "countProfiles") {
             Mock(ExportController).countProfiles()

@@ -5,7 +5,7 @@ import org.apache.http.HttpStatus
 class AccessTokenFilters {
 
     def grailsApplication
-    static final String ACCESS_TOKEN_HEADER = 'accessToken'
+    static final String ACCESS_TOKEN_HEADER = 'ACCESS-TOKEN'
 
     def filters = {
 
