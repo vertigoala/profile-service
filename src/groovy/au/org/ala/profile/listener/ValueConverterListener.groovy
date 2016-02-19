@@ -104,7 +104,7 @@ class ValueConverterListener<T> extends AbstractPersistenceEventListener {
             T newValue = converter(value)
             return ConvertResult.success(newValue)
         } else {
-            log.debug("${obj} (${obj.class}.${field.name}) is not a collection nor a ${converterType}")
+            log.debug("${obj} (${obj.class}.${field.name}) is a ${converterType}")
             return ConvertResult.failed
         }
     }
