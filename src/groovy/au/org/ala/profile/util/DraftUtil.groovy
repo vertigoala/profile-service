@@ -65,6 +65,7 @@ class DraftUtil {
         clone.matchedName = cloneName(profile.matchedName)
         clone.rank = profile.rank
         clone.guid = profile.guid
+        clone.taxonomyTree = profile.taxonomyTree
         clone.nslNameIdentifier = profile.nslNameIdentifier
         clone.nslNomenclatureIdentifier = profile.nslNomenclatureIdentifier
         clone.primaryImage = profile.primaryImage

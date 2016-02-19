@@ -21,6 +21,8 @@ class DraftUtilTest extends Specification {
     Attribute attribute1
     Attribute attribute2
 
+    //taxonomyTree
+
     def setup() {
         fred = new Contributor(uuid: "user1", userId: "user1", name: "fred")
         jill = new Contributor(uuid: "user2", userId: "user2", name: "jill")
@@ -33,6 +35,7 @@ class DraftUtilTest extends Specification {
                 nameAuthor: "nameAuthor",
                 guid: "guid",
                 rank: "rank",
+                taxonomyTree: "taxonomyTree",
                 nslNameIdentifier: "nslId",
                 primaryImage: "primaryImage",
                 excludedImages: ["image1", "image2"],
@@ -60,6 +63,7 @@ class DraftUtilTest extends Specification {
         draft.guid == original.guid
         draft.nslNameIdentifier == original.nslNameIdentifier
         draft.primaryImage == original.primaryImage
+        draft.taxonomyTree == original.taxonomyTree
 
         !draft.excludedImages.is(original.excludedImages)
         draft.excludedImages == original.excludedImages
