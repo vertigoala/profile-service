@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.sanitizer.SanitizedHtml
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
@@ -17,6 +18,7 @@ class Attribute implements Comparable<Attribute> {
 
     String uuid
     Term title
+    @SanitizedHtml
     String text // = "This animal lives...."
     Attribute original // The original attribute this was copied from
     String source

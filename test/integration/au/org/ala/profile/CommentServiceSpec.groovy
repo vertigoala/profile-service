@@ -209,4 +209,20 @@ class CommentServiceSpec extends BaseIntegrationSpec {
         !comments.contains(child1)
         !comments.contains(parent3)
     }
+
+    def "comments should have HTML sanitized"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Profile profile = new Profile(opus: opus, scientificName: "sciName")
+        save profile
+
+        when:
+        Comment comment = service.createComment(profile.uuid, [text: "<p>text<script>alert('hi');</script></p>", profileUuid: profile.uuid])
+
+        then:
+        Comment.count() == 1
+        Comment.findAllByProfileUuid(profile.uuid).size() == 1
+        comment.text == "<p>text</p>"
+    }
 }

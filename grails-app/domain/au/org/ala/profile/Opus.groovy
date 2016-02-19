@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.sanitizer.SanitizedHtml
 import au.org.ala.profile.util.Utils
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
@@ -53,7 +54,9 @@ class Opus {
     Glossary glossary
     String keybaseProjectId
     String keybaseKeyId
+    @SanitizedHtml
     String aboutHtml
+    @SanitizedHtml
     String citationHtml
     String copyrightText
     String footerText
