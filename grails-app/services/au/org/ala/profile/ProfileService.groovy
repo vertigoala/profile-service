@@ -633,12 +633,10 @@ class ProfileService extends BaseDataAccessService {
 
         Term titleTerm = vocabService.getOrCreateTerm(data.title, profile.opus.attributeVocabUuid)
 
-        def sanitizer = FORMATTING.and(STYLES).and(LINKS).and(BLOCKS).and(IMAGES).and(TABLES)
-
         Attribute attribute = new Attribute(
                 uuid: UUID.randomUUID().toString(),
                 title: titleTerm,
-                text: sanitizer.sanitize(data.text),
+                text: data.text,
                 source: data.source
         )
         attribute.creators = creators

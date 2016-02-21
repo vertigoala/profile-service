@@ -172,6 +172,18 @@ class OpusServiceSpec extends BaseIntegrationSpec {
         }
     }
 
+    def "Opus HTML properties should be sanitized on save"() {
+        given:
+        Opus opus1 = new Opus(title: "opus", dataResourceUid: "123", glossary: new Glossary(), citationHtml: '<p><script>alert</script>hi</p>', aboutHtml: '<p><script>alert</script>hi</p>')
+
+        when:
+        save opus1
+
+        then:
+        opus1.aboutHtml == '<p>hi</p>'
+        opus1.citationHtml == '<p>hi</p>'
+    }
+
     def "deleteAttachment should remove the attachment entity and the file"() {
         given:
         Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())

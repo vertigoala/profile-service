@@ -1,4 +1,5 @@
 import au.org.ala.profile.marshaller.*
+import au.org.ala.profile.sanitizer.SanitizerPolicy
 
 // Place your Spring DSL code here
 beans = {
@@ -19,5 +20,7 @@ beans = {
                 new AttachmentMarshaller()
         ]
     }
+
+    sanitizerPolicy(SanitizerPolicy)
 
 }
