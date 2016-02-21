@@ -3,14 +3,18 @@ package au.org.ala.profile
 import au.ala.org.ws.security.RequireApiKey
 import au.org.ala.profile.security.Role
 import au.org.ala.profile.util.ShareRequestAction
+import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
 import grails.converters.JSON
+import groovy.json.JsonSlurper
+import org.springframework.web.multipart.MultipartHttpServletRequest
 
 @RequireApiKey
 class OpusController extends BaseController {
 
     OpusService opusService
     AuthService authService
+    AttachmentService attachmentService
 
     def index() {
         render Opus.findAll() as JSON
@@ -298,6 +302,89 @@ class OpusController extends BaseController {
                 opus = opusService.updateAbout(opus.uuid, json)
 
                 render ([opus: [title: opus.title, opusId: opus.uuid, aboutHtml: opus.aboutHtml]] as JSON)
+            }
+        }
+    }
+
+    def getAttachmentMetadata() {
+       if (!params.opusId) {
+           badRequest "opusId is a required parameter"
+       } else {
+           Opus opus = getOpus()
+
+           if (!opus) {
+               notFound "No opus exists for id ${params.opusId}"
+           } else {
+               if (params.attachmentId) {
+                   Attachment attachment = opus.attachments?.find { it.uuid == params.attachmentId }
+                   if (!attachment) {
+                       notFound "No attachment exists in opus ${params.opusId} with id ${params.attachmentId}"
+                   } else {
+                       render ([attachment] as JSON)
+                   }
+               } else {
+                   render opus.attachments as JSON
+               }
+           }
+       }
+    }
+
+    def downloadAttachment() {
+        if (!params.opusId || !params.attachmentId) {
+            badRequest "opusId and attachmentId are required parameters"
+        } else {
+            Opus opus = getOpus()
+
+            if (!opus) {
+                notFound "No opus was found for id ${params.opusId}"
+            } else {
+                Attachment attachment = opus.attachments.find { it.uuid == params.attachmentId }
+                File file = null
+                if (attachment) {
+                    file = attachmentService.getAttachment(opus.uuid, null, params.attachmentId, Utils.getFileExtension(attachment.filename))
+                }
+
+                if (!file) {
+                    notFound "No attachment was found with id ${params.attachmentId}"
+                } else {
+                    response.setContentType(attachment.contentType ?: "application/pdf")
+                    response.setHeader("Content-disposition", "attachment;filename=${attachment.filename ?: 'attachment.pdf'}")
+                    response.outputStream << file.newInputStream()
+                }
+            }
+        }
+    }
+
+    def saveAttachment() {
+        if (!params.opusId || !(request instanceof MultipartHttpServletRequest) || !request.getParameter("data")) {
+            badRequest "opusId is a required parameter, a JSON post body must be provided, and the request must be a multipart request"
+        } else {
+            Opus opus = getOpus()
+
+            if (!opus) {
+                notFound()
+            } else {
+                Map metadata = new JsonSlurper().parseText(request.getParameter("data"))
+
+                List<Attachment> attachments = opusService.saveAttachment(opus.uuid, metadata, request.getFile(request.fileNames[0]))
+
+                render attachments as JSON
+            }
+        }
+    }
+
+    def deleteAttachment() {
+        if (!params.opusId || !params.attachmentId) {
+            badRequest "opusId and attachmentId are required parameters"
+        } else {
+            Opus opus = getOpus()
+
+            if (!opus) {
+                notFound()
+            } else {
+                opusService.deleteAttachment(opus.uuid, params.attachmentId)
+
+                render ([success: true] as JSON)
             }
         }
     }

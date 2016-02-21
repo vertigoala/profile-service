@@ -3,14 +3,19 @@ package au.org.ala.profile
 import au.org.ala.profile.security.Role
 import au.org.ala.profile.util.ShareRequestAction
 import au.org.ala.profile.util.ShareRequestStatus
+import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.multipart.commons.CommonsMultipartFile
+
+import java.text.SimpleDateFormat
 
 @Transactional
 class OpusService extends BaseDataAccessService {
 
     EmailService emailService
     AuthService authService
+    AttachmentService attachmentService
     def grailsApplication
     def groovyPageRenderer
 
@@ -343,7 +348,7 @@ class OpusService extends BaseDataAccessService {
 
                         String url = "${grailsApplication.config.profile.hub.base.url}opus/${supportingOpus.uuid}/shareRequest/${opus.uuid}"
 
-                        String body = groovyPageRenderer.render(template: "/email/shareRequest", model:[user: user, supportingOpus: supportingOpus, opus: opus, url: url])
+                        String body = groovyPageRenderer.render(template: "/email/shareRequest", model: [user: user, supportingOpus: supportingOpus, opus: opus, url: url])
 
                         emailService.sendEmail(administrators, "${opus.title}<no-reply@ala.org.au>",
                                 "Request to share collection information", body)
@@ -357,7 +362,9 @@ class OpusService extends BaseDataAccessService {
                 }
             }
 
-            List toBeRemoved = opus.supportingOpuses.findAll { !json.supportingOpuses.find { incoming -> it.uuid == incoming.uuid } }
+            List toBeRemoved = opus.supportingOpuses.findAll {
+                !json.supportingOpuses.find { incoming -> it.uuid == incoming.uuid }
+            }
 
             toBeRemoved.each {
                 opus.supportingOpuses.remove(it)
@@ -404,7 +411,7 @@ class OpusService extends BaseDataAccessService {
 
         String user = authService.getUserForUserId(authService.getUserId()).displayName
 
-        String body = groovyPageRenderer.render(template: "/email/shareResponse", model:[user: user, action: action, opus: opus])
+        String body = groovyPageRenderer.render(template: "/email/shareResponse", model: [user: user, action: action, opus: opus])
 
         emailService.sendEmail(administrators,
                 "${opus.title}<no-reply@ala.org.au>",
@@ -554,5 +561,52 @@ class OpusService extends BaseDataAccessService {
         }
 
         authorities
+    }
+
+    List<Attachment> saveAttachment(String opusId, Map metadata, CommonsMultipartFile file) {
+        Opus opus = Opus.findByUuid(opusId)
+        checkState opus
+
+        Date createdDate = metadata.createdDate ? new SimpleDateFormat("yyyy-MM-dd").parse(metadata.createdDate) : null
+
+        if (metadata.uuid) {
+            Attachment existing = opus.attachments.find { it.uuid == metadata.uuid }
+            if (existing) {
+                existing.title = metadata.title
+                existing.description = metadata.description
+                existing.rights = metadata.rights
+                existing.rightsHolder = metadata.rightsHolder
+                existing.licence = metadata.licence
+                existing.creator = metadata.creator
+                existing.createdDate = createdDate
+            }
+        } else {
+            String extension = Utils.getFileExtension(file.originalFilename)
+            Attachment newAttachment = new Attachment(uuid: UUID.randomUUID().toString(),
+                    title: metadata.title, description: metadata.description, filename: metadata.filename,
+                    contentType: file.contentType, rights: metadata.rights, createdDate: createdDate,
+                    rightsHolder: metadata.rightsHolder, licence: metadata.licence, creator: metadata.creator)
+            attachmentService.saveAttachment(opus.uuid, null, newAttachment.uuid, file, extension)
+            opus.attachments << newAttachment
+        }
+
+        save opus
+
+        opus.attachments
+    }
+
+    List<Attachment> deleteAttachment(String opusId, String attachmentId) {
+        Opus opus = Opus.findByUuid(opusId)
+        checkState opus
+
+        Attachment attachment = opus.attachments?.find { it.uuid = attachmentId }
+        if (attachment) {
+            opus.attachments.remove(attachment)
+            attachmentService.deleteAttachment(opus.uuid, null, attachment.uuid, Utils.getFileExtension(attachment.filename))
+        }
+
+        save opus
+
+        opus.attachments
     }
 }

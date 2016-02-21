@@ -35,6 +35,7 @@ class ProfileMarshaller {
                     excludedImages           : profile.excludedImages ?: [],
                     stagedImages             : profile.stagedImages ?: [],
                     privateImages            : profile.privateImages ?: [],
+                    attachments              : profile.attachments ?: [],
                     specimenIds              : profile.specimenIds ?: [],
                     authorship               : profile.authorship?.collect {
                         [category: it.category.name, text: it.text]

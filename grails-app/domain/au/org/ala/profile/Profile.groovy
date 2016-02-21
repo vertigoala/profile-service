@@ -54,6 +54,8 @@ class Profile {
     List<LocalImage> privateImages = null
     List<LocalImage> stagedImages = null // this is only used when dealing with draft profiles
 
+    List<Attachment> attachments
+
     String lastAttributeChange
 
     Date dateCreated
@@ -68,7 +70,7 @@ class Profile {
     String archivedBy
     String archivedWithName
 
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'matchedName', 'privateImages']
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'matchedName', 'privateImages', 'attachments']
 
     static hasMany = [attributes: Attribute]
 

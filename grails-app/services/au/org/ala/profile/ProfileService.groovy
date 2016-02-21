@@ -3,9 +3,9 @@ package au.org.ala.profile
 import au.org.ala.profile.util.DraftUtil
 import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
-import org.owasp.html.Sanitizers
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
+import org.springframework.web.multipart.commons.CommonsMultipartFile
 
 import java.text.SimpleDateFormat
 
@@ -24,6 +24,7 @@ class ProfileService extends BaseDataAccessService {
     AuthService authService
     BieService bieService
     DoiService doiService
+    AttachmentService attachmentService
     def grailsApplication
 
     Map checkName(String opusId, String name) {
@@ -253,6 +254,15 @@ class ProfileService extends BaseDataAccessService {
         checkState profile
 
         if (profile.draft) {
+            // clean up any draft attachment files
+            List existingIds = profile.attachments?.collect { it.uuid } ?: []
+
+            profile.draft.attachments?.each { draftAttachment ->
+                if (!existingIds.contains(draftAttachment.uuid)) {
+                    attachmentService.deleteAttachment(profile.opus.uuid, profile.uuid, draftAttachment.uuid, Utils.getFileExtension(draftAttachment.filename))
+                }
+            }
+
             profile.draft = null
 
             save profile
@@ -266,6 +276,13 @@ class ProfileService extends BaseDataAccessService {
         checkState profile
 
         if (profile.draft) {
+            // delete files for attachments that were removed during the draft stage
+            profile.attachments?.each { attachment ->
+                if (profile.draft.attachments?.find { it.uuid == attachment.uuid } == null) {
+                    attachmentService.deleteAttachment(profile.opus.uuid, profile.uuid, attachment.uuid, Utils.getFileExtension(attachment.filename))
+                }
+            }
+
             DraftUtil.updateProfileFromDraft(profile)
 
             Set<Attribute> attributesToDelete = profile.attributes.findAll {
@@ -279,6 +296,7 @@ class ProfileService extends BaseDataAccessService {
                 profile.attributes.remove(it)
                 delete it
             }
+
 
             save profile
         } else {
@@ -397,7 +415,8 @@ class ProfileService extends BaseDataAccessService {
 
         Profile profile = Profile.findByUuid(profileId)
         checkState profile
-        checkState profile.draft // can only stage images for a draft profile - otherwise images are to be automatically updated
+        checkState profile.draft
+        // can only stage images for a draft profile - otherwise images are to be automatically updated
 
         boolean success = recordImage(profile.draft.stagedImages, json)
 
@@ -442,7 +461,7 @@ class ProfileService extends BaseDataAccessService {
             image.rightsHolder = json.multimedia[0].rightsHolder
             image.title = json.multimedia[0].title
 
-            imageStore  << image
+            imageStore << image
             success = true
         } else if (json.action == "delete") {
             LocalImage image = imageStore.find { it.imageId == json.imageId }
@@ -732,10 +751,62 @@ class ProfileService extends BaseDataAccessService {
         }
     }
 
-    Profile getProfileFromPubId(String pubId){
+    Profile getProfileFromPubId(String pubId) {
         List<Profile> profiles = Profile.withCriteria {
             eq("publications.uuid", pubId)
         };
-        profiles.size() > 0?profiles.get(0):null;
+        profiles.size() > 0 ? profiles.get(0) : null;
+    }
+
+    List<Attachment> saveAttachment(String profileId, Map metadata, CommonsMultipartFile file) {
+        Profile profile = Profile.findByUuid(profileId)
+        checkState profile
+
+        Date createdDate = metadata.createdDate ? new SimpleDateFormat("yyyy-MM-dd").parse(metadata.createdDate) : null
+
+        if (metadata.uuid) {
+            Attachment existing = profileOrDraft(profile).attachments.find { it.uuid == metadata.uuid }
+            if (existing) {
+                existing.title = metadata.title
+                existing.description = metadata.description
+                existing.rights = metadata.rights
+                existing.rightsHolder = metadata.rightsHolder
+                existing.licence = metadata.licence
+                existing.creator = metadata.creator
+                existing.createdDate = createdDate
+            }
+        } else {
+            String extension = Utils.getFileExtension(file.originalFilename)
+            Attachment newAttachment = new Attachment(uuid: UUID.randomUUID().toString(),
+                    title: metadata.title, description: metadata.description, filename: metadata.filename,
+                    contentType: file.contentType, rights: metadata.rights, createdDate: createdDate,
+                    rightsHolder: metadata.rightsHolder, licence: metadata.licence, creator: metadata.creator)
+            attachmentService.saveAttachment(profile.opus.uuid, profile.uuid, newAttachment.uuid, file, extension)
+            profileOrDraft(profile).attachments << newAttachment
+        }
+
+        save profile
+
+        profile.attachments
+    }
+
+    List<Attachment> deleteAttachment(String profileId, String attachmentId) {
+        Profile profile = Profile.findByUuid(profileId)
+        checkState profile
+
+        Attachment attachment = profileOrDraft(profile).attachments?.find { it.uuid == attachmentId }
+        if (attachment) {
+            profileOrDraft(profile).attachments.remove(attachment)
+
+            // Only delete the file if we are not in draft mode.
+            // If we are in draft mode, then the file will be deleted when the draft is published.
+            if (!profile.draft) {
+                attachmentService.deleteAttachment(profile.opus.uuid, profile.uuid, attachment.uuid, Utils.getFileExtension(attachment.filename))
+            }
+        }
+
+        save profile
+
+        profile.attachments
     }
 }

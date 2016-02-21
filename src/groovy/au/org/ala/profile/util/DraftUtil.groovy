@@ -1,5 +1,6 @@
 package au.org.ala.profile.util
 
+import au.org.ala.profile.Attachment
 import au.org.ala.profile.Attribute
 import au.org.ala.profile.Authorship
 import au.org.ala.profile.Bibliography
@@ -37,6 +38,7 @@ class DraftUtil {
         profile.bibliography = profile.draft.bibliography
         profile.publications = profile.draft.publications
         profile.privateImages = profile.draft.privateImages
+        profile.attachments = profile.draft.attachments
 
         // Update the existing record rather than replacing it with the draft object,
         // otherwise, the hibernate dirty check will fail (dirty check looks for changes since the entity
@@ -79,6 +81,7 @@ class DraftUtil {
         clone.publications = profile.publications?.collect { clonePublication(it) }
         clone.attributes = profile.attributes?.collect { cloneAttribute(it) }
         clone.privateImages = profile.privateImages?.collect { cloneImage(it) }
+        clone.attachments = profile.attachments?.collect { cloneAttachment(it) }
 
         clone.dateCreated = profile.dateCreated
 
@@ -178,6 +181,23 @@ class DraftUtil {
         clone.rights = source.rights
         clone.rightsHolder = source.rightsHolder
         clone.title = source.title
+
+        clone
+    }
+
+    static Attachment cloneAttachment(Attachment source) {
+        Attachment clone = new Attachment()
+
+        clone.creator = source.creator
+        clone.createdDate = source.createdDate
+        clone.description = source.description
+        clone.contentType = source.contentType
+        clone.licence = source.licence
+        clone.filename = source.filename
+        clone.rights = source.rights
+        clone.rightsHolder = source.rightsHolder
+        clone.title = source.title
+        clone.uuid = source.uuid
 
         clone
     }

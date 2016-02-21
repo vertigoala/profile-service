@@ -33,6 +33,10 @@ class UrlMappings {
         "/opus/$opusId/supportingCollections/respond/$requestingOpusId/$requestAction" controller: "opus", action: [POST: "respondToSupportingOpusRequest"]
         "/opus/$opusId/supportingCollections/update" controller: "opus", action: [POST: "updateSupportingOpuses"]
 
+        "/opus/$opusId/attachment/$attachmentId/download" controller: "opus", action: [GET: "downloadAttachment"]
+        "/opus/$opusId/attachment/$attachmentId" controller: "opus", action: [GET: "getAttachmentMetadata", DELETE: "deleteAttachment"]
+        "/opus/$opusId/attachment/" controller: "opus", action: [GET: "getAttachmentMetadata", POST: "saveAttachment"]
+
         "/opus/$opusId" controller: "opus", action: [GET: "show", POST: "updateOpus", DELETE: "deleteOpus"]
 
         "/profile/search" controller: "search", action: "search"
@@ -73,6 +77,10 @@ class UrlMappings {
 
         "/opus/$opusId/profile/$profileId/comment" controller: "comment", action: [GET: "getComments", PUT: "addComment"]
         "/opus/$opusId/profile/$profileId/comment/$commentId" controller: "comment", action: [GET: "getComment", POST: "updateComment", DELETE: "deleteComment"]
+
+        "/opus/$opusId/profile/$profileId/attachment/$attachmentId/download" controller: "profile", action: [GET: "downloadAttachment"]
+        "/opus/$opusId/profile/$profileId/attachment/$attachmentId" controller: "profile", action: [GET: "getAttachmentMetadata", DELETE: "deleteAttachment"]
+        "/opus/$opusId/profile/$profileId/attachment/" controller: "profile", action: [GET: "getAttachmentMetadata", POST: "saveAttachment"]
 
         "/opus/$opusId/archive/$profileId" controller: "profile", action: [POST: "archiveProfile"]
         "/opus/$opusId/restore/$profileId" controller: "profile", action: [POST: "restoreArchivedProfile"]

@@ -63,6 +63,7 @@ class Opus {
     List<String> excludeRanksFromMap
     List<SupportingOpus> supportingOpuses
     List<SupportingOpus> sharingDataWith
+    List<Attachment> attachments
     boolean autoApproveShareRequests = true
     boolean keepImagesPrivate = false
     String accessToken
@@ -71,7 +72,7 @@ class Opus {
     int profileCount
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority]
-    static embedded = ['supportingOpuses', 'sharingDataWith']
+    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments']
 
     static constraints = {
         shortName nullable: true

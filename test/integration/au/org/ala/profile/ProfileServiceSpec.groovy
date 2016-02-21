@@ -2,6 +2,7 @@ package au.org.ala.profile
 
 import au.org.ala.web.AuthService
 import org.springframework.web.multipart.MultipartFile
+import org.springframework.web.multipart.commons.CommonsMultipartFile
 
 class ProfileServiceSpec extends BaseIntegrationSpec {
 
@@ -20,6 +21,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         service.grailsApplication = [config: [snapshot:[directory: "bla"]]]
         service.vocabService = Mock(VocabService)
         service.vocabService.getOrCreateTerm(_, _) >> {name, id -> [name: name, vocabId: id]}
+        service.attachmentService = Mock(AttachmentService)
     }
 
     def "createProfile should expect both arguments to be provided"() {
@@ -1269,5 +1271,138 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         then:
         Attribute.count == 1
         Attribute.list()[0] == attribute2
+    }
+
+    def "toggleDraftMode should remove the files for any attachment deleted during draft mode"() {
+        given:
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        Profile profile = save new Profile(uuid: "uuid1", opus: opus, scientificName: "sciName", attachments: [new Attachment(uuid: "1234", title: "title")])
+        profile.draft = new DraftProfile(uuid: "uuid1", scientificName: "sciName", attachments: [])
+        save profile
+
+        when:
+        service.toggleDraftMode(profile.uuid)
+
+        then:
+        1 * service.attachmentService.deleteAttachment(opus.uuid, profile.uuid, "1234", _)
+    }
+
+    def "discardDraftChanges should delete the file for any attachment uploaded during draft mode"() {
+        given:
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        Profile profile = save new Profile(uuid: "uuid1", opus: opus, scientificName: "sciName", attachments: [])
+        profile.draft = new DraftProfile(uuid: "uuid1", scientificName: "sciName", attachments: [new Attachment(uuid: "1234", title: "title")])
+        save profile
+
+        when:
+        service.discardDraftChanges(profile.uuid)
+
+        then:
+        1 * service.attachmentService.deleteAttachment(opus.uuid, profile.uuid, "1234", _)
+    }
+
+    def "deleteAttachment should remove the attachment entity and the file"() {
+        given:
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234")])
+        save profile
+
+        when:
+        service.deleteAttachment(profile.uuid, "1234")
+
+        then:
+        profile.attachments.isEmpty()
+        1 * service.attachmentService.deleteAttachment(opus1.uuid, profile.uuid, "1234", _)
+    }
+
+    def "deleteAttachment should update the draft and not delete the file if the profile is in draft mode"() {
+        given:
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234")])
+        save profile
+        profile.draft = new DraftProfile(uuid: profile.uuid, scientificName: "profile1", attachments: [new Attachment(uuid: "1234")])
+        save profile
+
+        when:
+        service.deleteAttachment(profile.uuid, "1234")
+
+        then:
+        profile.attachments.size() == 1
+        profile.draft.attachments.isEmpty()
+        0 * service.attachmentService.deleteAttachment(opus1.uuid, profile.uuid, "1234", _)
+    }
+
+    def "deleteAttachment should do nothing if there are no attachments"() {
+        given:
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [])
+        save profile
+
+        when:
+        service.deleteAttachment(profile.uuid, "1234")
+
+        then:
+        !profile.attachments
+        0 * service.attachmentService.deleteAttachment(_, _, _, _)
+    }
+
+    def "saveAttachment should update an existing attachment if there is uuid"() {
+        given:
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+
+        when:
+        service.saveAttachment(profile.uuid, [uuid: "1234", title: "newTitle"], null)
+
+        then:
+        profile.attachments.size() == 1
+        profile.attachments[0].title == "newTitle"
+        0 * service.attachmentService.saveAttachment(_, _, _, _, _)
+        0 * service.attachmentService.deleteAttachment(_, _, _, _)
+    }
+
+    def "saveAttachment should create a new attachment if there is no uuid"() {
+        given:
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+
+        when:
+        service.saveAttachment(profile.uuid, [title: "newTitle"], Mock(CommonsMultipartFile))
+
+        then:
+        profile.attachments.size() == 2
+        profile.attachments[0].title == "oldTitle"
+        profile.attachments[1].title == "newTitle"
+        1 * service.attachmentService.saveAttachment(_, _, _, _, _)
+        0 * service.attachmentService.deleteAttachment(_, _, _, _)
+    }
+
+    def "saveAttachment should operate on the draft if the profile is in draft mode"() {
+        given:
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+        profile.draft = new DraftProfile(uuid: profile.uuid, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+
+        when:
+        service.saveAttachment(profile.uuid, [title: "newTitle"], Mock(CommonsMultipartFile))
+
+        then:
+        profile.attachments.size() == 1
+        profile.draft.attachments.size() == 2
+        profile.attachments[0].title == "oldTitle"
+        profile.draft.attachments[0].title == "oldTitle"
+        profile.draft.attachments[1].title == "newTitle"
+        1 * service.attachmentService.saveAttachment(_, _, _, _, _)
+        0 * service.attachmentService.deleteAttachment(_, _, _, _)
     }
 }

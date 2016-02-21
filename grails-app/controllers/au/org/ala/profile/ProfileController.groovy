@@ -2,7 +2,9 @@ package au.org.ala.profile
 
 import au.ala.org.ws.security.RequireApiKey
 import au.ala.org.ws.security.SkipApiKeyCheck
+import au.org.ala.profile.util.Utils
 import grails.converters.JSON
+import groovy.json.JsonSlurper
 import org.apache.commons.httpclient.HttpStatus
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.MultipartHttpServletRequest
@@ -12,6 +14,7 @@ class ProfileController extends BaseController {
 
     ProfileService profileService
     BieService bieService
+    AttachmentService attachmentService
 
     def saveBHLLinks() {
         def json = request.getJSON()
@@ -76,6 +79,91 @@ class ProfileController extends BaseController {
                 }
 
                 render result as JSON
+            }
+        }
+    }
+
+    def getAttachmentMetadata() {
+        if (!params.opusId || !params.profileId) {
+            badRequest "opusId and profileId are required parameters"
+        } else {
+            Profile profile = getProfile()
+
+            if (!profile) {
+                notFound "No profile exists for id ${params.profileId}"
+            } else {
+                def profileOrDraft = (params.latest == "true" && profile.draft) ? profile.draft : profile
+                if (params.attachmentId) {
+                    Attachment attachment = profileOrDraft.attachments?.find { it.uuid == params.attachmentId }
+                    if (!attachment) {
+                        notFound "No attachment exists in profile ${params.profileId} with id ${params.attachmentId}"
+                    } else {
+                        render ([attachment] as JSON)
+                    }
+                } else {
+                    render profileOrDraft.attachments as JSON
+                }
+            }
+        }
+    }
+
+    def downloadAttachment() {
+        if (!params.opusId || !params.profileId || !params.attachmentId) {
+            badRequest "opusId, profileId and attachmentId are required parameters"
+        } else {
+            Profile profile = getProfile()
+
+            if (!profile) {
+                notFound "No profile was found for id ${params.profileId}"
+            } else {
+                def profileOrDraft = (params.latest == "true" && profile.draft) ? profile.draft : profile
+                Attachment attachment = profileOrDraft.attachments.find { it.uuid == params.attachmentId }
+                File file = null
+                if (attachment) {
+                    file = attachmentService.getAttachment(profile.opus.uuid, profile.uuid, params.attachmentId, Utils.getFileExtension(attachment.filename))
+                }
+
+                if (!file) {
+                    notFound "No attachment was found with id ${params.attachmentId}"
+                } else {
+                    response.setContentType(attachment.contentType ?: "application/pdf")
+                    response.setHeader("Content-disposition", "attachment;filename=${attachment.filename ?: 'attachment.pdf'}")
+                    response.outputStream << file.newInputStream()
+                }
+            }
+        }
+    }
+
+    def saveAttachment() {
+        if (!params.opusId || !params.profileId || !(request instanceof MultipartHttpServletRequest) || !request.getParameter("data")) {
+            badRequest "opusId and profileId are required parameters, a JSON post body must be provided, and the request must be a multipart request"
+        } else {
+            Profile profile = getProfile()
+
+            if (!profile) {
+                notFound()
+            } else {
+                Map metadata = new JsonSlurper().parseText(request.getParameter("data"))
+
+                List<Attachment> attachments = profileService.saveAttachment(profile.uuid, metadata, request.getFile(request.fileNames[0]))
+
+                render attachments as JSON
+            }
+        }
+    }
+
+    def deleteAttachment() {
+        if (!params.opusId || !params.profileId || !params.attachmentId) {
+            badRequest "opusId, profileId and attachmentId are required parameters"
+        } else {
+            Profile profile = getProfile()
+
+            if (!profile) {
+                notFound()
+            } else {
+                profileService.deleteAttachment(profile.uuid, params.attachmentId)
+
+                render ([success: true] as JSON)
             }
         }
     }

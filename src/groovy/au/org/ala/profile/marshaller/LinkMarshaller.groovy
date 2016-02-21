@@ -8,15 +8,15 @@ class LinkMarshaller {
     void register() {
         JSON.registerObjectMarshaller(Link) { Link link ->
             return [
-                "uuid":"${it.uuid}",
-                "url":"${it.url}",
-                "title":"${it.title}",
-                "fullTitle":"${it.fullTitle}",
-                "edition":"${it.edition}",
-                "publisherName":"${it.publisherName}",
-                "doi":"${it.doi}",
-                "description": "${it.description}",
-                "creators": it.creators.collect { it.name }
+                    "uuid"         : "${link.uuid}",
+                    "url"          : "${link.url}",
+                    "title"        : "${link.title}",
+                    "fullTitle"    : "${link.fullTitle}",
+                    "edition"      : "${link.edition}",
+                    "publisherName": "${link.publisherName}",
+                    "doi"          : "${link.doi}",
+                    "description"  : "${link.description}",
+                    "creators"     : link.creators.collect { it.name }
             ]
         }
     }

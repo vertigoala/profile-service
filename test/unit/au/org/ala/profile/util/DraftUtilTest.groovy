@@ -1,5 +1,6 @@
 package au.org.ala.profile.util
 
+import au.org.ala.profile.Attachment
 import au.org.ala.profile.Attribute
 import au.org.ala.profile.Authorship
 import au.org.ala.profile.Bibliography
@@ -20,8 +21,6 @@ class DraftUtilTest extends Specification {
     Contributor bob
     Attribute attribute1
     Attribute attribute2
-
-    //taxonomyTree
 
     def setup() {
         fred = new Contributor(uuid: "user1", userId: "user1", name: "fred")
@@ -47,6 +46,7 @@ class DraftUtilTest extends Specification {
                 bibliography: [new Bibliography(text: "bib1"), new Bibliography(text: "bib2")],
                 publications: [new Publication(title: "pub1"), new Publication(title: "pub2")],
                 attributes: [attribute1, attribute2],
+                attachments: [new Attachment(title: "doc1"), new Attachment(title: "doc2")],
                 dateCreated: new Date()
         )
     }
@@ -91,6 +91,9 @@ class DraftUtilTest extends Specification {
 
         !draft.attributes.is(original.attributes)
         draft.attributes == original.attributes as List
+
+        !draft.attachments.is(original.attachments)
+        draft.attachments == original.attachments as List
     }
 
     def "cloneAuthorship should create a new object with copies of all attributes"() {
@@ -143,10 +146,22 @@ class DraftUtilTest extends Specification {
 
     def "clonePublication should create a new object with copies of all attributes"() {
         given:
-        Publication original = new Publication(uuid: "uuid", uploadDate: new Date(), publicationDate: new Date(), title: "title", description: "description", doi: "doi", userId: "userId", authors: "authors")
+        Publication original = new Publication(uuid: "uuid", publicationDate: new Date(), title: "title", doi: "doi", userId: "userId", authors: "authors")
 
         when:
         Publication clone = DraftUtil.clonePublication(original)
+
+        then:
+        !clone.is(original)
+        clone == original
+    }
+
+    def "cloneAttachment should create a new object with copies of all attributes"() {
+        given:
+        Attachment original = new Attachment(uuid: "uuid", title: "title", description: "description", rights: "rights", rightsHolder: "rightsHolder", licence: "licence", creator: "creator", createdDate: new Date())
+
+        when:
+        Attachment clone = DraftUtil.cloneAttachment(original)
 
         then:
         !clone.is(original)

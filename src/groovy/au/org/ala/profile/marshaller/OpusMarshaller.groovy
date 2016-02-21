@@ -29,6 +29,7 @@ class OpusMarshaller {
                     attributeVocabUuid         : opus.attributeVocabUuid,
                     authorshipVocabUuid        : opus.authorshipVocabUuid,
                     glossaryUuid               : opus.glossary?.uuid,
+                    attachments                : opus.attachments ?: [],
                     enablePhyloUpload          : opus.enablePhyloUpload != null ? opus.enableKeyUpload : true,
                     enableOccurrenceUpload     : opus.enableOccurrenceUpload != null ? opus.enableKeyUpload : true,
                     enableTaxaUpload           : opus.enableTaxaUpload != null ? opus.enableKeyUpload : true,

@@ -10,6 +10,7 @@ class ProfileControllerSpec extends BaseIntegrationSpec {
         controller = new ProfileController()
         profileService = Mock(ProfileService)
         controller.profileService = profileService
+        controller.attachmentService = Mock(AttachmentService)
     }
 
     def "updateProfile should return the draft profile if it exists and the 'latest' query param is 'true'"() {
@@ -116,5 +117,37 @@ class ProfileControllerSpec extends BaseIntegrationSpec {
         controller.response.status == 200
         controller.response.json.uuid == profile.uuid
         controller.response.json.scientificName == "sciName"
+    }
+
+    def "downloadAttachment should use the draft if there is one and latest = true"() {
+        Opus opus = save new Opus(uuid: "opusId", shortName: "opusid", title: "opusName", glossary: new Glossary(), dataResourceUid: "dr1")
+        Profile profile = save new Profile(scientificName: "sciName", opus: opus)
+        profile.draft = new DraftProfile(uuid: profile.uuid, scientificName: profile.scientificName, attachments: [new Attachment(uuid: "1234")])
+
+        when:
+        controller.params.latest = "true"
+        controller.params.profileId = profile.uuid
+        controller.params.opusId = "opusId"
+        controller.params.attachmentId = "1234"
+        controller.downloadAttachment()
+
+        then:
+        1 * controller.attachmentService.getAttachment("opusId", profile.uuid, "1234", _)
+    }
+
+    def "downloadAttachment should use the profile when latest = false even if there is a draft"() {
+        Opus opus = save new Opus(uuid: "opusId", shortName: "opusid", title: "opusName", glossary: new Glossary(), dataResourceUid: "dr1")
+        Profile profile = save new Profile(scientificName: "sciName", opus: opus, attachments: [new Attachment(uuid: "1234")])
+        profile.draft = new DraftProfile(uuid: profile.uuid, scientificName: profile.scientificName, attachments: [])
+
+        when:
+        controller.params.latest = "false"
+        controller.params.profileId = profile.uuid
+        controller.params.opusId = "opusId"
+        controller.params.attachmentId = "1234"
+        controller.downloadAttachment()
+
+        then:
+        1 * controller.attachmentService.getAttachment("opusId", profile.uuid, "1234", _)
     }
 }

@@ -29,14 +29,14 @@ class DraftProfile {
     List<Bibliography> bibliography
     List<LocalImage> stagedImages
     List<LocalImage> privateImages
-
+    List<Attachment> attachments
     String lastAttributeChange
 
     Date dateCreated
     Date draftDate = new Date()
     String createdBy
 
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'attributes', 'stagedImages', 'privateImages']
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'attributes', 'stagedImages', 'privateImages', 'attachments']
 
     static constraints = {
         nameAuthor nullable: true
