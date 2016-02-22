@@ -95,18 +95,26 @@ class ProfileController extends BaseController {
                 def profileOrDraft = (params.latest == "true" && profile.draft) ? profile.draft : profile
                 if (params.attachmentId) {
                     Attachment attachment = profileOrDraft.attachments?.find { it.uuid == params.attachmentId }
+
                     if (!attachment) {
                         notFound "No attachment exists in profile ${params.profileId} with id ${params.attachmentId}"
                     } else {
+                        attachment.downloadUrl = "${grailsApplication.config.grails.serverURL}/opus/${profile.opus.uuid}/profile/${profile.uuid}/attachment/${attachment.uuid}/download"
                         render ([attachment] as JSON)
                     }
                 } else {
-                    render profileOrDraft.attachments as JSON
+                    List<Attachment> attachments = profileOrDraft.attachments
+                    attachments?.each {
+                        it.downloadUrl = "${grailsApplication.config.grails.serverURL}/opus/${profile.opus.uuid}/profile/${profile.uuid}/attachment/${it.uuid}/download"
+                    }
+
+                    render attachments as JSON
                 }
             }
         }
     }
 
+    @SkipApiKeyCheck
     def downloadAttachment() {
         if (!params.opusId || !params.profileId || !params.attachmentId) {
             badRequest "opusId, profileId and attachmentId are required parameters"
@@ -129,6 +137,7 @@ class ProfileController extends BaseController {
                     response.setContentType(attachment.contentType ?: "application/pdf")
                     response.setHeader("Content-disposition", "attachment;filename=${attachment.filename ?: 'attachment.pdf'}")
                     response.outputStream << file.newInputStream()
+                    response.outputStream.flush()
                 }
             }
         }

@@ -320,10 +320,17 @@ class OpusController extends BaseController {
                    if (!attachment) {
                        notFound "No attachment exists in opus ${params.opusId} with id ${params.attachmentId}"
                    } else {
+                       attachment.downloadUrl = "${grailsApplication.config.grails.serverURL}/opus/${opus.uuid}/attachment/${attachment.uuid}/download"
+
                        render ([attachment] as JSON)
                    }
                } else {
-                   render opus.attachments as JSON
+                   List<Attachment> attachments = opus.attachments
+                   attachments?.each {
+                       it.downloadUrl = "${grailsApplication.config.grails.serverURL}/opus/${opus.uuid}/attachment/${it.uuid}/download"
+                   }
+
+                   render attachments as JSON
                }
            }
        }
@@ -350,6 +357,7 @@ class OpusController extends BaseController {
                     response.setContentType(attachment.contentType ?: "application/pdf")
                     response.setHeader("Content-disposition", "attachment;filename=${attachment.filename ?: 'attachment.pdf'}")
                     response.outputStream << file.newInputStream()
+                    response.outputStream.flush()
                 }
             }
         }

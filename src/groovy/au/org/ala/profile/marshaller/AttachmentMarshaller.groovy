@@ -19,7 +19,8 @@ class AttachmentMarshaller {
                     licence     : attachment.licence,
                     licenceIcon : Utils.getCCLicenceIcon(attachment.licence),
                     creator     : attachment.creator,
-                    createdDate : attachment.createdDate
+                    createdDate : attachment.createdDate,
+                    downloadUrl : attachment.downloadUrl
             ]
         }
     }

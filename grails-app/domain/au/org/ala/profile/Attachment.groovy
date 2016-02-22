@@ -3,6 +3,8 @@ package au.org.ala.profile
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
+import javax.persistence.Transient
+
 @ToString
 @EqualsAndHashCode
 class Attachment {
@@ -17,6 +19,9 @@ class Attachment {
     String licence
     String creator
     Date createdDate
+
+    @Transient
+    String downloadUrl
 
     static mapping = {
         title nullable: true
