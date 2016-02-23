@@ -9,6 +9,7 @@ class ImageController extends BaseController {
         if (!params.imageId) {
             badRequest "imageId is a required parameter"
         } else {
+            // check for private images
             List<Profile> profiles = Profile.withCriteria {
                 "privateImages" {
                     eq "imageId", params.imageId
@@ -16,12 +17,21 @@ class ImageController extends BaseController {
             }
 
             if (!profiles) {
+                // check for draft private images
                 profiles = Profile.withCriteria {
                     isNotNull "draft"
                     "draft" {
-                        "stagedImages" {
-                            eq "imageId", params.imageId
-                        }
+                            eq "privateImages.imageId", params.imageId
+                    }
+                }
+            }
+
+            if (!profiles) {
+                // check for draft staged (i.e. public) images
+                profiles = Profile.withCriteria {
+                    isNotNull "draft"
+                    "draft" {
+                        eq "stagedImages.imageId", params.imageId
                     }
                 }
             }
@@ -34,7 +44,7 @@ class ImageController extends BaseController {
                          opusId   : profiles[0].opus.uuid
                 ]
 
-                LocalImage privateImage = profiles[0].privateImages?.find { it.imageId == params.imageId }
+                LocalImage privateImage = profiles[0].privateImages?.find { it.imageId == params.imageId } ?: profiles[0].draft?.privateImages?.find { it.imageId == params.imageId }
                 LocalImage stagedImage = profiles[0].draft?.stagedImages?.find { it.imageId == params.imageId }
                 if (privateImage) {
                     image.putAll(privateImage.properties)
