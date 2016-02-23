@@ -460,6 +460,7 @@ class ProfileService extends BaseDataAccessService {
             image.rights = json.multimedia[0].rights
             image.rightsHolder = json.multimedia[0].rightsHolder
             image.title = json.multimedia[0].title
+            image.contentType = json.multimedia[0].contentType
 
             imageStore << image
             success = true

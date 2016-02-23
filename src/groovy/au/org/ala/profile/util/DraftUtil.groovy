@@ -181,6 +181,7 @@ class DraftUtil {
         clone.rights = source.rights
         clone.rightsHolder = source.rightsHolder
         clone.title = source.title
+        clone.contentType = source.contentType
 
         clone
     }

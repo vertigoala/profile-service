@@ -51,8 +51,8 @@ class Profile {
     List<Bibliography> bibliography
     List<Publication> publications
 
-    List<LocalImage> privateImages = null
-    List<LocalImage> stagedImages = null // this is only used when dealing with draft profiles
+    List<LocalImage> privateImages = []
+    List<LocalImage> stagedImages = [] // this is only used when dealing with draft profiles
 
     List<Attachment> attachments
 

@@ -15,5 +15,6 @@ class LocalImage {
     String rights
     String licence
     String creator
+    String contentType
     Date dateCreated
 }

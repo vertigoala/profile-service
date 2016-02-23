@@ -92,6 +92,8 @@ class UrlMappings {
         "/report/mismatchedNames" controller: "report", action: [GET: "mismatchedNames"]
         "/report/recentChanges" controller: "report", action: [GET: "recentChanges"]
 
+        "/image/$imageId" controller: "image", action: [GET: "getImageInfo"]
+
         "/statistics/" controller: "statistics", action: [GET: "index"]
 
         "/import/profile" controller: "import", action: [POST: "profile"]
