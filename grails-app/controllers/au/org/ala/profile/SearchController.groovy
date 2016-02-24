@@ -118,40 +118,45 @@ class SearchController extends BaseController {
     }
 
     def getImmediateChildren() {
-        Opus opus = getOpus()
-        int max = params.max ? params.max as int : -1
-        int startFrom = params.offset ? params.offset as int : 0
+        if (!params.opusId || !params.rank || !params.name) {
+            badRequest "opusId, rank and name are required parameters. max, offset and filter are optional."
+        } else {
+            Opus opus = getOpus()
+            int max = params.max ? params.max as int : -1
+            int startFrom = params.offset ? params.offset as int : 0
+            String filter = params.filter ?: null
 
-        List children = searchService.getImmediateChildren(opus, params.rank, params.name, max, startFrom)
-        response.setContentType("application/json")
-        render children.collect { profile ->
-            Profile relatedProfile = Profile.findByScientificNameAndGuidAndOpusAndArchivedDateIsNull(profile.name, profile.guid, opus)
+            List children = searchService.getImmediateChildren(opus, params.rank, params.name, filter, max, startFrom)
+            response.setContentType("application/json")
+            render children.collect { profile ->
+                Profile relatedProfile = Profile.findByScientificNameAndGuidAndOpusAndArchivedDateIsNull(profile.name, profile.guid, opus)
 
-            [
-                    profileId     : relatedProfile?.uuid,
-                    profileName   : relatedProfile?.scientificName,
-                    guid          : profile.guid,
-                    name          : profile.name,
-                    rank          : profile.rank,
-                    opus          : [uuid: opus.uuid, title: opus.title, shortName: opus.shortName],
-                    childCount    : Profile.withCriteria {
-                        eq "opus", opus
-                        isNull "archivedDate"
-                        if (relatedProfile) {
-                            ne "uuid", relatedProfile.uuid
-                        }
+                [
+                        profileId  : relatedProfile?.uuid,
+                        profileName: relatedProfile?.scientificName,
+                        guid       : profile.guid,
+                        name       : profile.name,
+                        rank       : profile.rank,
+                        opus       : [uuid: opus.uuid, title: opus.title, shortName: opus.shortName],
+                        childCount : Profile.withCriteria {
+                            eq "opus", opus
+                            isNull "archivedDate"
+                            if (relatedProfile) {
+                                ne "uuid", relatedProfile.uuid
+                            }
 
-                        "classification" {
-                            eq "rank", "${profile.rank.toLowerCase()}"
-                            ilike "name", "${profile.name}"
-                        }
+                            "classification" {
+                                eq "rank", "${profile.rank.toLowerCase()}"
+                                ilike "name", "${profile.name}"
+                            }
 
-                        projections {
-                            count()
-                        }
-                    }[0]
-            ]
-        } as JSON
+                            projections {
+                                count()
+                            }
+                        }[0]
+                ]
+            } as JSON
+        }
     }
 
     @RequireApiKey

@@ -23,7 +23,7 @@ import org.grails.plugins.elasticsearch.ElasticSearchService
 
 class SearchService extends BaseDataAccessService {
     static final String UNKNOWN_RANK = "unknown" // used for profiles with no rank/classification
-    static final Integer DEFAULT_MAX_CHILDREN_RESULTS = 10
+    static final Integer DEFAULT_MAX_CHILDREN_RESULTS = 15
     static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 25
     static final Integer DEFAULT_MAX_BROAD_SEARCH_RESULTS = 50
     static final String[] NAME_FIELDS = ["scientificName", "matchedName"]
@@ -286,9 +286,11 @@ class SearchService extends BaseDataAccessService {
         }
     }
 
-    List getImmediateChildren(Opus opus, String topRank, String topName, int max = -1, int startFrom = 0) {
+    List getImmediateChildren(Opus opus, String topRank, String topName, String filter = null, int max = -1, int startFrom = 0) {
         checkArgument topRank
         checkArgument topName
+
+        filter = Utils.sanitizeRegex(filter)?.trim()?.toLowerCase()
 
         List results = []
         MapReduceOutput hierarchyView = null
@@ -298,12 +300,16 @@ class SearchService extends BaseDataAccessService {
             // This will find all immediate children of the specified rank, regardless of whether they in turn have
             // children, or of whether there is a corresponding profile for the child.
             String mapFunction = """function map() {
+                           var filter = '${filter ?: ''}';
+
                            if (typeof this.classification != 'undefined' && this.classification.length > 0) {
                                 for (var i = 0; i < this.classification.length; i++) {
                                     if (this.classification[i].rank.toLowerCase() == '${topRank.toLowerCase()}' &&
                                         this.classification[i].name.toLowerCase() == '${topName.toLowerCase()}' &&
                                         i + 1 < this.classification.length) {
-                                        emit(this.classification[i + 1].rank, this.classification[i + 1]);
+                                        if (!filter || filter.length == 0 || this.classification[i + 1].name.toLowerCase().indexOf(filter) == 0) {
+                                            emit(this.classification[i + 1].rank, this.classification[i + 1]);
+                                        }
                                     }
                                 }
                            }
@@ -372,6 +378,7 @@ class SearchService extends BaseDataAccessService {
 
             BasicDBObject query = new BasicDBObject()
             query.put("opus", opus.id)
+
             MapReduceCommand command = new MapReduceCommand(Profile.collection, mapFunction, reduceFunction,
                     UUID.randomUUID().toString().replaceAll("-", ""), MapReduceCommand.OutputType.REPLACE, query)
             command.setFinalize(finalizeFunction)

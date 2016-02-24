@@ -1159,7 +1159,7 @@ class SearchServiceSpec extends BaseIntegrationSpec {
                                                                                   new Classification(rank: "order", name: "Fabales")])
 
         when: "asked for the children of subclass Lycopodiidae, with offset 1 and page size 1"
-        List result = service.getImmediateChildren(opus, "subclass", "Lycopodiidae", 1, 1)
+        List result = service.getImmediateChildren(opus, "subclass", "Lycopodiidae", null, 1, 1)
 
         then: "it should return the 2nd of the 2 orders directly below Lycopodiida"
         result.size() == 1
@@ -1234,4 +1234,40 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result[0].rank == "subclass"
     }
 
+    def "getImmediateChildren should filter results by the immediate child's name (case insensitive) when provided with a filter"() {
+        given:
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+
+        save new Profile(scientificName: "profile1", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Cycadidae"),
+                                                                                  new Classification(rank: "order", name: "Cycadales")])
+
+        save new Profile(scientificName: "profile2", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                                                  new Classification(rank: "superorder", name: "Austrobaileyanae")])
+
+        save new Profile(scientificName: "profile3", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                                                  new Classification(rank: "superorder", name: "Asteranae")])
+
+        save new Profile(scientificName: "profile4", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                  new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                  new Classification(rank: "class", name: "Equisetopsida"),
+                                                                                  new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                                                  new Classification(rank: "superorder", name: "Lilianae")])
+
+        when: "asked for the children of subclass Magnoliidae starting with 'A'"
+        List result = service.getImmediateChildren(opus, "subclass", "Magnoliidae", "a")
+
+        then: "it should return Asteranae and Austrobaileyanae"
+        result.size() == 2
+        result[0].name == "Asteranae"
+        result[1].name == "Austrobaileyanae"
+    }
 }
