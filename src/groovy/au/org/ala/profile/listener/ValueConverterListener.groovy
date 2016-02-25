@@ -14,15 +14,13 @@ import org.springframework.context.ApplicationEvent
 
 import java.lang.annotation.Annotation
 import java.lang.reflect.Field
-import java.lang.reflect.ParameterizedType
-import java.lang.reflect.Type
 
 /**
  * A GORM event listener that will convert domain object fields annotated with a given annotation using
  * a provided closure.
  *
- * At this stage only non generic types are supported (eg String) and collections of such (eg List<String>),
- * trying to use it on anything fancier will result in undefined behaviour.
+ * At this stage only non generic types are supported (eg String) trying to use it on anything fancier
+ * will result in undefined behaviour.
  *
  * @param <T> The type of the field to be converted
  */
@@ -104,7 +102,7 @@ class ValueConverterListener<T> extends AbstractPersistenceEventListener {
             T newValue = converter(value)
             return ConvertResult.success(newValue)
         } else {
-            log.debug("${obj} (${obj.class}.${field.name}) is a ${converterType}")
+            log.debug("${obj.class}.${field.name} is a $type, not a ${converterType}")
             return ConvertResult.failed
         }
     }
