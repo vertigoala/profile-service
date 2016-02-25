@@ -87,9 +87,9 @@ class StatisticsController extends BaseController {
                             statistics.add([
                                     id     : 'visitorCount',
                                     name   : 'Visitors',
-                                    value  : "${analyticsOpusData.totalVisitorCount?.visitors ?: 0}",
+                                    value  : "${analyticsOpusData.totalVisitorCount?.users ?: 0}",
                                     caveat : "This statistic may be up to 2 days old",
-                                    tooltip: "The number of unique visitors to the collection. There have been ${analyticsOpusData.monthlyVisitorCount?.visitors ?: 0} visitors this month."
+                                    tooltip: "The number of unique visitors to the collection. There have been ${analyticsOpusData.monthlyVisitorCount?.users ?: 0} visitors this month."
                             ])
 
                             statistics.add([

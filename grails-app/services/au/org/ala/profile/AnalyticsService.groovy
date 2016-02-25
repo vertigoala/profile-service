@@ -195,13 +195,11 @@ class AnalyticsService {
      * Perform a Google Analytics query for the number of unique visitors to the opus.
      */
     private Map queryVisitorCount(Opus opus, String from) {
-        String metrics = "ga:visitors"
-        String dimensions = "ga:pagePath"
+        String metrics = "ga:users"
         String filters = "ga:pagePath=~^/opus/${opus.shortName ?: opus.uuid}/.*"
 
         GaData result = analytics.data().ga()
                 .get(viewIds, from, "today", metrics)
-                .setDimensions(dimensions)
                 .setFilters(filters)
                 .setMaxResults(1)
                 .execute()
@@ -216,15 +214,11 @@ class AnalyticsService {
      * @return the data, with caveats as noted in {@link #extractData(GaData)}
      */
     private Map queryDownloadCount(Opus opus, String from) {
-        def metrics = "ga:sessions,ga:pageviews"
-        def dimensions = "ga:pagePath"
-        def sort = "-ga:pageviews"
+        def metrics = "ga:pageviews"
         def filters = "ga:pagePath=~^/opus/${opus.shortName ?: opus.uuid}/profile/.*/(publication|pdf)/.*"
 
         GaData result = analytics.data().ga()
                 .get(viewIds, from, "today", metrics)
-                .setDimensions(dimensions)
-                .setSort(sort)
                 .setFilters(filters)
                 .setMaxResults(1)
                 .execute()
