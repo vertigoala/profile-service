@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.security.Role
+import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.ShareRequestAction
 import au.org.ala.profile.util.ShareRequestStatus
 import au.org.ala.profile.util.Utils
@@ -150,6 +151,12 @@ class OpusService extends BaseDataAccessService {
         }
         if (json.biocacheName && json.biocacheName != opus.biocacheName) {
             opus.biocacheName = json.biocacheName
+        }
+        if (json.containsKey("approvedImageOption")) {
+            ImageOption option = ImageOption.valueOf(json.approvedImageOption.toUpperCase())
+            if (option != opus.approvedImageOption) {
+                opus.approvedImageOption = option
+            }
         }
         if (json.containsKey("keybaseProjectId") && json.keybaseProjectId != opus.keybaseProjectId) {
             opus.keybaseProjectId = json.keybaseProjectId

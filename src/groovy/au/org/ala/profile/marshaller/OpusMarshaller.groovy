@@ -1,7 +1,7 @@
 package au.org.ala.profile.marshaller
 
 import au.org.ala.profile.Opus
-import au.org.ala.profile.SupportingOpus
+import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.ShareRequestStatus
 import au.org.ala.profile.util.Utils
 import grails.converters.JSON
@@ -17,6 +17,7 @@ class OpusMarshaller {
                     shortName                  : opus.shortName,
                     description                : opus.description,
                     imageSources               : opus.imageSources ?: [],
+                    approvedImageOption        : opus.approvedImageOption?.name() ?: ImageOption.INCLUDE.name(),
                     recordSources              : opus.recordSources ?: [],
                     approvedLists              : opus.approvedLists ?: [],
                     featureLists               : opus.featureLists ?: [],

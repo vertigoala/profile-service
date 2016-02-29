@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.ImageOption
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
@@ -18,7 +19,7 @@ class DraftProfile {
     String nslNomenclatureIdentifier
     String taxonomyTree
     String primaryImage
-    List<String> excludedImages
+    Map<String, ImageOption> imageDisplayOptions = [:]
     List<String> specimenIds
     List<Authorship> authorship
     List<Classification> classification
