@@ -1405,4 +1405,6 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         1 * service.attachmentService.saveAttachment(_, _, _, _, _)
         0 * service.attachmentService.deleteAttachment(_, _, _, _)
     }
+
 }
+
