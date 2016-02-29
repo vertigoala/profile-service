@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.util.DraftUtil
+import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
 import org.springframework.transaction.annotation.Transactional
@@ -395,17 +396,24 @@ class ProfileService extends BaseDataAccessService {
             profileOrDraft(profile).primaryImage = json.primaryImage
         }
 
-        if (json.containsKey("excludedImages") && json.excludedImages != profileOrDraft(profile).excludedImages) {
-            if (profileOrDraft(profile).excludedImages) {
-                profileOrDraft(profile).excludedImages.clear()
+        if (json.containsKey("imageDisplayOptions") && json.imageDisplayOptions != profileOrDraft(profile).imageDisplayOptions) {
+            if (profileOrDraft(profile).imageDisplayOptions) {
+                profileOrDraft(profile).imageDisplayOptions.clear()
             } else {
-                profileOrDraft(profile).excludedImages = []
+                profileOrDraft(profile).imageDisplayOptions = [:]
             }
-            profileOrDraft(profile).excludedImages.addAll(json.excludedImages ?: [])
 
-            if (!deferSave) {
-                save profile
+            json.imageDisplayOptions?.each {
+                ImageOption imageDisplayOption = ImageOption.byName(it.displayOption, profile.opus.approvedImageOption)
+
+                if (imageDisplayOption != profile.opus.approvedImageOption) {
+                    profileOrDraft(profile).imageDisplayOptions << [(it.imageId): imageDisplayOption]
+                }
             }
+        }
+
+        if (!deferSave) {
+            save profile
         }
     }
 

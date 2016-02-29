@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.ImageOption
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.bson.types.ObjectId
@@ -42,7 +43,7 @@ class Profile {
     Name matchedName
     String taxonomyTree
     String primaryImage
-    List<String> excludedImages
+    Map<String, ImageOption> imageDisplayOptions = [:]
     List<String> specimenIds
     List<Authorship> authorship
     List<Classification> classification
@@ -81,7 +82,6 @@ class Profile {
         fullName nullable: true
         guid nullable: true
         primaryImage nullable: true
-        excludedImages nullable: true
         specimenIds nullable: true
         classification nullable: true
         nslNameIdentifier nullable: true

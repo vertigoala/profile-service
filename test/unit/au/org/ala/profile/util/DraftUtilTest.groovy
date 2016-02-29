@@ -37,7 +37,7 @@ class DraftUtilTest extends Specification {
                 taxonomyTree: "taxonomyTree",
                 nslNameIdentifier: "nslId",
                 primaryImage: "primaryImage",
-                excludedImages: ["image1", "image2"],
+                imageDisplayOptions: [image1: ImageOption.EXCLUDE, image2: ImageOption.EXCLUDE],
                 specimenIds: ["spec1", "spec2"],
                 authorship: [new Authorship(category: new Term(name: "category1"), text: "bob"), new Authorship(category: new Term(name: "category2"), text: "jill")],
                 classification: [new Classification(rank: "kingdom", name: "Plantae"), new Classification(rank: "family", name: "Acacia")],
@@ -65,8 +65,8 @@ class DraftUtilTest extends Specification {
         draft.primaryImage == original.primaryImage
         draft.taxonomyTree == original.taxonomyTree
 
-        !draft.excludedImages.is(original.excludedImages)
-        draft.excludedImages == original.excludedImages
+        !draft.imageDisplayOptions.is(original.imageDisplayOptions)
+        draft.imageDisplayOptions == original.imageDisplayOptions
 
         !draft.specimenIds.is(original.specimenIds)
         draft.specimenIds == original.specimenIds

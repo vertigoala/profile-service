@@ -1,6 +1,7 @@
 package au.org.ala.profile.marshaller
 
 import au.org.ala.profile.Profile
+import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.Utils
 import grails.converters.JSON
 
@@ -32,7 +33,7 @@ class ProfileMarshaller {
                     links                    : profile.links,
                     bhl                      : profile.bhlLinks,
                     primaryImage             : profile.primaryImage,
-                    excludedImages           : profile.excludedImages ?: [],
+                    imageDisplayOptions      : profile.imageDisplayOptions?.collect {k, v -> [imageId: k, displayOption: v instanceof ImageOption ? v?.name() : v]} ?: [:],
                     stagedImages             : profile.stagedImages ?: [],
                     privateImages            : profile.privateImages ?: [],
                     attachments              : profile.attachments ?: [],

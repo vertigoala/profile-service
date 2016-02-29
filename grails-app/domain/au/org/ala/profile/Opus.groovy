@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.sanitizer.SanitizedHtml
+import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.Utils
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
@@ -69,6 +70,8 @@ class Opus {
     List<Attachment> attachments
     boolean autoApproveShareRequests = true
     boolean keepImagesPrivate = false
+    ImageOption approvedImageOption = ImageOption.INCLUDE
+
     String accessToken
 
     @Transient
