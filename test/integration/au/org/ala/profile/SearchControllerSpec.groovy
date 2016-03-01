@@ -122,7 +122,7 @@ class SearchControllerSpec extends BaseIntegrationSpec {
         controller.groupByRank()
 
         then:
-        1 * searchService.groupByRank("opusId", "taxon", -1, 0) >> [:]
+        1 * searchService.groupByRank("opusId", "taxon", null, -1, 0) >> [:]
     }
 
     def "groupByRank should use the provided values for the opus list, wildcard, max and offset parameters"() {
@@ -137,6 +137,6 @@ class SearchControllerSpec extends BaseIntegrationSpec {
         controller.groupByRank()
 
         then:
-        1 * searchService.groupByRank("opusId", "taxon", 666, 10) >> [:]
+        1 * searchService.groupByRank("opusId", "taxon", null, 666, 10) >> [:]
     }
 }

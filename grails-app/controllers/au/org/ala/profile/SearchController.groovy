@@ -104,14 +104,14 @@ class SearchController extends BaseController {
 
     def groupByRank() {
         if (!params.opusId || !params.taxon) {
-            badRequest "opusId and taxon are required parameters. You can also optionally supply max (max records to return) and offset (0 based index to start from)."
+            badRequest "opusId and taxon are required parameters. You can also optionally supply filter (name to filter on), max (max records to return) and offset (0 based index to start from)."
         } else {
             int max = params.max ? params.max as int : -1
             int startFrom = params.offset ? params.offset as int : 0
 
             Opus opus = getOpus()
 
-            Map<String, Integer> result = searchService.groupByRank(opus?.uuid, params.taxon, max, startFrom)
+            Map<String, Integer> result = searchService.groupByRank(opus?.uuid, params.taxon, params.filter, max, startFrom)
 
             render result as JSON
         }

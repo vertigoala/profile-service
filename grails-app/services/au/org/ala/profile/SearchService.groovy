@@ -423,11 +423,13 @@ class SearchService extends BaseDataAccessService {
         groupedRanks
     }
 
-    Map<String, Integer> groupByRank(String opusId, String taxon, int max = -1, int startFrom = 0) {
+    Map<String, Integer> groupByRank(String opusId, String taxon, String filter = null, int max = -1, int startFrom = 0) {
         checkArgument opusId
         checkArgument taxon
 
         Opus opus = Opus.findByUuid(opusId)
+
+        filter = "${Utils.sanitizeRegex(filter)}.*"
 
         Map groupedTaxa = [:]
         if (opus) {
@@ -436,7 +438,7 @@ class SearchService extends BaseDataAccessService {
             } else {
                 def result = Profile.collection.aggregate([$match: [opus: opus.id, archivedDate: null]],
                         [$unwind: '$classification'],
-                        [$match: ["classification.rank": "${taxon}"]],
+                        [$match: ["classification.rank": "${taxon}", "classification.name": [$regex: /^${filter}/, $options: "i"]]],
                         [$group: [_id: '$classification.name', cnt: [$sum: 1]]],
                         [$sort: ["_id": 1]],
                         [$skip: startFrom], [$limit: max < 0 ? DEFAULT_MAX_BROAD_SEARCH_RESULTS : max]

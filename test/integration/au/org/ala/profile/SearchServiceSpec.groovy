@@ -1043,13 +1043,13 @@ class SearchServiceSpec extends BaseIntegrationSpec {
                                                                                    new Classification(rank: "subclazz", name: "Ophioglossidae")])
 
         when:
-        Map result = service.groupByRank(opus.uuid, "phylum", 1)
+        Map result = service.groupByRank(opus.uuid, "phylum", null, 1)
 
         then:
         result == [Arthropoda: 1]
 
         when:
-        result = service.groupByRank(opus.uuid, "phylum", 2)
+        result = service.groupByRank(opus.uuid, "phylum", null, 2)
 
         then:
         result == [Arthropoda: 1, Charophyta: 2]
@@ -1077,13 +1077,49 @@ class SearchServiceSpec extends BaseIntegrationSpec {
                                                                                    new Classification(rank: "subclazz", name: "Ophioglossidae")])
 
         when:
-        Map result = service.groupByRank(opus.uuid, "phylum", 1, 1)
+        Map result = service.groupByRank(opus.uuid, "phylum", null, 1, 1)
 
         then:
         result == [Charophyta: 2]
 
         when:
-        result = service.groupByRank(opus.uuid, "phylum", 2, 2)
+        result = service.groupByRank(opus.uuid, "phylum", null, 2, 2)
+
+        then:
+        result == [Hygrophila: 1]
+    }
+
+
+
+    def "groupByRank should filter the result set by name starting with [filter]"() {
+        given:
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+
+        save new Profile(scientificName: "subclass1", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                   new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                   new Classification(rank: "clazz", name: "Equisetopsida"),
+                                                                                   new Classification(rank: "subclazz", name: "Cycadidae")])
+        save new Profile(scientificName: "subclass2", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                   new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                   new Classification(rank: "clazz", name: "Equisetopsida"),
+                                                                                   new Classification(rank: "subclazz", name: "Magnoliidae")])
+        save new Profile(scientificName: "subclass3", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                   new Classification(rank: "phylum", name: "Arthropoda"),
+                                                                                   new Classification(rank: "clazz", name: "Equisetopsida"),
+                                                                                   new Classification(rank: "subclazz", name: "Marattiidae")])
+        save new Profile(scientificName: "subclass4", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                   new Classification(rank: "phylum", name: "Hygrophila"),
+                                                                                   new Classification(rank: "clazz", name: "Equisetopsida"),
+                                                                                   new Classification(rank: "subclazz", name: "Ophioglossidae")])
+
+        when:
+        Map result = service.groupByRank(opus.uuid, "phylum", "c")
+
+        then:
+        result == [Charophyta: 2]
+
+        when:
+        result = service.groupByRank(opus.uuid, "phylum", "hy")
 
         then:
         result == [Hygrophila: 1]
