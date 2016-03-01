@@ -2,8 +2,11 @@ package au.org.ala.profile
 
 import au.org.ala.profile.util.DraftUtil
 import au.org.ala.profile.util.ImageOption
+import au.org.ala.profile.util.StorageExtension
 import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
+import org.apache.commons.io.FilenameUtils
+import org.apache.commons.lang3.StringUtils
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.commons.CommonsMultipartFile
@@ -16,6 +19,9 @@ import static org.owasp.html.Sanitizers.IMAGES
 import static org.owasp.html.Sanitizers.LINKS
 import static org.owasp.html.Sanitizers.STYLES
 import static org.owasp.html.Sanitizers.TABLES
+
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 @Transactional
 class ProfileService extends BaseDataAccessService {
@@ -543,6 +549,19 @@ class ProfileService extends BaseDataAccessService {
         }
     }
 
+/**
+ *  Related Business Capability:  Allow users to keep historical versions of their profiles
+ *  Related Application Feature: Save Snapshot Version feature of Profile Hub
+ *
+ *  A publication is either a PDF of the profile as a versioned snapshot in time OR
+ *  if the profile has additional attachments, a ZIP file containing the profile PDF and
+ *  any other file attachments.
+ * @TODO Consider whether this ought to be moved to a separate service supporting Snapshot versioning tasks
+ *
+ * @param profileId
+ * @param file - a pdf of the Profile that has already been generated and sent to this service
+ * @return
+ */
     def savePublication(String profileId, MultipartFile file) {
         checkArgument profileId
         checkArgument file
@@ -572,12 +591,16 @@ class ProfileService extends BaseDataAccessService {
             publication.doi = doiResult.doi
 
             String fileName = "${grailsApplication.config.snapshot.directory}/${publication.uuid}.pdf"
-
-            file.transferTo(new File(fileName))
-
+            if (profile.attachments) {
+                savePublicationWithAttachments(profile, file, fileName)
+                publication.setFileType(StorageExtension.ZIP)
+            } else {
+                //this copies the incoming 'file' data into a file object and saves this object to the file system
+                file.transferTo(new File(fileName))
+                publication.setFileType(StorageExtension.PDF)
+            }
             profile.publications << publication
             save profile
-
             publication
         } else {
             doiResult
@@ -586,10 +609,68 @@ class ProfileService extends BaseDataAccessService {
 
     File getPublicationFile(String publicationId) {
         checkArgument publicationId
-
-        String fileName = "${grailsApplication.config.snapshot.directory}/${publicationId}.pdf"
+        String extension = determineFileExtension(publicationId)
+        String fileName = "${grailsApplication.config.snapshot.directory}/${publicationId}${extension}"
 
         new File(fileName)
+    }
+    /**
+     * Makes and saves a publication for a profile that has attachments when user clicks
+     * create snapshot version on Profile-Hub.
+     * Takes the profile data, as sent via Profile-Hub as a multipartFile and all attachments for
+     * this profile, bundles them up into a zip file and saves them to disk
+     * @param profile
+     * @param multipartFile - what will become a pdf of the profile
+     * @param absoluteFileName
+     */
+    void savePublicationWithAttachments(Profile profile, MultipartFile multipartFile, String absoluteFileName) {
+        String zipFileName = makeSureFileExtensionIsCorrect('zip', absoluteFileName)
+        ZipOutputStream outputStream = new ZipOutputStream(new FileOutputStream(zipFileName))
+        List<File> fileList = []
+        String profileName = fixFileName(StringUtils.removeEnd(profile.getFullName(), '.'))
+        fileList.addAll(attachmentService.collectAllAttachments(profile))
+        makeAndSaveZipFile(multipartFile, profileName, fileList, outputStream)
+    }
+
+    String fixFileName(String profileName) {
+        Calendar cal = Calendar.getInstance()
+        return profileName + ' - ' + cal.getTime() + StorageExtension.PDF.extension
+    }
+
+    String makeSureFileExtensionIsCorrect(String expectedExtension, String fileName) {
+        if (FilenameUtils.getExtension(fileName) != expectedExtension) {
+            fileName = FilenameUtils.getFullPath(fileName) + FilenameUtils.getBaseName(fileName) + '.' + expectedExtension;
+        }
+        return fileName
+    }
+
+
+    private void makeAndSaveZipFile(MultipartFile multipartFile, profileName, List<File> fileList, ZipOutputStream outputStream) {
+        fileList.each { file ->
+            outputStream.putNextEntry(new ZipEntry(file.getName()))
+            file.withInputStream
+                    { inputStream ->
+                        outputStream << inputStream
+                    }
+            outputStream.closeEntry()
+        }
+        outputStream.putNextEntry(new ZipEntry(profileName))
+        outputStream << multipartFile.getInputStream()
+        outputStream.closeEntry()
+        if (outputStream) {
+            outputStream.flush()
+            outputStream.close()
+        }
+    }
+
+    //Publications can be either a pdf or zip, only the publication knows what it is, publications
+    //are only accessible via their parent profile
+    private String determineFileExtension(String publicationid) {
+        Profile profile = getProfileFromPubId(publicationid)
+        List<Publication> publicationList = profile?.getPublications()
+        Publication publication = publicationList?.find { item -> item.uuid.equals(publicationid) }
+        String fileExtension = publication.getFileType().extension
+        return fileExtension
     }
 
     Set<Publication> listPublications(String profileId) {

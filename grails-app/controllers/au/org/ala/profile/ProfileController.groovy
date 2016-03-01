@@ -172,7 +172,7 @@ class ProfileController extends BaseController {
             } else {
                 profileService.deleteAttachment(profile.uuid, params.attachmentId)
 
-                render ([success: true] as JSON)
+                render([success: true] as JSON)
             }
         }
     }
@@ -183,12 +183,12 @@ class ProfileController extends BaseController {
             badRequest "publicationId is a required parameter"
         } else {
             File file = profileService.getPublicationFile(params.publicationId)
-
+            String contentType = Utils.getFileExtension(file.getName())
             if (!file) {
                 notFound "The requested file could not be found"
             } else {
-                response.setContentType("application/pdf")
-                response.setHeader("Content-disposition", "attachment;filename=publication.pdf")
+                response.setContentType("application/${contentType}")
+                response.setHeader("Content-disposition", "attachment;filename=publication.${contentType}")
                 response.outputStream << file.newInputStream()
             }
         }

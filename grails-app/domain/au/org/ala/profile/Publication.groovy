@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.StorageExtension
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
@@ -13,6 +14,7 @@ class Publication {
     String doi
     String userId
     String authors
+    StorageExtension fileType
 
     def beforeValidate() {
         if (!uuid) {
@@ -20,7 +22,16 @@ class Publication {
         }
     }
 
+
+    StorageExtension getFileType() {
+        if (fileType == null) {
+            fileType = StorageExtension.PDF
+        }
+        return fileType
+    }
+
     static constraints = {
         doi nullable: true
+        fileType defaultValue: StorageExtension.PDF
     }
 }
