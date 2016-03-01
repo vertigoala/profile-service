@@ -307,7 +307,7 @@ class SearchService extends BaseDataAccessService {
                                     if (this.classification[i].rank.toLowerCase() == '${topRank.toLowerCase()}' &&
                                         this.classification[i].name.toLowerCase() == '${topName.toLowerCase()}' &&
                                         i + 1 < this.classification.length) {
-                                        if (!filter || filter.length == 0 || this.classification[i + 1].name.toLowerCase().indexOf(filter) == 0) {
+                                        if (!filter || filter.length == 0 || this.classification[i + 1].name.toLowerCase().indexOf(filter) > -1) {
                                             emit(this.classification[i + 1].rank, this.classification[i + 1]);
                                         }
                                     }
