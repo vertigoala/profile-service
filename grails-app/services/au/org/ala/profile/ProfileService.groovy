@@ -590,11 +590,12 @@ class ProfileService extends BaseDataAccessService {
         if (doiResult.status == "success") {
             publication.doi = doiResult.doi
 
-            String fileName = "${grailsApplication.config.snapshot.directory}/${publication.uuid}.pdf"
             if (profile.attachments) {
+                String fileName = "${grailsApplication.config.snapshot.directory}/${publication.uuid}.zip"
                 savePublicationWithAttachments(profile, file, fileName)
                 publication.setFileType(StorageExtension.ZIP)
             } else {
+                String fileName = "${grailsApplication.config.snapshot.directory}/${publication.uuid}.pdf"
                 //this copies the incoming 'file' data into a file object and saves this object to the file system
                 file.transferTo(new File(fileName))
                 publication.setFileType(StorageExtension.PDF)
@@ -624,47 +625,40 @@ class ProfileService extends BaseDataAccessService {
      * @param absoluteFileName
      */
     void savePublicationWithAttachments(Profile profile, MultipartFile multipartFile, String absoluteFileName) {
-        String zipFileName = makeSureFileExtensionIsCorrect('zip', absoluteFileName)
-        ZipOutputStream outputStream = new ZipOutputStream(new FileOutputStream(zipFileName))
+        ZipOutputStream outputStream = new ZipOutputStream(new FileOutputStream(absoluteFileName))
         List<File> fileList = []
-        String profileName = fixFileName(StringUtils.removeEnd(profile.getFullName(), '.'))
+        String profileName = fixFileName(StringUtils.removeEnd(profile.getScientificName(), '.'))
         fileList.addAll(attachmentService.collectAllAttachments(profile))
         makeAndSaveZipFile(multipartFile, profileName, fileList, outputStream)
     }
 
     String fixFileName(String profileName) {
         Calendar cal = Calendar.getInstance()
-        return profileName + ' - ' + cal.getTime() + StorageExtension.PDF.extension
-    }
-
-    String makeSureFileExtensionIsCorrect(String expectedExtension, String fileName) {
-        if (FilenameUtils.getExtension(fileName) != expectedExtension) {
-            fileName = FilenameUtils.getFullPath(fileName) + FilenameUtils.getBaseName(fileName) + '.' + expectedExtension;
-        }
-        return fileName
+        profileName + ' - ' + cal.getTime() + StorageExtension.PDF.extension
     }
 
 
     private void makeAndSaveZipFile(MultipartFile multipartFile, profileName, List<File> fileList, ZipOutputStream outputStream) {
-        fileList.each { file ->
-            outputStream.putNextEntry(new ZipEntry(file.getName()))
-            file.withInputStream
-                    { inputStream ->
-                        outputStream << inputStream
-                    }
+        try {
+            fileList.each { file ->
+                outputStream.putNextEntry(new ZipEntry(file.getName()))
+                file.withInputStream
+                        { inputStream ->
+                            outputStream << inputStream
+                        }
+                outputStream.closeEntry()
+            }
+            outputStream.putNextEntry(new ZipEntry(profileName))
+            outputStream << multipartFile.getInputStream()
             outputStream.closeEntry()
-        }
-        outputStream.putNextEntry(new ZipEntry(profileName))
-        outputStream << multipartFile.getInputStream()
-        outputStream.closeEntry()
-        if (outputStream) {
-            outputStream.flush()
-            outputStream.close()
+        } finally {
+            outputStream?.flush()
+            outputStream?.close()
         }
     }
 
-    //Publications can be either a pdf or zip, only the publication knows what it is, publications
-    //are only accessible via their parent profile
+//Publications can be either a pdf or zip, only the publication knows what it is, publications
+//are only accessible via their parent profile
     private String determineFileExtension(String publicationid) {
         Profile profile = getProfileFromPubId(publicationid)
         List<Publication> publicationList = profile?.getPublications()
