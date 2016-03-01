@@ -29,7 +29,7 @@ class AttachmentService {
         "${grailsApplication.config.attachments.directory}/${opusId}/${profileId ? profileId + '/' : ''}${attachmentId}.${extension}"
     }
 
-    private List<File> collectAllAttachments(Profile profile) {
+    List<File> collectAllAttachments(Profile profile) {
         List<File> fileList = []
         if (profile.attachments) {
             List<Attachment> attachments = profile.getAttachments()
