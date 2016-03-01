@@ -1,5 +1,7 @@
 # profile-service
-[![Build Status](https://travis-ci.org/AtlasOfLivingAustralia/profile-service.svg?branch=master)](https://travis-ci.org/AtlasOfLivingAustralia/profile-service)
+Master: [![Build Status](https://travis-ci.org/AtlasOfLivingAustralia/profile-service.svg?branch=master)](https://travis-ci.org/AtlasOfLivingAustralia/profile-service)
+
+Dev: [![Build Status](https://travis-ci.org/AtlasOfLivingAustralia/profile-service.svg?branch=dev)](https://travis-ci.org/AtlasOfLivingAustralia/profile-service)
 
 Profile Service
 

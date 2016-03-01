@@ -5,7 +5,7 @@ jdk:
 branches:
   only:
   - master
-  - search
+  - dev
 services:
 - mongodb
 addons:
