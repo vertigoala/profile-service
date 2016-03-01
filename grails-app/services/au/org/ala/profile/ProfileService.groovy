@@ -543,6 +543,19 @@ class ProfileService extends BaseDataAccessService {
         }
     }
 
+/**
+ *  Related Business Capability:  Allow users to keep historical versions of their profiles
+ *  Related Application Feature: Save Snapshot Version feature of Profile Hub
+ *
+ *  A publication is either a PDF of the profile as a versioned snapshot in time OR
+ *  if the profile has additional attachments, a ZIP file containing the profile PDF and
+ *  any other file attachments.
+ *  @TODO Consider whether this ought to be moved to a separate service supporting Snapshot versioning tasks
+ *
+ * @param profileId
+ * @param file   - a pdf of the Profile that has already been generated and sent to this service
+ * @return
+ */
     def savePublication(String profileId, MultipartFile file) {
         checkArgument profileId
         checkArgument file
@@ -555,41 +568,55 @@ class ProfileService extends BaseDataAccessService {
             profile.publications = []
         }
 
-        Publication publication = new Publication()
-        publication.title = profile.scientificName
-        publication.authors = profile.authorship.find { it.category.name == "Author" }?.text
-        publication.publicationDate = new Date()
-        publication.userId = authService.getUserId()
-        publication.uuid = UUID.randomUUID().toString()
-        if (profile.publications) {
-            publication.version = profile.publications.sort { it.version }.last().version + 1
-        } else {
-            publication.version = 1
-        }
+            Publication publication = new Publication()
+            publication.title = profile.scientificName
+            publication.authors = profile.authorship.find { it.category.name == "Author" }?.text
+            publication.publicationDate = new Date()
+            publication.userId = authService.getUserId()
+            publication.uuid = UUID.randomUUID().toString()
+            if (profile.publications) {
+                publication.version = profile.publications.sort { it.version }.last().version + 1
+            } else {
+                publication.version = 1
+            }
 
-        Map doiResult = doiService.mintDOI(profile.opus, publication)
-        if (doiResult.status == "success") {
-            publication.doi = doiResult.doi
+            Map doiResult = doiService.mintDOI(profile.opus, publication)
+            if (doiResult.status == "success") {
+                publication.doi = doiResult.doi
 
-            String fileName = "${grailsApplication.config.snapshot.directory}/${publication.uuid}.pdf"
+                String fileName = "${grailsApplication.config.snapshot.directory}/${publication.uuid}.pdf"
+                if (profile.attachments) {
+                 attachmentService.bundleAttachmentsIntoZipFile(profile, file, fileName)
+                } else {
+                    //this copies the incoming 'file' data into a file object and saves this object to the file system?
+                    file.transferTo(new File(fileName))
+                }
+                profile.publications << publication
+                save profile
 
-            file.transferTo(new File(fileName))
-
-            profile.publications << publication
-            save profile
-
-            publication
-        } else {
-            doiResult
-        }
+                publication
+            }else {
+                doiResult
+            }
     }
+
 
     File getPublicationFile(String publicationId) {
         checkArgument publicationId
-
-        String fileName = "${grailsApplication.config.snapshot.directory}/${publicationId}.pdf"
+         String extension = determineFileExtension(publicationId)
+        String fileName = "${grailsApplication.config.snapshot.directory}/${publicationId}${extension}"
 
         new File(fileName)
+    }
+
+    //Publications can be either a pdf or zip, only the publication knows what it is, publications
+    //are only accessible via their parent profile
+     private String determineFileExtension(String publicationid) {
+        Profile profile = getProfileFromPubId(publicationid)
+        List<Publication> publicationList = profile?.getPublications()
+         Publication publication = publicationList?.find{item -> item.uuid.equals(publicationid)}
+        String fileExtension = publication.getFileType().extension
+        return fileExtension
     }
 
     Set<Publication> listPublications(String profileId) {
