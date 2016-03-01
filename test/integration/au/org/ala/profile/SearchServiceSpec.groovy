@@ -1262,12 +1262,20 @@ class SearchServiceSpec extends BaseIntegrationSpec {
                                                                                   new Classification(rank: "subclass", name: "Magnoliidae"),
                                                                                   new Classification(rank: "superorder", name: "Lilianae")])
 
-        when: "asked for the children of subclass Magnoliidae starting with 'A'"
-        List result = service.getImmediateChildren(opus, "subclass", "Magnoliidae", "a")
+        when: "asked for the children of subclass Magnoliidae containing 'Aster'"
+        List result = service.getImmediateChildren(opus, "subclass", "Magnoliidae", "aster")
 
-        then: "it should return Asteranae and Austrobaileyanae"
-        result.size() == 2
+        then: "it should return Asteranae"
+        result.size() == 1
+        result[0].name == "Asteranae"
+
+        when: "asked for the children of subclass Magnoliidae containing 'anae'"
+        result = service.getImmediateChildren(opus, "subclass", "Magnoliidae", "anae")
+
+        then: "it should return Austrobaileyanae, Asteranae and Lilianae"
+        result.size() == 3
         result[0].name == "Asteranae"
         result[1].name == "Austrobaileyanae"
+        result[2].name == "Lilianae"
     }
 }
