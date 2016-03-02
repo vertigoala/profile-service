@@ -400,7 +400,7 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result.find { it.scientificName == profile3.scientificName } != null
     }
 
-    def "findByClassificationNameAndRank should exclude the specified name and rank"() {
+    def "findByClassificationNameAndRank should exclude the specified name and rank, ignoring case"() {
         given:
         Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
         Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
@@ -411,7 +411,7 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         Profile profile3 = save new Profile(scientificName: "plantae", opus: opus3, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
 
         when:
-        List result = service.findByClassificationNameAndRank("kingdom", "plantae", null)
+        List result = service.findByClassificationNameAndRank("kingdom", "planTAE", null)
 
         then:
         result.size() == 2
@@ -1019,6 +1019,31 @@ class SearchServiceSpec extends BaseIntegrationSpec {
 
         then:
         result == [Abildgaardia: 1, Abrophyllum: 2]
+    }
+
+
+
+    def "groupByRank should exclude profiles at the specified rank (we only want a count of the descendants of the rank)"() {
+        given:
+        Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+
+        save new Profile(scientificName: "phylum", rank: "phylum", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                   new Classification(rank: "phylum", name: "Charophyta")])
+        save new Profile(scientificName: "subclass1", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                   new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                   new Classification(rank: "clazz", name: "Equisetopsida"),
+                                                                                   new Classification(rank: "subclazz", name: "Cycadidae")])
+        save new Profile(scientificName: "subclass2", opus: opus, classification: [new Classification(rank: "kingdom", name: "Plantae"),
+                                                                                   new Classification(rank: "phylum", name: "Charophyta"),
+                                                                                   new Classification(rank: "clazz", name: "Equisetopsida"),
+                                                                                   new Classification(rank: "subclazz", name: "Magnoliidae")])
+
+
+        when:
+        Map result = service.groupByRank(opus.uuid, "phylum")
+
+        then: "the count should exclude the first profile because it has the same rank we are searching for (phylum)"
+        result == [Charophyta:2]
     }
 
     def "groupByRank should limit the results to the specified maximum (names sorted alphabetically"() {
