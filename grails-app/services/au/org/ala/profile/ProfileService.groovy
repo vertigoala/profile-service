@@ -626,10 +626,10 @@ class ProfileService extends BaseDataAccessService {
      */
     void savePublicationWithAttachments(Profile profile, MultipartFile multipartFile, String absoluteFileName) {
         ZipOutputStream outputStream = new ZipOutputStream(new FileOutputStream(absoluteFileName))
-        List<File> fileList = []
+        Map<String,File> fileMap = [:]
         String profileName = fixFileName(StringUtils.removeEnd(profile.getScientificName(), '.'))
-        fileList.addAll(attachmentService.collectAllAttachments(profile))
-        makeAndSaveZipFile(multipartFile, profileName, fileList, outputStream)
+        fileMap.putAll(attachmentService.collectAllAttachmentsIncludingOriginalNames(profile))
+        makeAndSaveZipFile(multipartFile, profileName, fileMap, outputStream)
     }
 
     String fixFileName(String profileName) {
@@ -638,11 +638,11 @@ class ProfileService extends BaseDataAccessService {
     }
 
 
-    private void makeAndSaveZipFile(MultipartFile multipartFile, profileName, List<File> fileList, ZipOutputStream outputStream) {
+    private void makeAndSaveZipFile(MultipartFile multipartFile, profileName, Map<String,File> fileMap, ZipOutputStream outputStream) {
         try {
-            fileList.each { file ->
-                outputStream.putNextEntry(new ZipEntry(file.getName()))
-                file.withInputStream
+            fileMap.each { file ->
+                outputStream.putNextEntry(new ZipEntry(file.key))
+                file.value.withInputStream
                         { inputStream ->
                             outputStream << inputStream
                         }
