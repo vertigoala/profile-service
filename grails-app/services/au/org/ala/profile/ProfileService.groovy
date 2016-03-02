@@ -435,6 +435,9 @@ class ProfileService extends BaseDataAccessService {
         boolean success = recordImage(profile.draft.stagedImages, json)
 
         if (success) {
+            if (json.action == "delete") {
+                profile.imageDisplayOptions?.remove(json.imageId)
+            }
             success = save profile
         } else {
             log.error "Failed to record image (prior to saving the profile)"
@@ -453,6 +456,9 @@ class ProfileService extends BaseDataAccessService {
         boolean success = recordImage(profileOrDraft(profile).privateImages, json)
 
         if (success) {
+            if (json.action == "delete") {
+                profile.imageDisplayOptions?.remove(json.imageId)
+            }
             success = save profile
         } else {
             log.error "Failed to record image (prior to saving the profile)"
