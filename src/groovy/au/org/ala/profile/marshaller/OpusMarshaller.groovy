@@ -57,12 +57,7 @@ class OpusMarshaller {
                     showLinkedOpusAttributes   : opus.showLinkedOpusAttributes != null ? opus.showLinkedOpusAttributes : false,
                     allowFineGrainedAttribution: opus.allowFineGrainedAttribution != null ? opus.allowFineGrainedAttribution : true,
                     authorities                : opus.authorities?.collect {
-                        // temp change to work out how an authority can go missing...
-                        if (it) {
-                            [userId: it.user.userId, name: it.user.name, role: it.role.toString(), notes: it.notes]
-                        } else {
-                            [:]
-                        }
+                        [uuid: it.uuid, userId: it.user.userId, name: it.user.name, role: it.role.toString(), notes: it.notes]
                     },
                     copyrightText              : opus.copyrightText,
                     footerText                 : opus.footerText,

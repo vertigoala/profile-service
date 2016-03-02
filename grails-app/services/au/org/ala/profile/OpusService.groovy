@@ -231,17 +231,39 @@ class OpusService extends BaseDataAccessService {
         checkState opus
 
         if (json.containsKey("authorities")) {
-            if (opus.authorities) {
-                Authority.deleteAll(opus.authorities)
-                opus.authorities.clear()
-            } else {
-                opus.authorities = []
+            List<String> incomingIds = json.authorities?.findResults { it.uuid }
+
+            List<Authority> authoritiesToRemove = []
+            Map<String, Authority> existingAuthorities = [:]
+
+            opus.authorities?.each {
+                if (!incomingIds.contains(it.uuid)) {
+                    authoritiesToRemove << it
+                } else {
+                    existingAuthorities << [(it.uuid): it]
+                }
             }
 
+            opus.authorities?.removeAll(authoritiesToRemove)
+
             json.authorities?.each {
-                Contributor user = getOrCreateContributor(it.name, it.userId)
-                Role role = Role.valueOf(it.role.toUpperCase())
-                opus.authorities << new Authority(user: user, role: role, notes: it.notes)
+                if (it.uuid) {
+                    Authority auth = existingAuthorities[it.uuid]
+                    auth.notes = it.notes
+                    auth.role = Role.valueOf(it.role.toUpperCase())
+                    auth.user = getOrCreateContributor(it.name, it.userId)
+                } else {
+                    Contributor user = getOrCreateContributor(it.name, it.userId)
+                    Role role = Role.valueOf(it.role.toUpperCase())
+                    if (opus.authorities == null) {
+                        opus.authorities = []
+                    }
+                    opus.authorities << new Authority(uuid: UUID.randomUUID().toString(),user: user, role: role, notes: it.notes)
+                }
+            }
+
+            if (opus.validate()) {
+                Authority.deleteAll(authoritiesToRemove)
             }
         }
 

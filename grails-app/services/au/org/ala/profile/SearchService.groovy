@@ -224,6 +224,19 @@ class SearchService extends BaseDataAccessService {
         results
     }
 
+    /**
+     * Find all descendants of the specified taxon, NOT including the taxon itself. For example, rank = genus and
+     * scientificName = Acacia should list all Acacia species/subspecies/varieties/etc, but should NOT include Acacia
+     * itself.
+     *
+     * @param rank The rank of the taxon to find the descendants of
+     * @param scientificName The name of the taxon to find the descendants of
+     * @param opusIds List of opusIds to limit the search to. If null or empty, all collections will be searched
+     * @param sortBy Sort option
+     * @param max Maximum number of results to return
+     * @param startFrom The 0-based offset to start the results from (for paging)
+     * @return List of descendant taxa of the specified Rank/ScientificName
+     */
     List<Map> findByClassificationNameAndRank(String rank, String scientificName, List<String> opusIds, ProfileSortOption sortBy = ProfileSortOption.getDefault(), int max = -1, int startFrom = 0) {
         checkArgument rank
         checkArgument scientificName
@@ -238,7 +251,7 @@ class SearchService extends BaseDataAccessService {
         }
 
         Map matchCriteria = [archivedDate: null]
-        matchCriteria << ["scientificName": ['$ne': scientificName]]
+        matchCriteria << ["scientificName": [$regex: /^(?!(${scientificName})$)/, $options: "i"]] // case insensitive NOT condition
 
         if (opusList) {
             matchCriteria << [opus: [$in: opusList*.id]]
@@ -438,7 +451,7 @@ class SearchService extends BaseDataAccessService {
             } else {
                 def result = Profile.collection.aggregate([$match: [opus: opus.id, archivedDate: null]],
                         [$unwind: '$classification'],
-                        [$match: ["classification.rank": "${taxon}", "classification.name": [$regex: /^${filter}/, $options: "i"]]],
+                        [$match: ["classification.rank": taxon, "classification.name": [$regex: /^${filter}/, $options: "i"], "rank": [$ne: taxon]]],
                         [$group: [_id: '$classification.name', cnt: [$sum: 1]]],
                         [$sort: ["_id": 1]],
                         [$skip: startFrom], [$limit: max < 0 ? DEFAULT_MAX_BROAD_SEARCH_RESULTS : max]
