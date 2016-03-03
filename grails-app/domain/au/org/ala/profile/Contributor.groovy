@@ -28,6 +28,5 @@ class Contributor {
     }
 
     static mapping = {
-        version false
     }
 }

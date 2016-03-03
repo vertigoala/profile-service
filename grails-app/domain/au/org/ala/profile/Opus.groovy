@@ -116,7 +116,6 @@ class Opus {
     }
 
     static mapping = {
-        version false
         glossary cascade: "all-delete-orphan"
         authorities cascade: "all-delete-orphan"
         shortName index: true

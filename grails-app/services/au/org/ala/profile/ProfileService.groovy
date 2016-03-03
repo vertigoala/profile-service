@@ -5,20 +5,12 @@ import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.StorageExtension
 import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
-import org.apache.commons.io.FilenameUtils
 import org.apache.commons.lang3.StringUtils
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.commons.CommonsMultipartFile
 
 import java.text.SimpleDateFormat
-
-import static org.owasp.html.Sanitizers.BLOCKS
-import static org.owasp.html.Sanitizers.FORMATTING
-import static org.owasp.html.Sanitizers.IMAGES
-import static org.owasp.html.Sanitizers.LINKS
-import static org.owasp.html.Sanitizers.STYLES
-import static org.owasp.html.Sanitizers.TABLES
 
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -555,19 +547,18 @@ class ProfileService extends BaseDataAccessService {
         }
     }
 
-/**
- *  Related Business Capability:  Allow users to keep historical versions of their profiles
- *  Related Application Feature: Save Snapshot Version feature of Profile Hub
- *
- *  A publication is either a PDF of the profile as a versioned snapshot in time OR
- *  if the profile has additional attachments, a ZIP file containing the profile PDF and
- *  any other file attachments.
- * @TODO Consider whether this ought to be moved to a separate service supporting Snapshot versioning tasks
- *
- * @param profileId
- * @param file - a pdf of the Profile that has already been generated and sent to this service
- * @return
- */
+    /**
+     *  Related Business Capability:  Allow users to keep historical versions of their profiles
+     *  Related Application Feature: Save Snapshot Version feature of Profile Hub
+     *
+     *  A publication is either a PDF of the profile as a versioned snapshot in time OR
+     *  if the profile has additional attachments, a ZIP file containing the profile PDF and
+     *  any other file attachments.
+     *
+     * @param profileId
+     * @param file - a pdf of the Profile that has already been generated and sent to this service
+     * @return
+     */
     def savePublication(String profileId, MultipartFile file) {
         checkArgument profileId
         checkArgument file
@@ -621,6 +612,7 @@ class ProfileService extends BaseDataAccessService {
 
         new File(fileName)
     }
+
     /**
      * Makes and saves a publication for a profile that has attachments when user clicks
      * create snapshot version on Profile-Hub.
@@ -643,8 +635,7 @@ class ProfileService extends BaseDataAccessService {
         profileName + ' - ' + cal.getTime() + StorageExtension.PDF.extension
     }
 
-
-    private void makeAndSaveZipFile(MultipartFile multipartFile, profileName, Map<String,File> fileMap, ZipOutputStream outputStream) {
+    private static void makeAndSaveZipFile(MultipartFile multipartFile, String profileName, Map<String,File> fileMap, ZipOutputStream outputStream) {
         try {
             fileMap.each { file ->
                 outputStream.putNextEntry(new ZipEntry(file.key))
@@ -663,8 +654,8 @@ class ProfileService extends BaseDataAccessService {
         }
     }
 
-//Publications can be either a pdf or zip, only the publication knows what it is, publications
-//are only accessible via their parent profile
+    //Publications can be either a pdf or zip, only the publication knows what it is, publications
+    //are only accessible via their parent profile
     private String determineFileExtension(String publicationid) {
         Profile profile = getProfileFromPubId(publicationid)
         List<Publication> publicationList = profile?.getPublications()
