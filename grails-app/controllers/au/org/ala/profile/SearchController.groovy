@@ -161,8 +161,15 @@ class SearchController extends BaseController {
 
     @RequireApiKey
     def reindex() {
+
+        if (Status.count() == 0) {
+            Status status = new Status()
+            status.searchReindex = true
+            save status
+        }
+
         searchService.reindex()
 
-        render (Status.first() as JSON)
+       render (Status.first() as JSON)
     }
 }

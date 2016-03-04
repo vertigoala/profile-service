@@ -541,13 +541,8 @@ class SearchService extends BaseDataAccessService {
 
     @Async
     def reindex() {
-        Status status
-        if (Status.count() == 0) {
-            status = new Status()
-            save status
-        }
 
-        status = Status.list()[0]
+        Status status = Status.list()[0]
         status.searchReindex = true
         save status
 
@@ -560,7 +555,7 @@ class SearchService extends BaseDataAccessService {
 
         status.searchReindex = false
         status.lastReindexDuration = time
-        save status
+            save status
 
         log.warn("Search re-index complete in ${time} milliseconds")
     }
