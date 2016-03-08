@@ -7,11 +7,14 @@ import au.org.ala.profile.Bibliography
 import au.org.ala.profile.Classification
 import au.org.ala.profile.Contributor
 import au.org.ala.profile.DraftProfile
+import au.org.ala.profile.ImageSettings
 import au.org.ala.profile.Link
 import au.org.ala.profile.Profile
 import au.org.ala.profile.Publication
 import au.org.ala.profile.Term
 import spock.lang.Specification
+
+import static au.org.ala.profile.util.ImageOption.EXCLUDE
 
 class DraftUtilTest extends Specification {
 
@@ -37,7 +40,7 @@ class DraftUtilTest extends Specification {
                 taxonomyTree: "taxonomyTree",
                 nslNameIdentifier: "nslId",
                 primaryImage: "primaryImage",
-                imageDisplayOptions: [image1: ImageOption.EXCLUDE, image2: ImageOption.EXCLUDE],
+                imageSettings: [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE)],
                 specimenIds: ["spec1", "spec2"],
                 authorship: [new Authorship(category: new Term(name: "category1"), text: "bob"), new Authorship(category: new Term(name: "category2"), text: "jill")],
                 classification: [new Classification(rank: "kingdom", name: "Plantae"), new Classification(rank: "family", name: "Acacia")],
@@ -65,8 +68,8 @@ class DraftUtilTest extends Specification {
         draft.primaryImage == original.primaryImage
         draft.taxonomyTree == original.taxonomyTree
 
-        !draft.imageDisplayOptions.is(original.imageDisplayOptions)
-        draft.imageDisplayOptions == original.imageDisplayOptions
+        !draft.imageSettings.is(original.imageSettings)
+        draft.imageSettings == original.imageSettings
 
         !draft.specimenIds.is(original.specimenIds)
         draft.specimenIds == original.specimenIds

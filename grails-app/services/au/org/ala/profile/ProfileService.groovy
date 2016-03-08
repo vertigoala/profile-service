@@ -390,23 +390,25 @@ class ProfileService extends BaseDataAccessService {
         checkArgument profile
         checkArgument json
 
-        if (json.containsKey("primaryImage") && json.primaryImage != profileOrDraft(profile).primaryImage) {
-            profileOrDraft(profile).primaryImage = json.primaryImage
+        def profileOrDraft = profileOrDraft(profile)
+
+        if (json.containsKey("primaryImage") && json.primaryImage != profileOrDraft.primaryImage) {
+            profileOrDraft.primaryImage = json.primaryImage
         }
 
-        if (json.containsKey("imageDisplayOptions") && json.imageDisplayOptions != profileOrDraft(profile).imageDisplayOptions) {
-            if (profileOrDraft(profile).imageDisplayOptions) {
-                profileOrDraft(profile).imageDisplayOptions.clear()
+        if (json.containsKey("imageSettings") && json.imageSettings != profileOrDraft.imageSettings) {
+            if (profileOrDraft.imageSettings) {
+                profileOrDraft.imageSettings.clear()
             } else {
-                profileOrDraft(profile).imageDisplayOptions = [:]
+                profileOrDraft.imageSettings = [:]
             }
 
-            json.imageDisplayOptions?.each {
+            json.imageSettings?.each {
                 ImageOption imageDisplayOption = ImageOption.byName(it.displayOption, profile.opus.approvedImageOption)
-
-                if (imageDisplayOption != profile.opus.approvedImageOption) {
-                    profileOrDraft(profile).imageDisplayOptions << [(it.imageId): imageDisplayOption]
+                if (imageDisplayOption == profile.opus.approvedImageOption) {
+                    imageDisplayOption = null
                 }
+                profileOrDraft.imageSettings << [(it.imageId): new ImageSettings(imageDisplayOption: imageDisplayOption, caption: it.caption ?: '')]
             }
         }
 

@@ -1,6 +1,5 @@
 package au.org.ala.profile
 
-import au.org.ala.profile.util.ImageOption
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.bson.types.ObjectId
@@ -43,7 +42,7 @@ class Profile {
     Name matchedName
     String taxonomyTree
     String primaryImage
-    Map<String, ImageOption> imageDisplayOptions = [:]
+    Map<String, ImageSettings> imageSettings = [:]
     List<String> specimenIds
     List<Authorship> authorship
     List<Classification> classification
@@ -71,7 +70,7 @@ class Profile {
     String archivedBy
     String archivedWithName
 
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'matchedName', 'privateImages', 'attachments']
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'matchedName', 'privateImages', 'attachments', 'imageSettings']
 
     static hasMany = [attributes: Attribute]
 

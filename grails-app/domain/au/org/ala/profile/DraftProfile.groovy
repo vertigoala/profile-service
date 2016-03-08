@@ -19,7 +19,7 @@ class DraftProfile {
     String nslNomenclatureIdentifier
     String taxonomyTree
     String primaryImage
-    Map<String, ImageOption> imageDisplayOptions = [:]
+    Map<String, ImageSettings> imageSettings = [:]
     List<String> specimenIds
     List<Authorship> authorship
     List<Classification> classification

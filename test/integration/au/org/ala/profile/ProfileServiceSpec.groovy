@@ -132,7 +132,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
         when: "incoming data contains a variety of fields"
         Map data = [primaryImage: "09876",
-                    imageDisplayOptions: [[imageId: "image4", displayOption: EXCLUDE.name()], [imageId: "image5", displayOption: EXCLUDE.name()], [imageId: "image6", displayOption: EXCLUDE.name()]],
+                    imageSettings: [[imageId: "image4", displayOption: EXCLUDE.name()], [imageId: "image5", displayOption: EXCLUDE.name()], [imageId: "image6", displayOption: EXCLUDE.name()]],
                     specimenIds: ["4", "5", "6"],
                     bhlLinks: [[url: "three"], [url: "four"]],
                     links: [[url: "five"], [url: "six"]],
@@ -141,7 +141,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
         then: "all appropriate fields are updated"
         profile.primaryImage == "09876"
-        profile.imageDisplayOptions == [image4: EXCLUDE, image5: EXCLUDE, image6: EXCLUDE]
+        profile.imageSettings == [image4: new ImageSettings(imageDisplayOption: EXCLUDE), image5: new ImageSettings(imageDisplayOption: EXCLUDE), image6: new ImageSettings(imageDisplayOption: EXCLUDE)]
         profile.specimenIds == ["4", "5", "6"]
         profile.bhlLinks.every {it.url == "three" || it.url == "four"}
         profile.links.every {it.url == "five" || it.url == "six"}
@@ -193,43 +193,43 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.primaryImage == "12345"
     }
 
-    def "saveImages should change the imageDisplayOptions only if the incoming data has the imageDisplayOptions attribute and the value is different"() {
+    def "saveImages should change the imageSettings only if the incoming data has the imageSettings attribute and the value is different"() {
         given:
         Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
         save opus
         Profile profile
 
         when: "the incoming value is different"
-        profile = new Profile(opus: opus, scientificName: "sciName", imageDisplayOptions: [image1: EXCLUDE, image2: EXCLUDE, image3: EXCLUDE])
+        profile = new Profile(opus: opus, scientificName: "sciName", imageSettings: [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE), image3: new ImageSettings(imageDisplayOption: EXCLUDE)])
         save profile
-        service.saveImages(profile, [imageDisplayOptions: [[imageId: "image4", displayOption: EXCLUDE.name()], [imageId: "image5", displayOption: EXCLUDE.name()], [imageId: "image6", displayOption: EXCLUDE.name()]]])
+        service.saveImages(profile, [imageSettings: [[imageId: "image4", displayOption: EXCLUDE.name()], [imageId: "image5", displayOption: EXCLUDE.name()], [imageId: "image6", displayOption: EXCLUDE.name()]]])
 
-        then: "the imageDisplayOptions should be replaced"
-        profile.imageDisplayOptions == [image4: EXCLUDE, image5: EXCLUDE, image6: EXCLUDE]
+        then: "the imageSettings should be replaced"
+        profile.imageSettings == [image4: new ImageSettings(imageDisplayOption: EXCLUDE), image5: new ImageSettings(imageDisplayOption: EXCLUDE), image6: new ImageSettings(imageDisplayOption: EXCLUDE)]
 
         when: "the incoming data does not have the attribute"
-        profile = new Profile(opus: opus, scientificName: "sciName", imageDisplayOptions: [image1: EXCLUDE, image2: EXCLUDE, image3: EXCLUDE])
+        profile = new Profile(opus: opus, scientificName: "sciName", imageSettings: [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE), image3: new ImageSettings(imageDisplayOption: EXCLUDE)])
         save profile
         service.saveImages(profile, [a: "bla"])
 
         then: "there should be no change"
-        profile.imageDisplayOptions == [image1: EXCLUDE, image2: EXCLUDE, image3: EXCLUDE]
+        profile.imageSettings == [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE), image3: new ImageSettings(imageDisplayOption: EXCLUDE)]
 
         when: "the incoming attribute is empty"
-        profile = new Profile(opus: opus, scientificName: "sciName", imageDisplayOptions: [image1: EXCLUDE, image2: EXCLUDE, image3: EXCLUDE])
+        profile = new Profile(opus: opus, scientificName: "sciName", imageSettings: [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE), image3: new ImageSettings(imageDisplayOption: EXCLUDE)])
         save profile
-        service.saveImages(profile, [imageDisplayOptions: []])
+        service.saveImages(profile, [imageSettings: []])
 
         then: "all existing image options should be removed"
-        profile.imageDisplayOptions == [:]
+        profile.imageSettings == [:]
 
         when: "the incoming attribute is null"
-        profile = new Profile(opus: opus, scientificName: "sciName", imageDisplayOptions: [image1: EXCLUDE, image2: EXCLUDE, image3: EXCLUDE])
+        profile = new Profile(opus: opus, scientificName: "sciName", imageSettings: [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE), image3: new ImageSettings(imageDisplayOption: EXCLUDE)])
         save profile
-        service.saveImages(profile, [imageDisplayOptions: null])
+        service.saveImages(profile, [imageSettings: null])
 
         then: "all existing image options should be removed"
-        profile.imageDisplayOptions == [:]
+        profile.imageSettings == [:]
     }
 
     def "saveSpecimens should change the specimens only if the incoming data has the specimenIds attribute and the value is different"() {
