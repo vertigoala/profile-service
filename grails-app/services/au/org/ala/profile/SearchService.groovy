@@ -159,7 +159,7 @@ class SearchService extends BaseDataAccessService {
 
         String wildcard = ".*"
         if (!useWildcard) {
-            wildcard = '$'
+            wildcard = '\\s*$' // regex end of line to ensure full word matching
         }
 
         List<Opus> accessibleCollections = getAccessibleCollections(opusIds)
@@ -175,18 +175,16 @@ class SearchService extends BaseDataAccessService {
             // to view profiles from any of the collections, so return an empty list
             results = []
         } else {
-            Map criteria = [
-                    $and: []
-            ]
-            criteria.$and << [archivedDate: null]
+            Map criteria = [:]
+            criteria << [archivedDate: null]
             if (accessibleCollections) {
-                criteria.$and << [opus: [$in: accessibleCollections*.id]]
+                criteria << [opus: [$in: accessibleCollections*.id]]
             }
 
             // using regex to perform a case-insensitive match on EITHER the scientificName OR fullName
-            criteria.$and << [$or: [
-                    [scientificName: [$regex: /^${scientificName}${wildcard}/, $options: "i"],
-                     fullName      : [$regex: /^${scientificName}${wildcard}/, $options: "i"]]
+            criteria << [$or: [
+                    [scientificName: [$regex: /^${scientificName}${wildcard}/, $options: "i"]],
+                     [fullName      : [$regex: /^${scientificName}${wildcard}/, $options: "i"]]
             ]]
 
             // Create a projection containing the commonly used Profile attributes, and calculated fields 'unknownRank'

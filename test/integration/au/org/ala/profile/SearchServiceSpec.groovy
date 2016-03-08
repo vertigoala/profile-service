@@ -169,12 +169,29 @@ class SearchServiceSpec extends BaseIntegrationSpec {
     def "findByScientificName should perform exact match (case-insensitive) when useWildcard is false"() {
         given:
         Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
-        Profile profile1 = save new Profile(scientificName: "name", fullName: "name", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile2 = save new Profile(scientificName: "name two", fullName: "name two", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
-        Profile profile3 = save new Profile(scientificName: "nameThree", fullName: "nameThree", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile1 = save new Profile(scientificName: "name", fullName: "name full", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile2 = save new Profile(scientificName: "name two", fullName: "name two full", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile3 = save new Profile(scientificName: "nameThree", fullName: "nameThree full", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
 
         when:
         List result = service.findByScientificName("NAME", [opus1.uuid], ProfileSortOption.getDefault(), false)
+
+        then:
+        result.size() == 1
+        result.find { it.scientificName == profile1.scientificName } != null
+        result.find { it.scientificName == profile2.scientificName } == null
+        result.find { it.scientificName == profile3.scientificName } == null
+    }
+
+    def "findByScientificName should match the fullname if there is no match on the scientificName"() {
+        given:
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
+        Profile profile1 = save new Profile(scientificName: "name", fullName: "name full", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile2 = save new Profile(scientificName: "name two", fullName: "name two full", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+        Profile profile3 = save new Profile(scientificName: "nameThree", fullName: "nameThree full", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "Plantae")])
+
+        when:
+        List result = service.findByScientificName("NAME full", [opus1.uuid], ProfileSortOption.getDefault(), false)
 
         then:
         result.size() == 1
