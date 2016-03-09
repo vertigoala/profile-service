@@ -108,7 +108,7 @@ class ProfileService extends BaseDataAccessService {
 
     private void updateNameDetails(profile, Map matchedName, String providedName) {
         if (matchedName) {
-            if (providedName == matchedName.fullName || providedName == matchedName.scientificName) {
+            if (providedName.equalsIgnoreCase(matchedName.fullName) || providedName.equalsIgnoreCase(matchedName.scientificName)) {
                 profile.scientificName = matchedName.scientificName
                 profile.fullName = matchedName.fullName
                 profile.nameAuthor = matchedName.nameAuthor

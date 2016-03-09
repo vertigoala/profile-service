@@ -1407,5 +1407,25 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         0 * service.attachmentService.deleteAttachment(_, _, _, _)
     }
 
+    def "renameProfile should use the case of the matched scientific name if the supplied name doesn't have the same case"() {
+        given:
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile profile = new Profile(opus: opus1, uuid:"profile1", scientificName: "sciName", fullName: "sciName author", nameAuthor:"author")
+        save profile
+
+        service.nameService.matchName(_,_,_) >> [scientificName: "sciName", author: "fred", guid: "ABC", fullName:"sciName fred"]
+
+        when:
+        service.renameProfile("profile1", [newName:"SCINAME"])
+        profile = Profile.findByUuid("profile1") // reload the profile
+
+        then:
+
+        profile.scientificName == "sciName"
+        profile.fullName == "sciName fred"
+        profile.guid == "ABC"
+    }
+
 }
 
