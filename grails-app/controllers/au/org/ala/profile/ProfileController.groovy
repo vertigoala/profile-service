@@ -189,7 +189,10 @@ class ProfileController extends BaseController {
             } else {
                 response.setContentType("application/${contentType}")
                 response.setHeader("Content-disposition", "attachment;filename=publication.${contentType}")
-                response.outputStream << file.newInputStream()
+                response.setContentLength((int)file.length())
+                file.withInputStream { InputStream is ->
+                    response.outputStream << is
+                }
             }
         }
     }
