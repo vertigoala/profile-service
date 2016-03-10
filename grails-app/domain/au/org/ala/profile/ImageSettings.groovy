@@ -14,4 +14,9 @@ class ImageSettings {
     static mapping = {
         version false
     }
+
+    static constraints = {
+        caption nullable: true
+        imageDisplayOption nullable: true
+    }
 }
