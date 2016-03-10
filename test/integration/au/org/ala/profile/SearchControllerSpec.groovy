@@ -139,4 +139,107 @@ class SearchControllerSpec extends BaseIntegrationSpec {
         then:
         1 * searchService.groupByRank("opusId", "taxon", null, 666, 10) >> [:]
     }
+
+    def "getImmediateChildren should return a count of children, excluding the profile itself - zero count"() {
+        given:
+        Opus opus = save new Opus(uuid: "opusId", shortName: "opusid", title: "opusName", glossary: new Glossary(), dataResourceUid: "dr1")
+        save new Profile(opus: opus, uuid: "profile1", scientificName: "Bleasdalea", rank: "genus", guid: "name1", classification: [
+                new Classification(rank: "genus", name: "Bleasdalea")
+        ])
+        save new Profile(opus: opus, uuid: "profile2", scientificName: "Bleasdalea bleasdalei", rank: "species", guid: "name2", classification: [
+                new Classification(rank: "genus", name: "Bleasdalea"),
+                new Classification(rank: "species", name: "Bleasdalea bleasdalei")
+        ])
+
+        when: "asked for the children of a genus where there is one species with no subspecies"
+        controller.params.opusId = "opusId"
+        controller.params.rank = "genus"
+        controller.params.name = "Bleasdalea"
+        controller.getImmediateChildren()
+
+        then: "the result list should contain one profile (the species), and the child count of that profile should be 0 (no subsp.)"
+        1 * controller.searchService.getImmediateChildren(_, _, _, _, _, _) >> [[name: "Bleasdalea bleasdalei", rank: "species", guid: "name2"]]
+        controller.response.json.size() == 1
+        controller.response.json[0].childCount == 0
+    }
+
+    def "getImmediateChildren should return a count of children, excluding the profile itself - non-zero count"() {
+        given:
+        Opus opus = save new Opus(uuid: "opusId", shortName: "opusid", title: "opusName", glossary: new Glossary(), dataResourceUid: "dr1")
+        save new Profile(opus: opus, uuid: "profile3", scientificName: "Acacia", rank: "genus", guid: "name3", classification: [
+                new Classification(rank: "genus", name: "Acacia")
+        ])
+        save new Profile(opus: opus, uuid: "profile4", scientificName: "Acacia dealbata", rank: "species", guid: "name4", classification: [
+                new Classification(rank: "genus", name: "Acacia"),
+                new Classification(rank: "species", name: "Acacia dealbata")
+        ])
+        save new Profile(opus: opus, uuid: "profile5", scientificName: "Acacia dealbata subsp. subalpina", rank: "subspecies", guid: "name5", classification: [
+                new Classification(rank: "genus", name: "Acacia"),
+                new Classification(rank: "species", name: "Acacia dealbata"),
+                new Classification(rank: "subspecies", name: "Acacia dealbata subsp. subalpina")
+        ])
+
+        when: "asked for the children of a genus where there is one species with a subspecies"
+        controller.params.opusId = "opusId"
+        controller.params.rank = "genus"
+        controller.params.name = "Acacia"
+        controller.getImmediateChildren()
+
+        then: "the result list should contain one profile (the species), and the child count of that profile should be 1 (for the subsp.)"
+        1 * controller.searchService.getImmediateChildren(_, _, _, _, _, _) >> [[name: "Acacia dealbata", rank: "species", guid: "name4"]]
+        controller.response.json.size() == 1
+        controller.response.json[0].childCount == 1
+    }
+
+    def "getImmediateChildren should return a count of children, excluding the profile itself even when the taxonomy name != the profile name - zero count"() {
+        given:
+        Opus opus = save new Opus(uuid: "opusId", shortName: "opusid", title: "opusName", glossary: new Glossary(), dataResourceUid: "dr1")
+        save new Profile(opus: opus, uuid: "profile1", scientificName: "Bleasdalea", rank: "genus", guid: "name1", classification: [
+                new Classification(rank: "genus", name: "Bleasdalea")
+        ])
+        save new Profile(opus: opus, uuid: "profile2", scientificName: "Gevuina bleasdalei", rank: "species", guid: "name2", classification: [
+                new Classification(rank: "genus", name: "Bleasdalea"),
+                new Classification(rank: "species", name: "Bleasdalea bleasdalei")
+        ])
+
+        when: "asked for the children of a genus where the taxonomy name (Bleasdalea bleasdalei) does not match the profile name (Gevuina bleasdalei)"
+        controller.params.opusId = "opusId"
+        controller.params.rank = "genus"
+        controller.params.name = "Bleasdalea"
+        controller.getImmediateChildren()
+
+        then: "the result list should contain one profile (the species), and the child count of that profile should be 0 (no subsp.)"
+        1 * controller.searchService.getImmediateChildren(_, _, _, _, _, _) >> [[name: "Bleasdalea bleasdalei", rank: "species", guid: "name2"]]
+        controller.response.json.size() == 1
+        controller.response.json[0].childCount == 0
+    }
+
+
+    def "getImmediateChildren should return a count of children, excluding the profile itself even when the taxonomy name != the profile name - non-zero count"() {
+        given:
+        Opus opus = save new Opus(uuid: "opusId", shortName: "opusid", title: "opusName", glossary: new Glossary(), dataResourceUid: "dr1")
+        save new Profile(opus: opus, uuid: "profile3", scientificName: "Acacia", rank: "genus", guid: "name3", classification: [
+                new Classification(rank: "genus", name: "Acacia")
+        ])
+        save new Profile(opus: opus, uuid: "profile4", scientificName: "Acacia dealbata", rank: "species", guid: "name4", classification: [
+                new Classification(rank: "genus", name: "Acacia"),
+                new Classification(rank: "species", name: "Acacia dealbata")
+        ])
+        save new Profile(opus: opus, uuid: "profile5", scientificName: "Racosperma dealbata subsp. subalpina", rank: "subspecies", guid: "name5", classification: [
+                new Classification(rank: "genus", name: "Acacia"),
+                new Classification(rank: "species", name: "Acacia dealbata"),
+                new Classification(rank: "subspecies", name: "Acacia dealbata subsp. subalpina")
+        ])
+
+        when: "asked for the children of a genus where there is one species with a subspecies"
+        controller.params.opusId = "opusId"
+        controller.params.rank = "genus"
+        controller.params.name = "Acacia"
+        controller.getImmediateChildren()
+
+        then: "the result list should contain one profile (the species), and the child count of that profile should be 1 (for the subsp.)"
+        1 * controller.searchService.getImmediateChildren(_, _, _, _, _, _) >> [[name: "Acacia dealbata", rank: "species", guid: "name4"]]
+        controller.response.json.size() == 1
+        controller.response.json[0].childCount == 1
+    }
 }
