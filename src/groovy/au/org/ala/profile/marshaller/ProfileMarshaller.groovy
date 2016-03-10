@@ -33,15 +33,7 @@ class ProfileMarshaller {
                     links                    : profile.links,
                     bhl                      : profile.bhlLinks,
                     primaryImage             : profile.primaryImage,
-                    imageSettings            : profile.imageSettings?.collect { k, v ->
-                        def val = v ?: [:]
-                        def imageDisplayOption = val.imageDisplayOption
-                        [
-                                imageId      : k,
-                                caption      : val.caption ?: '',
-                                displayOption: imageDisplayOption instanceof ImageOption ? imageDisplayOption?.name() : null
-                        ]
-                    } ?: [:],
+                    imageSettings            : profile.imageSettings?.collect { k, v -> [imageId: k, caption: v?.caption, displayOption: v?.imageDisplayOption?.name()] } ?: [],
                     stagedImages             : profile.stagedImages ?: [],
                     privateImages            : profile.privateImages ?: [],
                     attachments              : profile.attachments ?: [],

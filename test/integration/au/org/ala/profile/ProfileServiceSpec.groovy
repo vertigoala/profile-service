@@ -132,7 +132,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
         when: "incoming data contains a variety of fields"
         Map data = [primaryImage: "09876",
-                    imageSettings: [[imageId: "image4", displayOption: EXCLUDE.name()], [imageId: "image5", displayOption: EXCLUDE.name()], [imageId: "image6", displayOption: EXCLUDE.name()]],
+                    imageSettings: [[imageId: "image4", caption: '', displayOption: EXCLUDE.name()], [imageId: "image5", caption: 'potato', displayOption: EXCLUDE.name()], [imageId: "image6", displayOption: EXCLUDE.name()]],
                     specimenIds: ["4", "5", "6"],
                     bhlLinks: [[url: "three"], [url: "four"]],
                     links: [[url: "five"], [url: "six"]],
@@ -141,7 +141,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
         then: "all appropriate fields are updated"
         profile.primaryImage == "09876"
-        profile.imageSettings == [image4: new ImageSettings(imageDisplayOption: EXCLUDE), image5: new ImageSettings(imageDisplayOption: EXCLUDE), image6: new ImageSettings(imageDisplayOption: EXCLUDE)]
+        profile.imageSettings == [image4: new ImageSettings(imageDisplayOption: EXCLUDE), image5: new ImageSettings(imageDisplayOption: EXCLUDE, caption: 'potato'), image6: new ImageSettings(imageDisplayOption: EXCLUDE)]
         profile.specimenIds == ["4", "5", "6"]
         profile.bhlLinks.every {it.url == "three" || it.url == "four"}
         profile.links.every {it.url == "five" || it.url == "six"}
