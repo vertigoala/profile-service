@@ -322,6 +322,10 @@ class ProfileService extends BaseDataAccessService {
             profileOrDraft(profile).nslNomenclatureIdentifier = json.nslNomenclatureIdentifier
         }
 
+        if (json.containsKey("showLinkedOpusAttributes")) {
+            profileOrDraft(profile).showLinkedOpusAttributes = json.showLinkedOpusAttributes as Boolean
+        }
+
         saveImages(profile, json, true)
 
         saveSpecimens(profile, json, true)

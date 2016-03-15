@@ -53,7 +53,8 @@ class ProfileMarshaller {
                     archiveComment           : profile.archiveComment,
                     archivedDate             : profile.archivedDate,
                     archivedBy               : profile.archivedBy,
-                    archivedWithName         : profile.archivedWithName
+                    archivedWithName         : profile.archivedWithName,
+                    showLinkedOpusAttributes : profile.showLinkedOpusAttributes
             ]
         }
     }

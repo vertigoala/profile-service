@@ -43,6 +43,7 @@ class Profile {
     String taxonomyTree
     String primaryImage
     Map<String, ImageSettings> imageSettings = [:]
+    boolean showLinkedOpusAttributes = false // Even if set to true, this needs Opus.showLinkedOpusAttributes to also be true
     List<String> specimenIds
     List<Authorship> authorship
     List<Classification> classification
