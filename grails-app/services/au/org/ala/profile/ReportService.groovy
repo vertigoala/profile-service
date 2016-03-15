@@ -1,5 +1,7 @@
 package au.org.ala.profile
 
+import grails.gorm.PagedResultList
+
 class ReportService {
 
     Map draftProfiles(String opusId) {
@@ -122,6 +124,40 @@ class ReportService {
             }
 
             [recordCount: count > 0 ? count : profiles.size(), records: profiles]
+        }
+    }
+
+    Map recentComments(Opus opus, Date from, Date to, int max, int startFrom, boolean countOnly) {
+        final profiles = Profile.withCriteria {
+            eq('opus', opus)
+            projections {
+                property('uuid')
+                property('scientificName')
+            }
+        }
+        final profileUuids = profiles*.get(0)
+
+        final commentCriteriaClosure = {
+            'in'('profileUuid', profileUuids)
+            between('dateCreated', from, to)
+            order('dateCreated', "desc")
+        }
+
+        final commentCriteria = Comment.createCriteria()
+
+        final count
+        if (countOnly) {
+            count = commentCriteria.count(commentCriteriaClosure)
+            [recordCount: count > 0 ? count : 0]
+        } else {
+            final profileMap = profiles.collectEntries { [(it[0]): it[1]] }
+
+            final comments = (max > 0 ? commentCriteria.list(max: max, offset: startFrom, commentCriteriaClosure) : commentCriteria.list(commentCriteriaClosure))
+            final records = comments.collect { [comment: it.text, scientificName: profileMap[it.profileUuid], lastUpdated: it.dateCreated, editor: it.author?.name ] }
+
+            count = comments instanceof PagedResultList ? comments.totalCount : comments.size()
+
+            [recordCount: count, records: records]
         }
     }
 }
