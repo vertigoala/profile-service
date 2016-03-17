@@ -40,7 +40,11 @@ class SanitizerPolicy {
             .allowAttributes("size").matching(NUMBER).onElements("font")
             .toFactory()
 
-    final sanitizer = FORMATTING.and(STYLES).and(LINKS).and(BLOCKS).and(IMAGES).and(TABLES).and(FONT_ATTRIBUTES)
+    // Only allow specific css classes on certain elements, e.g. thumbnail and inline-attribute-image on img elements
+    // TODO check for allowed css classes
+    final static CSS = new HtmlPolicyBuilder().allowElements("img").allowAttributes("class").onElements("img").toFactory()
+
+    final sanitizer = FORMATTING.and(STYLES).and(LINKS).and(BLOCKS).and(IMAGES).and(TABLES).and(FONT_ATTRIBUTES).and(CSS)
 
     /**
      * Sanitizes some HTML according to the policy defined in this class.
