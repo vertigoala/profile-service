@@ -119,15 +119,31 @@ class OpusService extends BaseDataAccessService {
                 opus.twitter = json.contact.twitter
             }
         }
-        if (json.logoUrl && json.logoUrl != opus.logoUrl) {
-            opus.logoUrl = json.logoUrl
+        if (json.containsKey("brandingConfig")) {
+            if (!opus.brandingConfig) {
+                opus.brandingConfig = new BrandingConfig()
+            }
+
+            if (json.brandingConfig.containsKey("logoUrl") && json.brandingConfig.logoUrl != opus.brandingConfig.logoUrl) {
+                opus.brandingConfig.logoUrl = json.brandingConfig.logoUrl
+            }
+            if (json.brandingConfig.containsKey("thumbnailUrl") && json.brandingConfig.thumbnailUrl != opus.brandingConfig.thumbnailUrl) {
+                opus.brandingConfig.thumbnailUrl = json.brandingConfig.thumbnailUrl
+            }
+            if (json.brandingConfig.containsKey("opusBannerHeight") && json.brandingConfig.opusBannerHeight != opus.brandingConfig.opusBannerHeight) {
+                opus.brandingConfig.opusBannerHeight = json.brandingConfig.opusBannerHeight
+            }
+            if (json.brandingConfig.containsKey("opusBannerUrl") && json.brandingConfig.opusBannerUrl != opus.brandingConfig.opusBannerUrl) {
+                opus.brandingConfig.opusBannerUrl = json.brandingConfig.opusBannerUrl
+            }
+            if (json.brandingConfig.containsKey("profileBannerHeight") && json.brandingConfig.profileBannerHeight != opus.brandingConfig.profileBannerHeight) {
+                opus.brandingConfig.profileBannerHeight = json.brandingConfig.profileBannerHeight
+            }
+            if (json.brandingConfig.containsKey("profileBannerUrl") && json.brandingConfig.profileBannerUrl != opus.brandingConfig.profileBannerUrl) {
+                opus.brandingConfig.profileBannerUrl = json.brandingConfig.profileBannerUrl
+            }
         }
-        if (json.bannerUrl && json.bannerUrl != opus.bannerUrl) {
-            opus.bannerUrl = json.bannerUrl
-        }
-        if (json.thumbnailUrl && json.thumbnailUrl != opus.thumbnailUrl) {
-            opus.thumbnailUrl = json.thumbnailUrl
-        }
+
         if (json.mapAttribution && json.mapAttribution != opus.mapAttribution) {
             opus.mapAttribution = json.mapAttribution
         }
