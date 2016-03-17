@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.Utils
 import grails.gorm.PagedResultList
 
 class ReportService {
@@ -139,8 +140,8 @@ class ReportService {
 
         final commentCriteriaClosure = {
             'in'('profileUuid', profileUuids)
-            between('dateCreated', from, to)
-            order('dateCreated', "desc")
+            between('lastUpdated', from, to)
+            order('lastUpdated', "desc")
         }
 
         final commentCriteria = Comment.createCriteria()
@@ -152,8 +153,16 @@ class ReportService {
         } else {
             final profileMap = profiles.collectEntries { [(it[0]): it[1]] }
 
-            final comments = (max > 0 ? commentCriteria.list(max: max, offset: startFrom, commentCriteriaClosure) : commentCriteria.list(commentCriteriaClosure))
-            final records = comments.collect { [comment: it.text, scientificName: profileMap[it.profileUuid], lastUpdated: it.dateCreated, editor: it.author?.name ] }
+            final comments = (max > 0 ?
+                    commentCriteria.list(max: max, offset: startFrom, commentCriteriaClosure) :
+                    commentCriteria.list(commentCriteriaClosure))
+            final records = comments.collect { [
+                    comment       : it.text,
+                    plainComment  : Utils.cleanupText(it.text),
+                    scientificName: profileMap[it.profileUuid],
+                    lastUpdated   : it.lastUpdated,
+                    editor        : it.author?.name
+            ] }
 
             count = comments instanceof PagedResultList ? comments.totalCount : comments.size()
 
