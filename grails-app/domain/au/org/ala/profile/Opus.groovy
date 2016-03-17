@@ -83,6 +83,7 @@ class Opus {
     static constraints = {
         shortName nullable: true
         description nullable: true
+        brandingConfig nullable: true
         attributeVocabUuid nullable: true
         authorshipVocabUuid nullable: true
         enablePhyloUpload nullable: true
