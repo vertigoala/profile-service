@@ -3,11 +3,13 @@ package au.org.ala.profile
 import au.ala.org.ws.security.RequireApiKey
 import au.ala.org.ws.security.SkipApiKeyCheck
 import au.org.ala.profile.util.Utils
+import com.sun.org.apache.xpath.internal.operations.Mult
 import grails.converters.JSON
 import groovy.json.JsonSlurper
 import org.apache.commons.httpclient.HttpStatus
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.MultipartHttpServletRequest
+import org.springframework.web.multipart.commons.CommonsMultipartFile
 
 @RequireApiKey
 class ProfileController extends BaseController {
@@ -105,7 +107,12 @@ class ProfileController extends BaseController {
                 } else {
                     List<Attachment> attachments = profileOrDraft.attachments
                     attachments?.each {
-                        it.downloadUrl = "${grailsApplication.config.grails.serverURL}/opus/${profile.opus.uuid}/profile/${profile.uuid}/attachment/${it.uuid}/download"
+                        // attachments may have a local file associated with them (e.g. pdf), or they may be a link to an
+                        // external resource. If they have a local file, then the filename property will be set. If they
+                        // are an external link, then the url property will be set.
+                        if (it.filename) {
+                            it.downloadUrl = "${grailsApplication.config.grails.serverURL}/opus/${profile.opus.uuid}/profile/${profile.uuid}/attachment/${it.uuid}/download"
+                        }
                     }
 
                     render attachments as JSON
@@ -144,8 +151,8 @@ class ProfileController extends BaseController {
     }
 
     def saveAttachment() {
-        if (!params.opusId || !params.profileId || !(request instanceof MultipartHttpServletRequest) || !request.getParameter("data")) {
-            badRequest "opusId and profileId are required parameters, a JSON post body must be provided, and the request must be a multipart request"
+        if (!params.opusId || !params.profileId || !request.getParameter("data")) {
+            badRequest "opusId and profileId are required parameters, and a JSON post body must be provided"
         } else {
             Profile profile = getProfile()
 
@@ -154,7 +161,11 @@ class ProfileController extends BaseController {
             } else {
                 Map metadata = new JsonSlurper().parseText(request.getParameter("data"))
 
-                List<Attachment> attachments = profileService.saveAttachment(profile.uuid, metadata, request.getFile(request.fileNames[0]))
+                CommonsMultipartFile file = null
+                if (request instanceof MultipartHttpServletRequest) {
+                    file = request.getFile(request.fileNames[0])
+                }
+                List<Attachment> attachments = profileService.saveAttachment(profile.uuid, metadata, file)
 
                 render attachments as JSON
             }

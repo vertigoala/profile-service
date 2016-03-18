@@ -11,6 +11,7 @@ class Attachment {
 
     String uuid
     String filename
+    String url
     String title
     String description
     String contentType
@@ -24,6 +25,8 @@ class Attachment {
     String downloadUrl
 
     static mapping = {
+        filename nullable: true
+        url nullable: true
         title nullable: true
         description nullable: true
         contentType nullable: true

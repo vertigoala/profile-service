@@ -617,6 +617,7 @@ class OpusService extends BaseDataAccessService {
         if (metadata.uuid) {
             Attachment existing = opus.attachments.find { it.uuid == metadata.uuid }
             if (existing) {
+                existing.url = metadata.url
                 existing.title = metadata.title
                 existing.description = metadata.description
                 existing.rights = metadata.rights
@@ -626,12 +627,14 @@ class OpusService extends BaseDataAccessService {
                 existing.createdDate = createdDate
             }
         } else {
-            String extension = Utils.getFileExtension(file.originalFilename)
-            Attachment newAttachment = new Attachment(uuid: UUID.randomUUID().toString(),
+            Attachment newAttachment = new Attachment(uuid: UUID.randomUUID().toString(), url: metadata.url,
                     title: metadata.title, description: metadata.description, filename: metadata.filename,
-                    contentType: file.contentType, rights: metadata.rights, createdDate: createdDate,
+                    contentType: file?.contentType, rights: metadata.rights, createdDate: createdDate,
                     rightsHolder: metadata.rightsHolder, licence: metadata.licence, creator: metadata.creator)
-            attachmentService.saveAttachment(opus.uuid, null, newAttachment.uuid, file, extension)
+            if (file) {
+                String extension = Utils.getFileExtension(file.originalFilename)
+                attachmentService.saveAttachment(opus.uuid, null, newAttachment.uuid, file, extension)
+            }
             opus.attachments << newAttachment
         }
 
@@ -647,7 +650,9 @@ class OpusService extends BaseDataAccessService {
         Attachment attachment = opus.attachments?.find { it.uuid = attachmentId }
         if (attachment) {
             opus.attachments.remove(attachment)
-            attachmentService.deleteAttachment(opus.uuid, null, attachment.uuid, Utils.getFileExtension(attachment.filename))
+            if (attachment.filename) {
+                attachmentService.deleteAttachment(opus.uuid, null, attachment.uuid, Utils.getFileExtension(attachment.filename))
+            }
         }
 
         save opus

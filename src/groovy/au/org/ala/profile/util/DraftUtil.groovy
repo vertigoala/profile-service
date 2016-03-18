@@ -199,6 +199,7 @@ class DraftUtil {
         clone.rightsHolder = source.rightsHolder
         clone.title = source.title
         clone.uuid = source.uuid
+        clone.url = source.url
 
         clone
     }

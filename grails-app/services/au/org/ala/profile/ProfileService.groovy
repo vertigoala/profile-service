@@ -852,6 +852,7 @@ class ProfileService extends BaseDataAccessService {
         if (metadata.uuid) {
             Attachment existing = profileOrDraft(profile).attachments.find { it.uuid == metadata.uuid }
             if (existing) {
+                existing.url = metadata.url
                 existing.title = metadata.title
                 existing.description = metadata.description
                 existing.rights = metadata.rights
@@ -861,12 +862,14 @@ class ProfileService extends BaseDataAccessService {
                 existing.createdDate = createdDate
             }
         } else {
-            String extension = Utils.getFileExtension(file.originalFilename)
-            Attachment newAttachment = new Attachment(uuid: UUID.randomUUID().toString(),
+            Attachment newAttachment = new Attachment(uuid: UUID.randomUUID().toString(), url: metadata.url,
                     title: metadata.title, description: metadata.description, filename: metadata.filename,
-                    contentType: file.contentType, rights: metadata.rights, createdDate: createdDate,
+                    contentType: file?.contentType, rights: metadata.rights, createdDate: createdDate,
                     rightsHolder: metadata.rightsHolder, licence: metadata.licence, creator: metadata.creator)
-            attachmentService.saveAttachment(profile.opus.uuid, profile.uuid, newAttachment.uuid, file, extension)
+            if (file) {
+                String extension = Utils.getFileExtension(file.originalFilename)
+                attachmentService.saveAttachment(profile.opus.uuid, profile.uuid, newAttachment.uuid, file, extension)
+            }
             profileOrDraft(profile).attachments << newAttachment
         }
 
@@ -885,7 +888,7 @@ class ProfileService extends BaseDataAccessService {
 
             // Only delete the file if we are not in draft mode.
             // If we are in draft mode, then the file will be deleted when the draft is published.
-            if (!profile.draft) {
+            if (!profile.draft && attachment.filename) {
                 attachmentService.deleteAttachment(profile.opus.uuid, profile.uuid, attachment.uuid, Utils.getFileExtension(attachment.filename))
             }
         }

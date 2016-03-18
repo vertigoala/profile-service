@@ -10,6 +10,7 @@ class AttachmentMarshaller {
         JSON.registerObjectMarshaller(Attachment) { Attachment attachment ->
             return [
                     uuid        : attachment.uuid,
+                    url         : attachment.url,
                     title       : attachment.title,
                     filename    : attachment.filename,
                     description : attachment.description,

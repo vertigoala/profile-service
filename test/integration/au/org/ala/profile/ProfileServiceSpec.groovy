@@ -1302,11 +1302,11 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         1 * service.attachmentService.deleteAttachment(opus.uuid, profile.uuid, "1234", _)
     }
 
-    def "deleteAttachment should remove the attachment entity and the file"() {
+    def "deleteAttachment should remove the attachment entity and the file when there is a filename"() {
         given:
         Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
         save opus1
-        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234")])
+        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", filename: "file1")])
         save profile
 
         when:
@@ -1315,6 +1315,21 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         then:
         profile.attachments.isEmpty()
         1 * service.attachmentService.deleteAttachment(opus1.uuid, profile.uuid, "1234", _)
+    }
+
+    def "deleteAttachment should not attempt to remove a file when there is no filename"() {
+        given:
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", url: "url")])
+        save profile
+
+        when:
+        service.deleteAttachment(profile.uuid, "1234")
+
+        then:
+        profile.attachments.isEmpty()
+        0 * service.attachmentService.deleteAttachment(opus1.uuid, profile.uuid, "1234", _)
     }
 
     def "deleteAttachment should update the draft and not delete the file if the profile is in draft mode"() {
