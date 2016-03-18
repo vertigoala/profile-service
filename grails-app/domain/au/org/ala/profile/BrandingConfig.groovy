@@ -18,7 +18,6 @@ class BrandingConfig {
 
     static constraints = {
         opusBannerUrl nullable: true
-        profileBannerHeight nullable: true
         profileBannerUrl nullable: true
         logoUrl nullable: true
         thumbnailUrl nullable: true
