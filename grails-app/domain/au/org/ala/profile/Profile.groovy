@@ -1,6 +1,5 @@
 package au.org.ala.profile
 
-import au.org.ala.profile.util.ImageOption
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.bson.types.ObjectId
@@ -14,8 +13,9 @@ class Profile {
     private static final String NOT_ANALYZED_INDEX = "not_analyzed"
 
     static searchable = {
-        only = ["uuid", "guid", "scientificName", "fullName", "matchedName", "rank", "primaryImage", "opus", "attributes", "lastUpdated", "archivedDate"]
-        scientificName multi_field: true, boost:20
+        only = ["uuid", "guid", "scientificName", "fullName", "matchedName", "rank", "primaryImage", "opus", "attributes", "lastUpdated", "archivedDate", "archivedWithName"]
+        scientificName multi_field: true, boost: 20
+        archivedWithName multi_field: true, boost: 20
         matchedName component: true, boost: 10
         opus component: true
         attributes component: true
@@ -43,7 +43,8 @@ class Profile {
     Name matchedName
     String taxonomyTree
     String primaryImage
-    Map<String, ImageOption> imageDisplayOptions = [:]
+    Map<String, ImageSettings> imageSettings = [:]
+    boolean showLinkedOpusAttributes = false // Even if set to true, this needs Opus.showLinkedOpusAttributes to also be true
     List<String> specimenIds
     List<Authorship> authorship
     List<Classification> classification
@@ -71,7 +72,7 @@ class Profile {
     String archivedBy
     String archivedWithName
 
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'matchedName', 'privateImages', 'attachments']
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'matchedName', 'privateImages', 'attachments', 'imageSettings']
 
     static hasMany = [attributes: Attribute]
 
@@ -101,7 +102,6 @@ class Profile {
     }
 
     static mapping = {
-        version false
         attributes cascade: "all-delete-orphan"
         scientificName index: true
         guid index: true

@@ -215,7 +215,7 @@ class AnalyticsService {
      */
     private Map queryDownloadCount(Opus opus, String from) {
         def metrics = "ga:pageviews"
-        def filters = "ga:pagePath=~^/opus/${opus.shortName ?: opus.uuid}/profile/.*/(publication|pdf)/.*"
+        def filters = "ga:pagePath=~^/opus/${opus.shortName ?: opus.uuid}/profile/.*/(pdf|publication/.*/file)"
 
         GaData result = analytics.data().ga()
                 .get(viewIds, from, "today", metrics)

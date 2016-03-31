@@ -81,6 +81,32 @@ class ReportController extends BaseController {
         }
     }
 
+    def recentComments() {
+        if (!params.opusId || !params.from || !params.to) {
+            badRequest "opusId, from and to date are required parameters"
+        } else {
+            Opus opus = getOpus()
+
+            int max = params.max && params.max != "null" ? params.max as int : -1
+            int startFrom = params.offset ? params.offset as int : 0
+            boolean countOnly = params.countOnly?.toBoolean()
+
+            try {
+                Date from = new Date(params.from)
+                Date to = new Date(params.to)
+                if (!opus) {
+                    notFound "No opus found for ${params.opusId}"
+                } else {
+                    Map report = reportService.recentComments(opus, from, to, max, startFrom, countOnly)
+                    render report as JSON
+                }
+            } catch (Exception e) {
+                log.error("Recent comments report failed for ${opus.shortName}, ${params.from}, ${params.to}", e)
+                badRequest "Provided date is not in the correct format"
+            }
+        }
+    }
+
     def nslMatchingReport() {
         if (!params.opusId) {
             badRequest "opusId is a required parameter. It can be a comma-separated list to produce a report for multiple collections"

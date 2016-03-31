@@ -17,8 +17,9 @@ class SearchController extends BaseController {
             boolean nameOnly = params.nameOnly?.toBoolean()
             int pageSize = params.pageSize ? params.pageSize as int : -1
             int offset = params.offset ? params.offset as int : 0
+            boolean includeArchived = params.includeArchived?.toBoolean()
 
-            render searchService.search(opusIds, term, offset, pageSize, nameOnly) as JSON
+            render searchService.search(opusIds, term, offset, pageSize, nameOnly, includeArchived) as JSON
         }
     }
 
@@ -104,14 +105,14 @@ class SearchController extends BaseController {
 
     def groupByRank() {
         if (!params.opusId || !params.taxon) {
-            badRequest "opusId and taxon are required parameters. You can also optionally supply max (max records to return) and offset (0 based index to start from)."
+            badRequest "opusId and taxon are required parameters. You can also optionally supply filter (name to filter on), max (max records to return) and offset (0 based index to start from)."
         } else {
             int max = params.max ? params.max as int : -1
             int startFrom = params.offset ? params.offset as int : 0
 
             Opus opus = getOpus()
 
-            Map<String, Integer> result = searchService.groupByRank(opus?.uuid, params.taxon, max, startFrom)
+            Map<String, Integer> result = searchService.groupByRank(opus?.uuid, params.taxon, params.filter, max, startFrom)
 
             render result as JSON
         }
@@ -129,7 +130,7 @@ class SearchController extends BaseController {
             List children = searchService.getImmediateChildren(opus, params.rank, params.name, filter, max, startFrom)
             response.setContentType("application/json")
             render children.collect { profile ->
-                Profile relatedProfile = Profile.findByScientificNameAndGuidAndOpusAndArchivedDateIsNull(profile.name, profile.guid, opus)
+                Profile relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(profile.guid, opus)
 
                 [
                         profileId  : relatedProfile?.uuid,
@@ -161,8 +162,15 @@ class SearchController extends BaseController {
 
     @RequireApiKey
     def reindex() {
+
+        if (Status.count() == 0) {
+            Status status = new Status()
+            status.searchReindex = true
+            save status
+        }
+
         searchService.reindex()
 
-        render (Status.first() as JSON)
+       render (Status.first() as JSON)
     }
 }

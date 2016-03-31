@@ -29,7 +29,7 @@ class DraftUtil {
         profile.nslNameIdentifier = profile.draft.nslNameIdentifier
         profile.nslNomenclatureIdentifier = profile.draft.nslNomenclatureIdentifier
         profile.primaryImage = profile.draft.primaryImage
-        profile.imageDisplayOptions = profile.draft.imageDisplayOptions
+        profile.imageSettings = profile.draft.imageSettings
         profile.specimenIds = profile.draft.specimenIds
         profile.authorship = profile.draft.authorship
         profile.classification = profile.draft.classification
@@ -71,7 +71,7 @@ class DraftUtil {
         clone.nslNameIdentifier = profile.nslNameIdentifier
         clone.nslNomenclatureIdentifier = profile.nslNomenclatureIdentifier
         clone.primaryImage = profile.primaryImage
-        clone.imageDisplayOptions = profile.imageDisplayOptions?.clone()
+        clone.imageSettings = profile.imageSettings?.clone()
         clone.specimenIds = profile.specimenIds?.collect()
         clone.authorship = profile.authorship?.collect { cloneAuthorship(it) }
         clone.classification = profile.classification?.collect { cloneClassification(it) }
@@ -199,6 +199,7 @@ class DraftUtil {
         clone.rightsHolder = source.rightsHolder
         clone.title = source.title
         clone.uuid = source.uuid
+        clone.url = source.url
 
         clone
     }

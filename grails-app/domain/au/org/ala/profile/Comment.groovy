@@ -15,6 +15,7 @@ class Comment {
     Contributor author
     Comment parent
     Date dateCreated
+    Date lastUpdated
 
     static hasMany = [children: Comment]
 

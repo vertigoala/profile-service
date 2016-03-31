@@ -1,5 +1,13 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.Utils
+import com.gmongo.GMongo
+import com.mongodb.BasicDBList
+import com.mongodb.BasicDBObject
+import com.mongodb.BasicDBObjectBuilder
+import com.mongodb.DBCollection
+import grails.gorm.PagedResultList
+
 class ReportService {
 
     Map draftProfiles(String opusId) {
@@ -122,6 +130,56 @@ class ReportService {
             }
 
             [recordCount: count > 0 ? count : profiles.size(), records: profiles]
+        }
+    }
+
+    Map recentComments(Opus opus, Date from, Date to, int max, int startFrom, boolean countOnly) {
+        final profiles = Profile.withCriteria {
+            eq('opus', opus)
+            projections {
+                property('uuid')
+                property('scientificName')
+            }
+        }
+        final profileUuids = profiles*.get(0)
+
+        final aggOutput = Comment.collection.aggregate([
+                [$match: [ lastUpdated: [ $gte: from, $lte: to ], profileUuid: [ $in: profileUuids ]]],
+                [$sort : [ lastUpdated: -1]],
+                [$group: [
+                        _id        : '$profileUuid',
+                        lastUpdated: [ $first: '$lastUpdated' ],
+                        text       : [ $first: '$text' ],
+                        author     : [ $first: '$author' ]
+                ]],
+                [$sort : [lastUpdated: -1]]
+        ])
+
+        final results = aggOutput.results()
+        final count = results.size()
+
+        if (countOnly) {
+            return [ recordCount: count ]
+        } else {
+            final resultList = results.asList()
+            final maxIndex = resultList.indices.toInt
+            final records
+            if (startFrom > maxIndex) {
+                records = []
+            } else {
+                final profileMap = profiles.collectEntries { [(it[0]): it[1]] }
+                final endIndex = (startFrom + max) > maxIndex ? maxIndex + 1 : (startFrom + max)
+                final sizedList = max > 0 ? resultList.subList(startFrom, endIndex) : resultList
+                records = sizedList.collect { [
+                        comment       : it.text,
+                        plainComment  : Utils.cleanupText(it.text),
+                        scientificName: profileMap[it['_id']],
+                        lastUpdated   : it.lastUpdated,
+                        editor        : it.author ? Contributor.get(it.author)?.name : ''
+                ] }
+            }
+
+            return [ recordCount: count, records: records ]
         }
     }
 }

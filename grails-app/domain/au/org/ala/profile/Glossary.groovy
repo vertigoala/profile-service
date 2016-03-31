@@ -14,7 +14,6 @@ class Glossary {
     }
 
     static mapping = {
-        version false
         items cascade: "all-delete-orphan"
     }
 

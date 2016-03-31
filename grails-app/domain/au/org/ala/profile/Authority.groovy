@@ -8,6 +8,7 @@ import groovy.transform.ToString
 @EqualsAndHashCode
 class Authority {
 
+    String uuid 
     Contributor user
     Role role
     String notes
@@ -16,5 +17,11 @@ class Authority {
 
     static constraints = {
         notes nullable: true
+    }
+
+    def beforeValidate() {
+        if (uuid == null) {
+            uuid = UUID.randomUUID().toString()
+        }
     }
 }

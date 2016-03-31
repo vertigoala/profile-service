@@ -2,20 +2,18 @@ package au.org.ala.profile
 
 import au.org.ala.profile.util.DraftUtil
 import au.org.ala.profile.util.ImageOption
+import au.org.ala.profile.util.StorageExtension
 import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
+import org.apache.commons.lang3.StringUtils
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.commons.CommonsMultipartFile
 
 import java.text.SimpleDateFormat
 
-import static org.owasp.html.Sanitizers.BLOCKS
-import static org.owasp.html.Sanitizers.FORMATTING
-import static org.owasp.html.Sanitizers.IMAGES
-import static org.owasp.html.Sanitizers.LINKS
-import static org.owasp.html.Sanitizers.STYLES
-import static org.owasp.html.Sanitizers.TABLES
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 @Transactional
 class ProfileService extends BaseDataAccessService {
@@ -110,7 +108,7 @@ class ProfileService extends BaseDataAccessService {
 
     private void updateNameDetails(profile, Map matchedName, String providedName) {
         if (matchedName) {
-            if (providedName == matchedName.fullName || providedName == matchedName.scientificName) {
+            if (providedName.equalsIgnoreCase(matchedName.fullName) || providedName.equalsIgnoreCase(matchedName.scientificName)) {
                 profile.scientificName = matchedName.scientificName
                 profile.fullName = matchedName.fullName
                 profile.nameAuthor = matchedName.nameAuthor
@@ -324,6 +322,10 @@ class ProfileService extends BaseDataAccessService {
             profileOrDraft(profile).nslNomenclatureIdentifier = json.nslNomenclatureIdentifier
         }
 
+        if (json.containsKey("showLinkedOpusAttributes")) {
+            profileOrDraft(profile).showLinkedOpusAttributes = json.showLinkedOpusAttributes as Boolean
+        }
+
         saveImages(profile, json, true)
 
         saveSpecimens(profile, json, true)
@@ -392,23 +394,25 @@ class ProfileService extends BaseDataAccessService {
         checkArgument profile
         checkArgument json
 
-        if (json.containsKey("primaryImage") && json.primaryImage != profileOrDraft(profile).primaryImage) {
-            profileOrDraft(profile).primaryImage = json.primaryImage
+        def profileOrDraft = profileOrDraft(profile)
+
+        if (json.containsKey("primaryImage") && json.primaryImage != profileOrDraft.primaryImage) {
+            profileOrDraft.primaryImage = json.primaryImage
         }
 
-        if (json.containsKey("imageDisplayOptions") && json.imageDisplayOptions != profileOrDraft(profile).imageDisplayOptions) {
-            if (profileOrDraft(profile).imageDisplayOptions) {
-                profileOrDraft(profile).imageDisplayOptions.clear()
+        if (json.containsKey("imageSettings") && json.imageSettings != profileOrDraft.imageSettings) {
+            if (profileOrDraft.imageSettings) {
+                profileOrDraft.imageSettings.clear()
             } else {
-                profileOrDraft(profile).imageDisplayOptions = [:]
+                profileOrDraft.imageSettings = [:]
             }
 
-            json.imageDisplayOptions?.each {
+            json.imageSettings?.each {
                 ImageOption imageDisplayOption = ImageOption.byName(it.displayOption, profile.opus.approvedImageOption)
-
-                if (imageDisplayOption != profile.opus.approvedImageOption) {
-                    profileOrDraft(profile).imageDisplayOptions << [(it.imageId): imageDisplayOption]
+                if (imageDisplayOption == profile.opus.approvedImageOption) {
+                    imageDisplayOption = null
                 }
+                profileOrDraft.imageSettings << [(it.imageId): new ImageSettings(imageDisplayOption: imageDisplayOption, caption: it.caption ?: '')]
             }
         }
 
@@ -429,6 +433,9 @@ class ProfileService extends BaseDataAccessService {
         boolean success = recordImage(profile.draft.stagedImages, json)
 
         if (success) {
+            if (json.action == "delete") {
+                profile.imageDisplayOptions?.remove(json.imageId)
+            }
             success = save profile
         } else {
             log.error "Failed to record image (prior to saving the profile)"
@@ -447,6 +454,9 @@ class ProfileService extends BaseDataAccessService {
         boolean success = recordImage(profileOrDraft(profile).privateImages, json)
 
         if (success) {
+            if (json.action == "delete") {
+                profile.imageDisplayOptions?.remove(json.imageId)
+            }
             success = save profile
         } else {
             log.error "Failed to record image (prior to saving the profile)"
@@ -543,6 +553,18 @@ class ProfileService extends BaseDataAccessService {
         }
     }
 
+    /**
+     *  Related Business Capability:  Allow users to keep historical versions of their profiles
+     *  Related Application Feature: Save Snapshot Version feature of Profile Hub
+     *
+     *  A publication is either a PDF of the profile as a versioned snapshot in time OR
+     *  if the profile has additional attachments, a ZIP file containing the profile PDF and
+     *  any other file attachments.
+     *
+     * @param profileId
+     * @param file - a pdf of the Profile that has already been generated and sent to this service
+     * @return
+     */
     def savePublication(String profileId, MultipartFile file) {
         checkArgument profileId
         checkArgument file
@@ -571,13 +593,18 @@ class ProfileService extends BaseDataAccessService {
         if (doiResult.status == "success") {
             publication.doi = doiResult.doi
 
-            String fileName = "${grailsApplication.config.snapshot.directory}/${publication.uuid}.pdf"
-
-            file.transferTo(new File(fileName))
-
+            if (profile.attachments) {
+                String fileName = "${grailsApplication.config.snapshot.directory}/${publication.uuid}.zip"
+                savePublicationWithAttachments(profile, file, fileName)
+                publication.setFileType(StorageExtension.ZIP)
+            } else {
+                String fileName = "${grailsApplication.config.snapshot.directory}/${publication.uuid}.pdf"
+                //this copies the incoming 'file' data into a file object and saves this object to the file system
+                file.transferTo(new File(fileName))
+                publication.setFileType(StorageExtension.PDF)
+            }
             profile.publications << publication
             save profile
-
             publication
         } else {
             doiResult
@@ -586,10 +613,61 @@ class ProfileService extends BaseDataAccessService {
 
     File getPublicationFile(String publicationId) {
         checkArgument publicationId
-
-        String fileName = "${grailsApplication.config.snapshot.directory}/${publicationId}.pdf"
+        String extension = determineFileExtension(publicationId)
+        String fileName = "${grailsApplication.config.snapshot.directory}/${publicationId}${extension}"
 
         new File(fileName)
+    }
+
+    /**
+     * Makes and saves a publication for a profile that has attachments when user clicks
+     * create snapshot version on Profile-Hub.
+     * Takes the profile data, as sent via Profile-Hub as a multipartFile and all attachments for
+     * this profile, bundles them up into a zip file and saves them to disk
+     * @param profile
+     * @param multipartFile - what will become a pdf of the profile
+     * @param absoluteFileName
+     */
+    void savePublicationWithAttachments(Profile profile, MultipartFile multipartFile, String absoluteFileName) {
+        ZipOutputStream outputStream = new ZipOutputStream(new FileOutputStream(absoluteFileName))
+        Map<String,File> fileMap = [:]
+        String profileName = fixFileName(StringUtils.removeEnd(profile.getScientificName(), '.'))
+        fileMap.putAll(attachmentService.collectAllAttachmentsIncludingOriginalNames(profile))
+        makeAndSaveZipFile(multipartFile, profileName, fileMap, outputStream)
+    }
+
+    String fixFileName(String profileName) {
+        Calendar cal = Calendar.getInstance()
+        profileName + ' - ' + cal.getTime() + StorageExtension.PDF.extension
+    }
+
+    private static void makeAndSaveZipFile(MultipartFile multipartFile, String profileName, Map<String,File> fileMap, ZipOutputStream outputStream) {
+        try {
+            fileMap.each { file ->
+                outputStream.putNextEntry(new ZipEntry(file.key))
+                file.value.withInputStream
+                        { inputStream ->
+                            outputStream << inputStream
+                        }
+                outputStream.closeEntry()
+            }
+            outputStream.putNextEntry(new ZipEntry(profileName))
+            outputStream << multipartFile.getInputStream()
+            outputStream.closeEntry()
+        } finally {
+            outputStream?.flush()
+            outputStream?.close()
+        }
+    }
+
+    //Publications can be either a pdf or zip, only the publication knows what it is, publications
+    //are only accessible via their parent profile
+    private String determineFileExtension(String publicationid) {
+        Profile profile = getProfileFromPubId(publicationid)
+        List<Publication> publicationList = profile?.getPublications()
+        Publication publication = publicationList?.find { item -> item.uuid.equals(publicationid) }
+        String fileExtension = publication.getFileType().extension
+        return fileExtension
     }
 
     Set<Publication> listPublications(String profileId) {
@@ -774,6 +852,7 @@ class ProfileService extends BaseDataAccessService {
         if (metadata.uuid) {
             Attachment existing = profileOrDraft(profile).attachments.find { it.uuid == metadata.uuid }
             if (existing) {
+                existing.url = metadata.url
                 existing.title = metadata.title
                 existing.description = metadata.description
                 existing.rights = metadata.rights
@@ -783,12 +862,14 @@ class ProfileService extends BaseDataAccessService {
                 existing.createdDate = createdDate
             }
         } else {
-            String extension = Utils.getFileExtension(file.originalFilename)
-            Attachment newAttachment = new Attachment(uuid: UUID.randomUUID().toString(),
+            Attachment newAttachment = new Attachment(uuid: UUID.randomUUID().toString(), url: metadata.url,
                     title: metadata.title, description: metadata.description, filename: metadata.filename,
-                    contentType: file.contentType, rights: metadata.rights, createdDate: createdDate,
+                    contentType: file?.contentType, rights: metadata.rights, createdDate: createdDate,
                     rightsHolder: metadata.rightsHolder, licence: metadata.licence, creator: metadata.creator)
-            attachmentService.saveAttachment(profile.opus.uuid, profile.uuid, newAttachment.uuid, file, extension)
+            if (file) {
+                String extension = Utils.getFileExtension(file.originalFilename)
+                attachmentService.saveAttachment(profile.opus.uuid, profile.uuid, newAttachment.uuid, file, extension)
+            }
             profileOrDraft(profile).attachments << newAttachment
         }
 
@@ -807,7 +888,7 @@ class ProfileService extends BaseDataAccessService {
 
             // Only delete the file if we are not in draft mode.
             // If we are in draft mode, then the file will be deleted when the draft is published.
-            if (!profile.draft) {
+            if (!profile.draft && attachment.filename) {
                 attachmentService.deleteAttachment(profile.opus.uuid, profile.uuid, attachment.uuid, Utils.getFileExtension(attachment.filename))
             }
         }

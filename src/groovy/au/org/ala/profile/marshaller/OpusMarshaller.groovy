@@ -22,11 +22,9 @@ class OpusMarshaller {
                     approvedLists              : opus.approvedLists ?: [],
                     featureLists               : opus.featureLists ?: [],
                     featureListSectionName     : opus.featureListSectionName,
-                    logoUrl                    : opus.logoUrl,
-                    bannerUrl                  : opus.bannerUrl,
+                    brandingConfig             : opus.brandingConfig ?: [:],
                     keybaseProjectId           : opus.keybaseProjectId,
                     keybaseKeyId               : opus.keybaseKeyId,
-                    thumbnailUrl               : opus.thumbnailUrl,
                     attributeVocabUuid         : opus.attributeVocabUuid,
                     authorshipVocabUuid        : opus.authorshipVocabUuid,
                     glossaryUuid               : opus.glossary?.uuid,
@@ -57,7 +55,7 @@ class OpusMarshaller {
                     showLinkedOpusAttributes   : opus.showLinkedOpusAttributes != null ? opus.showLinkedOpusAttributes : false,
                     allowFineGrainedAttribution: opus.allowFineGrainedAttribution != null ? opus.allowFineGrainedAttribution : true,
                     authorities                : opus.authorities?.collect {
-                        [userId: it.user.userId, name: it.user.name, role: it.role.toString(), notes: it.notes]
+                        [uuid: it.uuid, userId: it.user.userId, name: it.user.name, role: it.role.toString(), notes: it.notes]
                     },
                     copyrightText              : opus.copyrightText,
                     footerText                 : opus.footerText,

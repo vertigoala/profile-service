@@ -184,10 +184,10 @@ class OpusServiceSpec extends BaseIntegrationSpec {
         opus1.citationHtml == '<p>hi</p>'
     }
 
-    def "deleteAttachment should remove the attachment entity and the file"() {
+    def "deleteAttachment should remove the attachment entity and the file when there is a filename"() {
         given:
         Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
-        opus1.attachments = [new Attachment(uuid: "1234")]
+        opus1.attachments = [new Attachment(uuid: "1234", filename: "file1")]
         save opus1
 
         when:
@@ -196,6 +196,20 @@ class OpusServiceSpec extends BaseIntegrationSpec {
         then:
         opus1.attachments.isEmpty()
         1 * service.attachmentService.deleteAttachment(opus1.uuid, null, "1234", _)
+    }
+
+    def "deleteAttachment should not attempt to remove a file when there is no filename"() {
+        given:
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        opus1.attachments = [new Attachment(uuid: "1234", url: "url")]
+        save opus1
+
+        when:
+        service.deleteAttachment(opus1.uuid, "1234")
+
+        then:
+        opus1.attachments.isEmpty()
+        0 * service.attachmentService.deleteAttachment(opus1.uuid, null, "1234", _)
     }
 
     def "deleteAttachment should do nothing if there are no attachments"() {

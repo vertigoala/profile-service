@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.Utils
 import org.springframework.web.multipart.commons.CommonsMultipartFile
 
 class AttachmentService {
@@ -27,4 +28,20 @@ class AttachmentService {
     String getPath(String opusId, String profileId, String attachmentId, String extension) {
         "${grailsApplication.config.attachments.directory}/${opusId}/${profileId ? profileId + '/' : ''}${attachmentId}.${extension}"
     }
+
+    Map<String,File> collectAllAttachmentsIncludingOriginalNames(Profile profile) {
+        Map<File> fileMap = [:]
+        if (profile.attachments) {
+            List<Attachment> attachments = profile.getAttachments()
+            attachments.each { attachment ->
+                File file = getAttachment(profile.opus.uuid, profile.uuid, attachment.uuid, Utils.getFileExtension(attachment.filename))
+                if (file) {
+                    fileMap.put(attachment.getFilename(),file)
+                }
+            }
+        }
+        return fileMap
+    }
+
+
 }

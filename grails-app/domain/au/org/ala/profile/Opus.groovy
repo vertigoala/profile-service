@@ -31,9 +31,9 @@ class Opus {
     List<String> approvedLists
     List<String> featureLists
     String featureListSectionName
-    String logoUrl
-    String bannerUrl
-    String thumbnailUrl
+
+    BrandingConfig brandingConfig
+
     String mapAttribution // e.g. AVH (CHAH)
     String mapPointColour = "FF9900"
     Float mapDefaultLatitude = Utils.DEFAULT_MAP_LATITUDE
@@ -78,14 +78,12 @@ class Opus {
     int profileCount
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority]
-    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments']
+    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig']
 
     static constraints = {
         shortName nullable: true
         description nullable: true
-        logoUrl nullable: true
-        bannerUrl nullable: true
-        thumbnailUrl nullable: true
+        brandingConfig nullable: true
         attributeVocabUuid nullable: true
         authorshipVocabUuid nullable: true
         enablePhyloUpload nullable: true
@@ -116,7 +114,6 @@ class Opus {
     }
 
     static mapping = {
-        version false
         glossary cascade: "all-delete-orphan"
         authorities cascade: "all-delete-orphan"
         shortName index: true

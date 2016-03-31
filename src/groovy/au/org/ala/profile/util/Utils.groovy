@@ -16,10 +16,16 @@ class Utils {
      * Whitelists safe characters to prevent possible regex injection. Escapes regex characters (like .) that are whitelisted
      *
      * @param regex The regex string to make safe
-     * @return A safe version of the string
+     * @return A safe version of the string or an empty string
      */
     static sanitizeRegex(String regex) {
-        regex?.replaceAll(/[^0-9a-zA-Z'\.",\-\(\)& ]/, "")?.replaceAll(/\.+/, ".")?.replaceAll(/([\.\-\(\)])/, "\\\\\$1")
+        String clean = ""
+
+        if (regex) {
+            clean = regex?.replaceAll(/[^0-9a-zA-Z'\.",\-\(\)& ]/, "")?.replaceAll(/\.+/, ".")?.replaceAll(/([\.\-\(\)])/, "\\\\\$1")
+        }
+
+        clean
     }
 
     static cleanupText(str) {

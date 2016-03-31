@@ -119,15 +119,31 @@ class OpusService extends BaseDataAccessService {
                 opus.twitter = json.contact.twitter
             }
         }
-        if (json.logoUrl && json.logoUrl != opus.logoUrl) {
-            opus.logoUrl = json.logoUrl
+        if (json.containsKey("brandingConfig")) {
+            if (!opus.brandingConfig) {
+                opus.brandingConfig = new BrandingConfig()
+            }
+
+            if (json.brandingConfig.containsKey("logoUrl") && json.brandingConfig.logoUrl != opus.brandingConfig.logoUrl) {
+                opus.brandingConfig.logoUrl = json.brandingConfig.logoUrl
+            }
+            if (json.brandingConfig.containsKey("thumbnailUrl") && json.brandingConfig.thumbnailUrl != opus.brandingConfig.thumbnailUrl) {
+                opus.brandingConfig.thumbnailUrl = json.brandingConfig.thumbnailUrl
+            }
+            if (json.brandingConfig.containsKey("opusBannerHeight") && json.brandingConfig.opusBannerHeight != opus.brandingConfig.opusBannerHeight) {
+                opus.brandingConfig.opusBannerHeight = json.brandingConfig.opusBannerHeight
+            }
+            if (json.brandingConfig.containsKey("opusBannerUrl") && json.brandingConfig.opusBannerUrl != opus.brandingConfig.opusBannerUrl) {
+                opus.brandingConfig.opusBannerUrl = json.brandingConfig.opusBannerUrl
+            }
+            if (json.brandingConfig.containsKey("profileBannerHeight") && json.brandingConfig.profileBannerHeight != opus.brandingConfig.profileBannerHeight) {
+                opus.brandingConfig.profileBannerHeight = json.brandingConfig.profileBannerHeight
+            }
+            if (json.brandingConfig.containsKey("profileBannerUrl") && json.brandingConfig.profileBannerUrl != opus.brandingConfig.profileBannerUrl) {
+                opus.brandingConfig.profileBannerUrl = json.brandingConfig.profileBannerUrl
+            }
         }
-        if (json.bannerUrl && json.bannerUrl != opus.bannerUrl) {
-            opus.bannerUrl = json.bannerUrl
-        }
-        if (json.thumbnailUrl && json.thumbnailUrl != opus.thumbnailUrl) {
-            opus.thumbnailUrl = json.thumbnailUrl
-        }
+
         if (json.mapAttribution && json.mapAttribution != opus.mapAttribution) {
             opus.mapAttribution = json.mapAttribution
         }
@@ -231,17 +247,39 @@ class OpusService extends BaseDataAccessService {
         checkState opus
 
         if (json.containsKey("authorities")) {
-            if (opus.authorities) {
-                Authority.deleteAll(opus.authorities)
-                opus.authorities.clear()
-            } else {
-                opus.authorities = []
+            List<String> incomingIds = json.authorities?.findResults { it.uuid }
+
+            List<Authority> authoritiesToRemove = []
+            Map<String, Authority> existingAuthorities = [:]
+
+            opus.authorities?.each {
+                if (!incomingIds.contains(it.uuid)) {
+                    authoritiesToRemove << it
+                } else {
+                    existingAuthorities << [(it.uuid): it]
+                }
             }
 
+            opus.authorities?.removeAll(authoritiesToRemove)
+
             json.authorities?.each {
-                Contributor user = getOrCreateContributor(it.name, it.userId)
-                Role role = Role.valueOf(it.role.toUpperCase())
-                opus.authorities << new Authority(user: user, role: role, notes: it.notes)
+                if (it.uuid) {
+                    Authority auth = existingAuthorities[it.uuid]
+                    auth.notes = it.notes
+                    auth.role = Role.valueOf(it.role.toUpperCase())
+                    auth.user = getOrCreateContributor(it.name, it.userId)
+                } else {
+                    Contributor user = getOrCreateContributor(it.name, it.userId)
+                    Role role = Role.valueOf(it.role.toUpperCase())
+                    if (opus.authorities == null) {
+                        opus.authorities = []
+                    }
+                    opus.authorities << new Authority(uuid: UUID.randomUUID().toString(),user: user, role: role, notes: it.notes)
+                }
+            }
+
+            if (opus.validate()) {
+                Authority.deleteAll(authoritiesToRemove)
             }
         }
 
@@ -579,6 +617,7 @@ class OpusService extends BaseDataAccessService {
         if (metadata.uuid) {
             Attachment existing = opus.attachments.find { it.uuid == metadata.uuid }
             if (existing) {
+                existing.url = metadata.url
                 existing.title = metadata.title
                 existing.description = metadata.description
                 existing.rights = metadata.rights
@@ -588,12 +627,14 @@ class OpusService extends BaseDataAccessService {
                 existing.createdDate = createdDate
             }
         } else {
-            String extension = Utils.getFileExtension(file.originalFilename)
-            Attachment newAttachment = new Attachment(uuid: UUID.randomUUID().toString(),
+            Attachment newAttachment = new Attachment(uuid: UUID.randomUUID().toString(), url: metadata.url,
                     title: metadata.title, description: metadata.description, filename: metadata.filename,
-                    contentType: file.contentType, rights: metadata.rights, createdDate: createdDate,
+                    contentType: file?.contentType, rights: metadata.rights, createdDate: createdDate,
                     rightsHolder: metadata.rightsHolder, licence: metadata.licence, creator: metadata.creator)
-            attachmentService.saveAttachment(opus.uuid, null, newAttachment.uuid, file, extension)
+            if (file) {
+                String extension = Utils.getFileExtension(file.originalFilename)
+                attachmentService.saveAttachment(opus.uuid, null, newAttachment.uuid, file, extension)
+            }
             opus.attachments << newAttachment
         }
 
@@ -609,7 +650,9 @@ class OpusService extends BaseDataAccessService {
         Attachment attachment = opus.attachments?.find { it.uuid = attachmentId }
         if (attachment) {
             opus.attachments.remove(attachment)
-            attachmentService.deleteAttachment(opus.uuid, null, attachment.uuid, Utils.getFileExtension(attachment.filename))
+            if (attachment.filename) {
+                attachmentService.deleteAttachment(opus.uuid, null, attachment.uuid, Utils.getFileExtension(attachment.filename))
+            }
         }
 
         save opus
