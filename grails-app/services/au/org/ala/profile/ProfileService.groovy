@@ -408,7 +408,7 @@ class ProfileService extends BaseDataAccessService {
             }
 
             json.imageSettings?.each {
-                ImageOption imageDisplayOption = ImageOption.byName(it.displayOption, profile.opus.approvedImageOption)
+                ImageOption imageDisplayOption = it.displayOption ? ImageOption.byName(it.displayOption, profile.opus.approvedImageOption) : profile.opus.approvedImageOption
                 if (imageDisplayOption == profile.opus.approvedImageOption) {
                     imageDisplayOption = null
                 }
