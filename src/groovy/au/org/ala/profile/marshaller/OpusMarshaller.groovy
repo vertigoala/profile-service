@@ -23,6 +23,7 @@ class OpusMarshaller {
                     featureLists               : opus.featureLists ?: [],
                     featureListSectionName     : opus.featureListSectionName,
                     brandingConfig             : opus.brandingConfig ?: [:],
+                    profileLayoutConfig        : opus.profileLayoutConfig ?: [:],
                     keybaseProjectId           : opus.keybaseProjectId,
                     keybaseKeyId               : opus.keybaseKeyId,
                     attributeVocabUuid         : opus.attributeVocabUuid,

@@ -33,6 +33,7 @@ class Opus {
     String featureListSectionName
 
     BrandingConfig brandingConfig
+    ProfileLayoutConfig profileLayoutConfig
 
     String mapAttribution // e.g. AVH (CHAH)
     String mapPointColour = "FF9900"
@@ -78,12 +79,13 @@ class Opus {
     int profileCount
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority]
-    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig']
+    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'profileLayoutConfig']
 
     static constraints = {
         shortName nullable: true
         description nullable: true
         brandingConfig nullable: true
+        profileLayoutConfig nullable: true
         attributeVocabUuid nullable: true
         authorshipVocabUuid nullable: true
         enablePhyloUpload nullable: true
