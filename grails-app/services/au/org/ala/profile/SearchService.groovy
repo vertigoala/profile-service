@@ -10,6 +10,7 @@ import org.elasticsearch.index.query.BoolQueryBuilder
 import org.elasticsearch.index.query.MatchQueryBuilder
 import org.elasticsearch.index.query.MultiMatchQueryBuilder
 import org.gbif.ecat.voc.Rank
+import org.grails.plugins.elasticsearch.ElasticSearchAdminService
 import org.springframework.scheduling.annotation.Async
 
 import static org.elasticsearch.index.query.FilterBuilders.*
@@ -27,7 +28,7 @@ class SearchService extends BaseDataAccessService {
     static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 25
     static final Integer DEFAULT_MAX_BROAD_SEARCH_RESULTS = 50
     static final String[] NAME_FIELDS = ["scientificName", "matchedName"]
-    static final String[] ALL_FIELDS = ["attribute.text", "scientificName^4", "matchedName^3"]
+    static final String[] ALL_FIELDS = ["scientificName^4", "matchedName^3"]
 
     AuthService authService
     UserService userService
@@ -35,7 +36,7 @@ class SearchService extends BaseDataAccessService {
     ElasticSearchService elasticSearchService
     NameService nameService
 
-    Map search(List<String> opusIds, String term, int offset, int pageSize, boolean nameOnly = false, boolean includeArchived = false) {
+    Map search(List<String> opusIds, String term, int offset, int pageSize, boolean nameOnly = false, boolean matchAll = false, boolean includeArchived = false) {
         String[] accessibleCollections = getAccessibleCollections(opusIds)?.collect { it.uuid } as String[]
 
         Map results = [:]
@@ -46,7 +47,7 @@ class SearchService extends BaseDataAccessService {
                     size : pageSize
             ]
 
-            QueryBuilder query = nameOnly ? buildNameSearch(term, accessibleCollections, includeArchived) : buildTextSearch(term, accessibleCollections, includeArchived)
+            QueryBuilder query = nameOnly ? buildNameSearch(term, accessibleCollections, includeArchived) : buildTextSearch(term, accessibleCollections, matchAll, includeArchived)
 
             log.debug(query.toString())
 
@@ -158,10 +159,15 @@ class SearchService extends BaseDataAccessService {
      * A text search will look for the term(s) in any indexed field
      *
      */
-    private static QueryBuilder buildTextSearch(String term, String[] accessibleCollections, boolean includeArchived = false) {
+    private static QueryBuilder buildTextSearch(String term, String[] accessibleCollections, boolean matchAll = true, boolean includeArchived = false) {
+        MatchQueryBuilder.Operator operator = MatchQueryBuilder.Operator.AND
+        if (!matchAll) {
+            operator = MatchQueryBuilder.Operator.OR
+        }
+
         QueryBuilder attributesWithNames = boolQuery()
                 .must(nestedQuery("attributes.title", boolQuery().must(matchQuery("attributes.title.name", "name"))))
-                .must(matchQuery("text", term).operator(MatchQueryBuilder.Operator.AND))
+                .must(matchQuery("text", term).operator(operator))
 
         String[] allFields = ALL_FIELDS
         if (includeArchived) {
@@ -175,12 +181,12 @@ class SearchService extends BaseDataAccessService {
             // rank exact matches on the profile name at the time it was archived the same way as we rank the scientificName
             query.should(matchQuery("archivedWithName.untouched", StringUtils.capitalize(term)).boost(4))
         }
+
         query.should(matchQuery("scientificName.untouched", StringUtils.capitalize(term)).boost(4))
-        query.should(multiMatchQuery(term, allFields).operator(MatchQueryBuilder.Operator.AND).boost(2))
-        query.should(multiMatchQuery(term, allFields).operator(MatchQueryBuilder.Operator.OR))
-        query.should(nestedQuery("attributes", attributesWithNames).boost(3))
-        query.should(nestedQuery("attributes", boolQuery().must(matchPhrasePrefixQuery("text", term).operator(MatchQueryBuilder.Operator.AND)).boost(2)))
-        query.should(nestedQuery("attributes", boolQuery().must(matchPhrasePrefixQuery("text", term).operator(MatchQueryBuilder.Operator.OR))))
+        query.should(multiMatchQuery(term, allFields).operator(operator))
+        query.should(nestedQuery("attributes", attributesWithNames).boost(3)) // score name-related attributes higher
+        query.should(nestedQuery("attributes", boolQuery().must(matchQuery("text", term).operator(operator))))
+        query.should(nestedQuery("attributes", boolQuery().must(matchPhrasePrefixQuery("text", term).operator(operator))))
 
         filteredQuery(query, buildFilter(accessibleCollections, includeArchived))
     }
@@ -571,14 +577,16 @@ class SearchService extends BaseDataAccessService {
 
     @Async
     def reindex() {
-
         Status status = Status.list()[0]
         status.searchReindex = true
         save status
 
         long start = System.currentTimeMillis()
-        log.warn("Recreating search index...")
 
+        log.warn("Deleting existing index...")
+        elasticSearchService.unindex(Profile)
+
+        log.warn("Recreating search index...")
         elasticSearchService.index(Profile)
 
         int time = System.currentTimeMillis() - start

@@ -18,8 +18,9 @@ class SearchController extends BaseController {
             int pageSize = params.pageSize ? params.pageSize as int : -1
             int offset = params.offset ? params.offset as int : 0
             boolean includeArchived = params.includeArchived?.toBoolean()
+            boolean matchAll = params.matchAll?.toBoolean()
 
-            render searchService.search(opusIds, term, offset, pageSize, nameOnly, includeArchived) as JSON
+            render searchService.search(opusIds, term, offset, pageSize, nameOnly, matchAll, includeArchived) as JSON
         }
     }
 
