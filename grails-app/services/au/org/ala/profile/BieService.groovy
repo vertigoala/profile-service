@@ -8,7 +8,7 @@ class BieService {
 
     def getClassification(String guid) {
         try {
-            String resp = new URL("${grailsApplication.config.bie.base.url}/ws/classification/${guid}").text
+            String resp = new URL("${grailsApplication.config.bie.base.url}/classification/${guid}").text
             JsonSlurper jsonSlurper = new JsonSlurper()
             jsonSlurper.parseText(resp)
         } catch (Exception e) {
@@ -19,7 +19,7 @@ class BieService {
 
     def getSpeciesProfile(String guid) {
         try {
-            String resp = new URL("${grailsApplication.config.bie.base.url}/ws/species/${guid}").text
+            String resp = new URL("${grailsApplication.config.bie.base.url}/species/${guid}").text
             JsonSlurper jsonSlurper = new JsonSlurper()
             jsonSlurper.parseText(resp)
         } catch (Exception e) {
@@ -32,8 +32,9 @@ class BieService {
         Set potentialMatches = [] as HashSet
 
         try {
-            log.debug("GET request to ${grailsApplication.config.bie.base.url}/ws/search.json?q=${Utils.enc(name)}")
-            String resp = new URL("${grailsApplication.config.bie.base.url}/ws/search.json?q=${Utils.enc(name)}").text
+            String url = "${grailsApplication.config.bie.base.url}/search.json?q=${Utils.enc(name)}&q.op=AND"
+            log.debug("GET request to ${url}")
+            String resp = new URL(url).text
 
             if (resp) {
                 Map json = new JsonSlurper().parseText(resp)
@@ -58,8 +59,9 @@ class BieService {
         Set otherNames = [] as HashSet
 
         try {
-            log.debug("GET request to ${grailsApplication.config.bie.base.url}/ws/species/${Utils.enc(name)}")
-            String resp = new URL("${grailsApplication.config.bie.base.url}/ws/species/${Utils.enc(name)}").text
+            String url = "${grailsApplication.config.bie.base.url}/species/${Utils.enc(name)}"
+            log.debug("GET request to ${url}")
+            String resp = new URL(url).text
 
             if (resp) {
                 Map json = new JsonSlurper().parseText(resp)

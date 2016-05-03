@@ -22,6 +22,9 @@ import org.elasticsearch.index.query.QueryBuilder
 
 import org.grails.plugins.elasticsearch.ElasticSearchService
 
+/**
+ * See http://noamt.github.io/elasticsearch-grails-plugin/docs/index.html for elastic search plugin API doco
+ */
 class SearchService extends BaseDataAccessService {
     static final String UNKNOWN_RANK = "unknown" // used for profiles with no rank/classification
     static final Integer DEFAULT_MAX_CHILDREN_RESULTS = 15
@@ -102,13 +105,13 @@ class SearchService extends BaseDataAccessService {
         BoolQueryBuilder query = boolQuery()
 
         // rank matches using the provided text higher than matches based on other names from the BIE
-        QueryBuilder providedNameQuery = buildBaseNameSearch(term).boost(3)
+        QueryBuilder providedNameQuery = buildBaseNameSearch(term, includeArchived).boost(3)
 
         query.should(providedNameQuery)
 
         if (otherNames) {
             otherNames.each {
-                query.should(buildBaseNameSearch(it))
+                query.should(buildBaseNameSearch(it, includeArchived))
             }
         }
 
@@ -121,7 +124,7 @@ class SearchService extends BaseDataAccessService {
         QueryBuilder query = boolQuery()
                 // rank exact matches on the profile name highest of all
                 .should(termQuery("scientificName.untouched", term).boost(4))
-                // exact match on either the scientific or full name MATCHED name (profile name might be different)
+                // exact match on either the scientific or full MATCHED name (profile name might be different)
                 .should(nestedQuery("matchedName", boolQuery().minimumNumberShouldMatch(1)
                     .should(termQuery("matchedName.fullName", term))
                     .should(termQuery("matchedName.scientificName", term))))
