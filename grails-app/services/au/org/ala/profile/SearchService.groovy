@@ -7,7 +7,6 @@ import au.org.ala.profile.util.Utils
 import com.mongodb.BasicDBObject
 import com.mongodb.MapReduceCommand
 import com.mongodb.MapReduceOutput
-import com.sun.xml.internal.ws.util.StringUtils
 import org.elasticsearch.index.query.BoolQueryBuilder
 import org.elasticsearch.index.query.MatchQueryBuilder
 import org.gbif.ecat.voc.Rank
@@ -121,19 +120,19 @@ class SearchService extends BaseDataAccessService {
     private static QueryBuilder buildBaseNameSearch(String term, boolean includeArchived = false) {
         QueryBuilder attributesWithNames = getNameAttributeQuery(term)
 
+        term = term.toLowerCase()
+
         QueryBuilder query = boolQuery()
                 // rank exact matches on the profile name highest of all
-                .should(termQuery("scientificName.untouched", term).boost(4))
+                .should(termQuery("scientificNameLower", term).boost(4))
                 // exact match on either the scientific or full MATCHED name (profile name might be different)
-                .should(nestedQuery("matchedName", boolQuery().minimumNumberShouldMatch(1)
-                    .should(termQuery("matchedName.fullName.untouched", term))
-                    .should(termQuery("matchedName.scientificName.untouched", term))))
+                .should(termQuery("matchedNameLower", term))
                 // match any attribute that is considered a 'name' attribute (e.g. common, vernacular, indigenous names etc)
                 .should(nestedQuery("attributes", attributesWithNames))
 
         if (includeArchived) {
             // rank exact matches on the profile name at the time it was archived the same way as we rank the scientificName
-            query.should(termQuery("archivedWithName.untouched", StringUtils.capitalize(term)).boost(4))
+            query.should(termQuery("archivedNameLower", term).boost(4))
         }
 
         query
@@ -172,12 +171,11 @@ class SearchService extends BaseDataAccessService {
         QueryBuilder query = boolQuery()
         if (includeArchived) {
             // rank exact matches on the profile name at the time it was archived the same way as we rank the scientificName
-            query.should(matchQuery("archivedWithName.untouched", StringUtils.capitalize(term)).boost(4))
+            query.should(matchQuery("archivedWithName.untouched", term).boost(4))
         }
 
-        query.should(matchQuery("scientificName.untouched", StringUtils.capitalize(term)).boost(4))
         query.should(matchQuery("scientificName", term).boost(4))
-        query.should(nestedQuery("matchedName", boolQuery().must(matchQuery("matchedName.fullName", term).operator(AND))))
+        query.should(nestedQuery("matchedName", boolQuery().must(matchQuery("matchedName.scientificName", term).operator(AND))))
         query.should(nestedQuery("attributes", attributesWithNames).boost(3)) // score name-related attributes higher
         query.should(nestedQuery("attributes", boolQuery().must(matchQuery("text", term).operator(operator))))
         query.should(nestedQuery("attributes", boolQuery().must(matchPhrasePrefixQuery("text", term).operator(operator))))

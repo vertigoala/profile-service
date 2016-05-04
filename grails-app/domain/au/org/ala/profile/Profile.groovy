@@ -13,7 +13,7 @@ class Profile {
     private static final String NOT_ANALYZED_INDEX = "not_analyzed"
 
     static searchable = {
-        only = ["uuid", "guid", "scientificName", "fullName", "matchedName", "rank", "primaryImage", "opus", "attributes", "lastUpdated", "archivedDate", "archivedWithName"]
+        only = ["uuid", "guid", "scientificName", "fullName", "matchedName", "rank", "primaryImage", "opus", "attributes", "lastUpdated", "archivedDate", "archivedWithName", "scientificNameLower", "archivedNameLower", "matchedNameLower"]
         scientificName multi_field: true, boost: 20
         archivedWithName multi_field: true, boost: 20
         matchedName component: true, boost: 10
@@ -24,6 +24,9 @@ class Profile {
         lastUpdated index: NOT_ANALYZED_INDEX
         rank index: NOT_ANALYZED_INDEX
         primaryImage index: NOT_ANALYZED_INDEX
+        scientificNameLower index: NOT_ANALYZED_INDEX
+        archivedNameLower index: NOT_ANALYZED_INDEX
+        matchedNameLower index: NOT_ANALYZED_INDEX
     }
 
     ObjectId id
@@ -71,6 +74,13 @@ class Profile {
     Date archivedDate
     String archivedBy
     String archivedWithName
+
+    @Transient
+    String getScientificNameLower() { scientificName?.toLowerCase() }
+    @Transient
+    String getArchivedNameLower() { archivedWithName?.toLowerCase() }
+    @Transient
+    String getMatchedNameLower() { matchedName?.scientificName?.toLowerCase() }
 
     static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'matchedName', 'privateImages', 'attachments', 'imageSettings']
 
