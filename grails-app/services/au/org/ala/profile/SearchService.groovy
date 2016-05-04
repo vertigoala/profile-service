@@ -49,8 +49,10 @@ class SearchService extends BaseDataAccessService {
             ]
 
             QueryBuilder query = nameOnly ? buildNameSearch(term, accessibleCollections, includeArchived) : buildTextSearch(term, accessibleCollections, matchAll, includeArchived)
-
+            log.debug(query)
+            long start = System.currentTimeMillis()
             def rawResults = elasticSearchService.search(query, null, params)
+            log.debug("${nameOnly ? 'name' : 'text'} search for ${term} took ${System.currentTimeMillis() - start}ms and returned ${rawResults.total} results")
 
             results.total = rawResults.total
             results.items = rawResults.searchResults.collect { Profile it ->
@@ -74,8 +76,6 @@ class SearchService extends BaseDataAccessService {
                         } : []
                 ]
             }
-
-            log.debug("Search for ${term} returned ${results.total} hits")
         }
 
         results
@@ -126,8 +126,8 @@ class SearchService extends BaseDataAccessService {
                 .should(termQuery("scientificName.untouched", term).boost(4))
                 // exact match on either the scientific or full MATCHED name (profile name might be different)
                 .should(nestedQuery("matchedName", boolQuery().minimumNumberShouldMatch(1)
-                    .should(termQuery("matchedName.fullName", term))
-                    .should(termQuery("matchedName.scientificName", term))))
+                    .should(termQuery("matchedName.fullName.untouched", term))
+                    .should(termQuery("matchedName.scientificName.untouched", term))))
                 // match any attribute that is considered a 'name' attribute (e.g. common, vernacular, indigenous names etc)
                 .should(nestedQuery("attributes", attributesWithNames))
 

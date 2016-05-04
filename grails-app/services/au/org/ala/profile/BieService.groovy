@@ -30,7 +30,7 @@ class BieService {
 
     Set<String> searchForPossibleMatches(String name) {
         Set potentialMatches = [] as HashSet
-
+        long start = System.currentTimeMillis()
         try {
             String url = "${grailsApplication.config.bie.base.url}/search.json?q=${Utils.enc(name)}&q.op=AND"
             log.debug("GET request to ${url}")
@@ -50,7 +50,7 @@ class BieService {
             log.error("Failed to find potential matches for ${name}", e)
         }
 
-        log.debug("Potential name matches from the BIE for ${name} are: ${potentialMatches}")
+        log.debug("Potential name matches from the BIE for ${name} are: ${potentialMatches} (took ${System.currentTimeMillis() - start}ms")
 
         potentialMatches
     }
