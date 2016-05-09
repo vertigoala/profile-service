@@ -57,6 +57,8 @@ class NameService extends BaseDataAccessService {
             }
         }
 
+        log.debug("${name} was matched to ${match?.scientificName}")
+
         match
     }
 
@@ -137,6 +139,7 @@ class NameService extends BaseDataAccessService {
     Map matchNSLName(String name) {
         Map match = [:]
         try {
+            log.debug("GET request to ${grailsApplication.config.nsl.name.match.url.prefix}\"${enc(name)}\"")
             String resp = new URL("${grailsApplication.config.nsl.name.match.url.prefix}\"${enc(name)}\"").text
             def json = new JsonSlurper().parseText(resp)
             if (json.count == 1) {

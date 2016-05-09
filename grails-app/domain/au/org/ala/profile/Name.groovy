@@ -9,7 +9,9 @@ class Name {
 
     static searchable = {
         root = false
-        only = ["fullName"]
+        only = ["scientificName", "fullName"]
+        scientificName multi_field: true
+        fullName multi_field: true
     }
 
     String scientificName
