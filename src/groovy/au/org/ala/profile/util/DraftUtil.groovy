@@ -173,7 +173,7 @@ class DraftUtil {
         LocalImage clone = new LocalImage()
 
         clone.creator = source.creator
-        clone.dateCreated = source.dateCreated
+        clone.created = source.created
         clone.description = source.description
         clone.imageId = source.imageId
         clone.licence = source.licence

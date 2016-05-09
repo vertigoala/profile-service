@@ -16,5 +16,9 @@ class LocalImage {
     String licence
     String creator
     String contentType
-    Date dateCreated
+    String created
+
+    static mapping = {
+        created matches: /\d{4}-\d{1,2}-\d{1,2}/
+    }
 }
