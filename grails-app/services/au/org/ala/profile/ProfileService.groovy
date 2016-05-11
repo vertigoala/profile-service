@@ -326,6 +326,10 @@ class ProfileService extends BaseDataAccessService {
             profileOrDraft(profile).showLinkedOpusAttributes = json.showLinkedOpusAttributes as Boolean
         }
 
+        if (json.containsKey("occurrenceQuery") && json.occurrenceQuery != profile.occurrenceQuery) {
+            profileOrDraft(profile).occurrenceQuery = json.occurrenceQuery
+        }
+
         saveImages(profile, json, true)
 
         saveSpecimens(profile, json, true)

@@ -94,14 +94,6 @@ class OpusService extends BaseDataAccessService {
             }
             opus.recordSources.addAll(json.recordSources)
         }
-        if (json.containsKey("excludeRanksFromMap") && json.excludeRanksFromMap != opus.excludeRanksFromMap) {
-            if (opus.excludeRanksFromMap) {
-                opus.excludeRanksFromMap.clear()
-            } else {
-                opus.excludeRanksFromMap = []
-            }
-            opus.excludeRanksFromMap.addAll(json.excludeRanksFromMap)
-        }
         if (json.copyrightText != opus.copyrightText) {
             opus.copyrightText = json.copyrightText
         }

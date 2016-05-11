@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import static au.org.ala.profile.util.Utils.isUuid
+import static au.org.ala.profile.util.Utils.enc
 import grails.converters.JSON
 
 import static org.apache.http.HttpStatus.*
@@ -79,7 +80,39 @@ class BaseController {
             }
         }
 
+        // if the profile has no specific occurrence query then we just set it to the default for the collection,
+        // which limits the query to the LSID (or name if there is no LSID) and the selected data resources
+        if (!profile.occurrenceQuery) {
+            profile.occurrenceQuery = createOccurrenceQuery(profile)
+        }
+
         profile
+    }
+
+    private String createOccurrenceQuery(Profile profile) {
+        Opus opus = profile.opus
+
+        String result = ""
+
+        if (profile && opus) {
+            String query = "q="
+
+            if (profile.guid && profile.guid != "null") {
+                query += "${enc("lsid:${profile.guid}")}"
+            } else {
+                query += enc(profile.scientificName)
+            }
+
+            String occurrenceQuery = query
+
+            if (opus.recordSources) {
+                occurrenceQuery = query + enc(" AND (data_resource_uid:" + opus.recordSources.join(" OR data_resource_uid:") + ")")
+            }
+
+            result = occurrenceQuery
+        }
+
+        result;
     }
 
     Opus getOpus() {

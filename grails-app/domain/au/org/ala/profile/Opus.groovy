@@ -64,7 +64,6 @@ class Opus {
     String email
     String facebook
     String twitter
-    List<String> excludeRanksFromMap
     List<SupportingOpus> supportingOpuses
     List<SupportingOpus> sharingDataWith
     List<Attachment> attachments

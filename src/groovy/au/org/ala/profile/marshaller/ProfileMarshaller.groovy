@@ -55,7 +55,8 @@ class ProfileMarshaller {
                     archivedBy               : profile.archivedBy,
                     archivedWithName         : profile.archivedWithName,
                     showLinkedOpusAttributes : profile.showLinkedOpusAttributes,
-                    lastPublished            : profile.lastPublished
+                    lastPublished            : profile.lastPublished,
+                    occurrenceQuery          : profile.occurrenceQuery
             ]
         }
     }
