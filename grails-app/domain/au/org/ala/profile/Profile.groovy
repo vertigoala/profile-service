@@ -68,6 +68,8 @@ class Profile {
     Date lastUpdated
     String lastUpdatedBy
 
+    Date lastPublished // The last time the profile was saved that wasn't a change to a draft.
+
     DraftProfile draft
 
     String archiveComment
@@ -122,6 +124,11 @@ class Profile {
     def beforeValidate() {
         if (uuid == null) {
             uuid = UUID.randomUUID().toString()
+        }
+        if (draft) {
+            draft.lastPublished = new Date()
+        } else {
+            lastPublished = new Date()
         }
     }
 }

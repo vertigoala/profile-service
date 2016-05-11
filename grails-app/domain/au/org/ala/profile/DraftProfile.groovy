@@ -36,6 +36,7 @@ class DraftProfile {
     Date dateCreated
     Date draftDate = new Date()
     String createdBy
+    Date lastPublished
 
     static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'attributes', 'stagedImages', 'privateImages', 'attachments']
 
