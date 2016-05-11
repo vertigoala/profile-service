@@ -39,6 +39,7 @@ class Profile {
     String nslNameIdentifier
     String nslNomenclatureIdentifier
     String nslProtologue
+    String occurrenceQuery
 
     @Transient
     boolean privateMode = false
@@ -109,6 +110,7 @@ class Profile {
         archivedDate nullable: true
         archivedBy nullable: true
         archivedWithName nullable: true
+        occurrenceQuery nullable: true
     }
 
     static mapping = {

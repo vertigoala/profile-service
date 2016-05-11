@@ -29,6 +29,7 @@ class DraftUtil {
         profile.nslNameIdentifier = profile.draft.nslNameIdentifier
         profile.nslNomenclatureIdentifier = profile.draft.nslNomenclatureIdentifier
         profile.primaryImage = profile.draft.primaryImage
+        profile.occurrenceQuery = profile.draft.occurrenceQuery
         profile.imageSettings = profile.draft.imageSettings
         profile.specimenIds = profile.draft.specimenIds
         profile.authorship = profile.draft.authorship
@@ -71,6 +72,7 @@ class DraftUtil {
         clone.nslNameIdentifier = profile.nslNameIdentifier
         clone.nslNomenclatureIdentifier = profile.nslNomenclatureIdentifier
         clone.primaryImage = profile.primaryImage
+        clone.occurrenceQuery = profile.occurrenceQuery
         clone.imageSettings = profile.imageSettings?.clone()
         clone.specimenIds = profile.specimenIds?.collect()
         clone.authorship = profile.authorship?.collect { cloneAuthorship(it) }
