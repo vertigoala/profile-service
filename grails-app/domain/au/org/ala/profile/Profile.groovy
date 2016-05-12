@@ -113,6 +113,7 @@ class Profile {
         archivedBy nullable: true
         archivedWithName nullable: true
         occurrenceQuery nullable: true
+        lastPublished nullable: true
     }
 
     static mapping = {
