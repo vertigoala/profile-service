@@ -33,15 +33,8 @@ class Opus {
     String featureListSectionName
 
     BrandingConfig brandingConfig
+    MapConfig mapConfig
 
-    String mapAttribution // e.g. AVH (CHAH)
-    String mapPointColour = "FF9900"
-    Float mapDefaultLatitude = Utils.DEFAULT_MAP_LATITUDE
-    Float mapDefaultLongitude = Utils.DEFAULT_MAP_LONGITUDE
-    Integer mapZoom = Utils.DEFAULT_MAP_ZOOM
-    String mapBaseLayer = Utils.DEFAULT_MAP_BASE_LAYER
-    String biocacheUrl    // e.g.  http://avh.ala.org.au/
-    String biocacheName    ///e.g. Australian Virtual Herbarium
     String attributeVocabUuid
     String authorshipVocabUuid
     Boolean enablePhyloUpload = false
@@ -77,21 +70,19 @@ class Opus {
     int profileCount
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority]
-    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig']
+    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig']
 
     static constraints = {
         shortName nullable: true
         description nullable: true
         brandingConfig nullable: true
+        mapConfig nullable: true
         attributeVocabUuid nullable: true
         authorshipVocabUuid nullable: true
         enablePhyloUpload nullable: true
         enableOccurrenceUpload nullable: true
         enableTaxaUpload nullable: true
         enableKeyUpload nullable: true
-        mapAttribution nullable: true
-        biocacheUrl nullable: true
-        biocacheName nullable: true
         keybaseProjectId nullable: true
         keybaseKeyId nullable: true
         aboutHtml nullable: true
