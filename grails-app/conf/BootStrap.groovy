@@ -23,7 +23,7 @@ class BootStrap {
 
         ctx.getBean("customObjectMarshallers").register()
 
-        addLastUpdatedOnComments()
+        addLastPublishedOnProfiles()
     }
     def destroy = {
     }
@@ -38,24 +38,24 @@ class BootStrap {
         }
     }
 
-    // TODO Remove this once all lastUpdated fields are added
-    def addLastUpdatedOnComments() {
-        log.info("Updating lastUpdated field on comments")
+    // TODO Remove this once all lastPublished fields are added
+    def addLastPublishedOnProfiles() {
+        log.info("Updating lastPublished field on profiles")
         // Bypass GORM to set the last updated field directly
-        DBCollection myColl = mongo.getDB(grailsApplication.config.grails.mongo.databaseName).getCollection("comment")
+        DBCollection myColl = mongo.getDB(grailsApplication.config.grails.mongo.databaseName).getCollection("profile")
         BasicDBList list = new BasicDBList()
-        list.add(new BasicDBObject('lastUpdated', new BasicDBObject('$exists', false)))
-        list.add(new BasicDBObject('lastUpdated', new BasicDBObject('$type', 10))) // $type: 10 is null
+        list.add(new BasicDBObject('lastPublished', new BasicDBObject('$exists', false)))
+        list.add(new BasicDBObject('lastPublished', new BasicDBObject('$type', 10))) // $type: 10 is null
         BasicDBObject condition = new BasicDBObject('$or', list)
 
-        //Find all docs missing a lastUpdated and set it to the dateCreated
+        //Find all profiles missing a lastPublished and set it to the lastUpdated
         final cursor = myColl.find(condition)
         final count = cursor.size()
-        cursor.each { DBObject comment ->
-            comment.lastUpdated = comment.dateCreated
-            myColl.save(comment)
+        cursor.each { DBObject profile ->
+            profile.lastPublished = profile.lastUpdated
+            myColl.save(profile)
         }
-        log.info("Updated $count comments")
+        log.info("Updated $count profiles")
     }
 
 }
