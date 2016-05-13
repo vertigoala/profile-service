@@ -1,5 +1,7 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.DataResourceOption
+
 import static au.org.ala.profile.util.Utils.isUuid
 import static au.org.ala.profile.util.Utils.enc
 import grails.converters.JSON
@@ -95,21 +97,35 @@ class BaseController {
         String result = ""
 
         if (profile && opus) {
-            String query = "q="
+            String query = ""
 
             if (profile.guid && profile.guid != "null") {
-                query += "${enc("lsid:${profile.guid}")}"
+                query += "${"lsid:${profile.guid}"}"
             } else {
-                query += enc(profile.scientificName)
+                query += profile.scientificName
             }
 
             String occurrenceQuery = query
 
-            if (opus.recordSources) {
-                occurrenceQuery = query + enc(" AND (data_resource_uid:" + opus.recordSources.join(" OR data_resource_uid:") + ")")
+            if (opus.dataResourceConfig) {
+                DataResourceConfig config = opus.dataResourceConfig
+                switch (config.recordResourceOption) {
+                    case DataResourceOption.ALL:
+                        occurrenceQuery = query
+                        break
+                    case DataResourceOption.NONE:
+                        occurrenceQuery = "${query} AND data_resource_uid:${opus.dataResourceUid}"
+                        break
+                    case DataResourceOption.HUBS:
+                        occurrenceQuery = "${query} AND (data_resource_uid:${opus.dataResourceUid} OR data_hub_uid:${config.recordSources?.join(" OR data_hub_uid:")})"
+                        break
+                    case DataResourceOption.RESOURCES:
+                        occurrenceQuery = "${query} AND (data_resource_uid:${opus.dataResourceUid} OR data_resource_uid:${config.recordSources?.join(" OR data_resource_uid:")})"
+                        break
+                }
             }
 
-            result = occurrenceQuery
+            result = "q=${enc(occurrenceQuery)}"
         }
 
         result;

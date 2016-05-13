@@ -26,14 +26,14 @@ class Opus {
     String title
     String description
     String dataResourceUid
-    List<String> imageSources            // a list of drs that are providing images we can include
-    List<String> recordSources         // a list of drs that are providing images we can include
+
     List<String> approvedLists
     List<String> featureLists
     String featureListSectionName
 
     BrandingConfig brandingConfig
     MapConfig mapConfig
+    DataResourceConfig dataResourceConfig
 
     String attributeVocabUuid
     String authorshipVocabUuid
@@ -70,13 +70,14 @@ class Opus {
     int profileCount
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority]
-    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig']
+    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig', 'dataResourceConfig']
 
     static constraints = {
         shortName nullable: true
         description nullable: true
         brandingConfig nullable: true
         mapConfig nullable: true
+        dataResourceConfig nullable: true
         attributeVocabUuid nullable: true
         authorshipVocabUuid nullable: true
         enablePhyloUpload nullable: true

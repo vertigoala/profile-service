@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.security.Role
+import au.org.ala.profile.util.DataResourceOption
 import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.ShareRequestAction
 import au.org.ala.profile.util.ShareRequestStatus
@@ -59,14 +60,7 @@ class OpusService extends BaseDataAccessService {
         if (json.containsKey("description") && json.description != opus.description) {
             opus.description = json.description ? json.description : null
         }
-        if (json.containsKey("imageSources") && json.imageSources != opus.imageSources) {
-            if (opus.imageSources) {
-                opus.imageSources.clear()
-            } else {
-                opus.imageSources = []
-            }
-            opus.imageSources.addAll(json.imageSources)
-        }
+
         if (json.containsKey("approvedLists") && json.approvedLists != opus.approvedLists) {
             if (opus.approvedLists) {
                 opus.approvedLists.clear()
@@ -86,14 +80,40 @@ class OpusService extends BaseDataAccessService {
         if (json.containsKey("featureListSectionName") && json.featureListSectionName != opus.featureListSectionName) {
             opus.featureListSectionName = json.featureListSectionName
         }
-        if (json.containsKey("recordSources") && json.recordSources != opus.recordSources) {
-            if (opus.recordSources) {
-                opus.recordSources.clear()
-            } else {
-                opus.recordSources = []
+        
+        if (json.containsKey("dataResourceConfig")) {
+            if (!opus.dataResourceConfig) {
+                opus.dataResourceConfig = new DataResourceConfig()
             }
-            opus.recordSources.addAll(json.recordSources)
+
+            if (json.dataResourceConfig.containsKey("recordResourceOption") && json.dataResourceConfig.recordResourceOption != opus.dataResourceConfig.recordResourceOption) {
+                opus.dataResourceConfig.recordResourceOption = json.dataResourceConfig.recordResourceOption.toUpperCase() as DataResourceOption
+            }
+            
+            if (json.dataResourceConfig.containsKey("recordSources") && json.dataResourceConfig.recordSources != opus.dataResourceConfig.recordSources) {
+                if (opus.dataResourceConfig.recordSources) {
+                    opus.dataResourceConfig.recordSources.clear()
+                } else {
+                    opus.dataResourceConfig.recordSources = []
+                }
+                opus.dataResourceConfig.recordSources.addAll(json.dataResourceConfig.recordSources)
+            }
+
+            if (json.dataResourceConfig.containsKey("imageResourceOption") && json.dataResourceConfig.imageResourceOption != opus.dataResourceConfig.imageResourceOption) {
+                opus.dataResourceConfig.imageResourceOption = json.dataResourceConfig.imageResourceOption.toUpperCase() as DataResourceOption
+            }
+
+            if (json.dataResourceConfig.containsKey("imageSources") && json.dataResourceConfig.imageSources != opus.dataResourceConfig.imageSources) {
+                if (opus.dataResourceConfig.imageSources) {
+                    opus.dataResourceConfig.imageSources.clear()
+                } else {
+                    opus.dataResourceConfig.imageSources = []
+                }
+                opus.dataResourceConfig.imageSources.addAll(json.dataResourceConfig.imageSources)
+            }
         }
+        
+        
         if (json.copyrightText != opus.copyrightText) {
             opus.copyrightText = json.copyrightText
         }

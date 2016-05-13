@@ -1,9 +1,10 @@
 package au.org.ala.profile.marshaller
 
+import au.org.ala.profile.DataResourceConfig
 import au.org.ala.profile.Opus
+import au.org.ala.profile.util.DataResourceOption
 import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.ShareRequestStatus
-import au.org.ala.profile.util.Utils
 import grails.converters.JSON
 
 class OpusMarshaller {
@@ -16,9 +17,8 @@ class OpusMarshaller {
                     title                      : opus.title,
                     shortName                  : opus.shortName,
                     description                : opus.description,
-                    imageSources               : opus.imageSources ?: [],
+                    dataResourceConfig         : marshalDataResourceConfig(opus.dataResourceConfig),
                     approvedImageOption        : opus.approvedImageOption?.name() ?: ImageOption.INCLUDE.name(),
-                    recordSources              : opus.recordSources ?: [],
                     approvedLists              : opus.approvedLists ?: [],
                     featureLists               : opus.featureLists ?: [],
                     featureListSectionName     : opus.featureListSectionName,
@@ -68,5 +68,23 @@ class OpusMarshaller {
                 opuses.collect {
                     [uuid: it.uuid, title: it.title, requestStatus: it.requestStatus.toString()]
                 } : []
+    }
+
+
+    private static Map marshalDataResourceConfig(DataResourceConfig config) {
+        Map result = [:]
+        if (config) {
+            result.recordResourceOption = config.recordResourceOption.name()
+            result.imageResourceOption = config.imageResourceOption.name()
+            result.imageSources = config.imageSources
+            result.recordSources = config.recordSources
+        } else {
+            result.imageSources = []
+            result.recordSources = []
+            result.imageResourceOption = DataResourceOption.NONE.name()
+            result.recordResourceOption = DataResourceOption.NONE.name()
+        }
+
+        result
     }
 }
