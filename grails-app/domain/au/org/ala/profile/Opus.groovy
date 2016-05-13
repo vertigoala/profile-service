@@ -32,6 +32,7 @@ class Opus {
     String featureListSectionName
 
     BrandingConfig brandingConfig
+    ProfileLayoutConfig profileLayoutConfig
     MapConfig mapConfig
     DataResourceConfig dataResourceConfig
 
@@ -70,12 +71,13 @@ class Opus {
     int profileCount
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority]
-    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig', 'dataResourceConfig']
+    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig', 'profileLayoutConfig', 'dataResourceConfig']
 
     static constraints = {
         shortName nullable: true
         description nullable: true
         brandingConfig nullable: true
+        profileLayoutConfig nullable: true
         mapConfig nullable: true
         dataResourceConfig nullable: true
         attributeVocabUuid nullable: true

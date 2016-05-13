@@ -154,6 +154,18 @@ class OpusService extends BaseDataAccessService {
             if (json.brandingConfig.containsKey("profileBannerUrl") && json.brandingConfig.profileBannerUrl != opus.brandingConfig.profileBannerUrl) {
                 opus.brandingConfig.profileBannerUrl = json.brandingConfig.profileBannerUrl
             }
+            if (json.brandingConfig.containsKey("colourTheme") && json.brandingConfig.colourTheme != opus.brandingConfig.colourTheme) {
+                opus.brandingConfig.colourTheme = json.brandingConfig.colourTheme
+            }
+        }
+        if (json.containsKey("profileLayoutConfig")) {
+            if (!opus.profileLayoutConfig) {
+                opus.profileLayoutConfig = new ProfileLayoutConfig()
+            }
+
+            if (json.profileLayoutConfig.containsKey("layout") && json.profileLayoutConfig.layout != opus.profileLayoutConfig.layout) {
+                opus.profileLayoutConfig.layout = json.profileLayoutConfig.layout
+            }
         }
         if (json.containsKey("mapConfig")) {
             if (!opus.mapConfig) {

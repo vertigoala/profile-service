@@ -16,11 +16,14 @@ class BrandingConfig {
     String logoUrl
     String thumbnailUrl
 
+    String colourTheme
+
     static constraints = {
         opusBannerUrl nullable: true
         profileBannerUrl nullable: true
         logoUrl nullable: true
         thumbnailUrl nullable: true
+        colourTheme nullable: true
     }
 
     static mapping = {
