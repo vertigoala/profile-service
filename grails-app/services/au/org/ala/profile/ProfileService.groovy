@@ -101,6 +101,8 @@ class ProfileService extends BaseDataAccessService {
 
         if (!success) {
             profile = null
+        } else if (opus.autoDraftProfiles) {
+            toggleDraftMode(profile.uuid)
         }
 
         profile

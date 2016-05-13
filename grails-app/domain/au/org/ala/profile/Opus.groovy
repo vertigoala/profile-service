@@ -67,6 +67,8 @@ class Opus {
 
     String accessToken
 
+    boolean autoDraftProfiles = false // automatically lock profiles for draft when they are created
+
     @Transient
     int profileCount
 
@@ -97,6 +99,7 @@ class Opus {
         twitter nullable: true
         featureListSectionName nullable: true
         accessToken nullable: true
+        autoDraftProfiles nullable: true
     }
 
     def beforeValidate() {

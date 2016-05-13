@@ -252,6 +252,9 @@ class OpusService extends BaseDataAccessService {
         if (json.has("autoApproveShareRequests") && json.autoApproveShareRequests != opus.autoApproveShareRequests) {
             opus.autoApproveShareRequests = json.autoApproveShareRequests.toBoolean()
         }
+        if (json.containsKey("autoDraftProfiles") && json.autoDraftProfiles.toBoolean() != opus.autoDraftProfiles) {
+            opus.autoDraftProfiles = json.autoDraftProfiles.toBoolean()
+        }
 
         boolean success = save opus
 

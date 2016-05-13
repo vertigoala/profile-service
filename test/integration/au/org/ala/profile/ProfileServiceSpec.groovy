@@ -75,6 +75,30 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.authorship[0].text == "Fred Bloggs"
     }
 
+    def "createProfile should NPT automatically put the profile in draft mode if the Opus.autoDraftProfiles flag = false"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title", autoDraftProfiles: false)
+        save opus
+
+        when:
+        Profile profile = service.createProfile(opus.uuid, [scientificName: "sciName"])
+
+        then:
+        profile.draft == null
+    }
+
+    def "createProfile should automatically put the profile in draft mode if the Opus.autoDraftProfiles flag = true"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title", autoDraftProfiles: true)
+        save opus
+
+        when:
+        Profile profile = service.createProfile(opus.uuid, [scientificName: "sciName"])
+
+        then:
+        profile.draft != null
+    }
+
     def "delete profile should remove the record"() {
         given:
         Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")

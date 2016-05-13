@@ -28,6 +28,7 @@ class OpusMarshaller {
                     keybaseKeyId               : opus.keybaseKeyId,
                     attributeVocabUuid         : opus.attributeVocabUuid,
                     authorshipVocabUuid        : opus.authorshipVocabUuid,
+                    autoDraftProfiles          : opus.autoDraftProfiles,
                     glossaryUuid               : opus.glossary?.uuid,
                     attachments                : opus.attachments ?: [],
                     enablePhyloUpload          : opus.enablePhyloUpload != null ? opus.enableKeyUpload : true,
