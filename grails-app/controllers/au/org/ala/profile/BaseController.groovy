@@ -85,7 +85,11 @@ class BaseController {
         // if the profile has no specific occurrence query then we just set it to the default for the collection,
         // which limits the query to the LSID (or name if there is no LSID) and the selected data resources
         if (!profile.occurrenceQuery) {
-            profile.occurrenceQuery = createOccurrenceQuery(profile)
+            String query = createOccurrenceQuery(profile)
+            profile.occurrenceQuery = query
+            if (profile.draft) {
+                profile.draft.occurrenceQuery = query
+            }
         }
 
         profile
@@ -128,7 +132,7 @@ class BaseController {
             result = "q=${enc(occurrenceQuery)}"
         }
 
-        result;
+        result
     }
 
     Opus getOpus() {
