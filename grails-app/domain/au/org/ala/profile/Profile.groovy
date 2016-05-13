@@ -39,6 +39,7 @@ class Profile {
     String nslNameIdentifier
     String nslNomenclatureIdentifier
     String nslProtologue
+    String occurrenceQuery
 
     @Transient
     boolean privateMode = false
@@ -67,6 +68,8 @@ class Profile {
     String createdBy
     Date lastUpdated
     String lastUpdatedBy
+
+    Date lastPublished // The last time the profile was saved that wasn't a change to a draft.
 
     DraftProfile draft
 
@@ -109,6 +112,8 @@ class Profile {
         archivedDate nullable: true
         archivedBy nullable: true
         archivedWithName nullable: true
+        occurrenceQuery nullable: true
+        lastPublished nullable: true
     }
 
     static mapping = {
@@ -122,6 +127,11 @@ class Profile {
     def beforeValidate() {
         if (uuid == null) {
             uuid = UUID.randomUUID().toString()
+        }
+        if (draft) {
+            draft.lastPublished = new Date()
+        } else {
+            lastPublished = new Date()
         }
     }
 }

@@ -1442,5 +1442,30 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.guid == "ABC"
     }
 
+    def "saving a profile should set the lastPublished field"() {
+        given:
+        Date now = new Date()
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+
+        expect:
+        profile.lastPublished > now
+    }
+
+    def "updating a draft profile should set the lastPublished field on the draft only"() {
+        given:
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+        profile.draft = new DraftProfile(uuid: profile.uuid, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+
+        expect:
+        profile.draft.lastPublished > profile.lastPublished
+    }
+
 }
 

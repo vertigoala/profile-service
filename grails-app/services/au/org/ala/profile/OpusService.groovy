@@ -94,14 +94,6 @@ class OpusService extends BaseDataAccessService {
             }
             opus.recordSources.addAll(json.recordSources)
         }
-        if (json.containsKey("excludeRanksFromMap") && json.excludeRanksFromMap != opus.excludeRanksFromMap) {
-            if (opus.excludeRanksFromMap) {
-                opus.excludeRanksFromMap.clear()
-            } else {
-                opus.excludeRanksFromMap = []
-            }
-            opus.excludeRanksFromMap.addAll(json.excludeRanksFromMap)
-        }
         if (json.copyrightText != opus.copyrightText) {
             opus.copyrightText = json.copyrightText
         }
@@ -155,30 +147,43 @@ class OpusService extends BaseDataAccessService {
                 opus.profileLayoutConfig.layout = json.profileLayoutConfig.layout
             }
         }
-
-        if (json.mapAttribution && json.mapAttribution != opus.mapAttribution) {
-            opus.mapAttribution = json.mapAttribution
-        }
-        if (json.mapPointColour && json.mapPointColour != opus.mapPointColour) {
-            opus.mapPointColour = json.mapPointColour;
-        }
-        if (json.mapDefaultLatitude && json.mapDefaultLatitude != opus.mapDefaultLatitude) {
-            opus.mapDefaultLatitude = json.mapDefaultLatitude as Float
-        }
-        if (json.mapDefaultLongitude && json.mapDefaultLongitude != opus.mapDefaultLongitude) {
-            opus.mapDefaultLongitude = json.mapDefaultLongitude as Float
-        }
-        if (json.mapZoom && json.mapZoom != opus.mapZoom) {
-            opus.mapZoom = json.mapZoom as int
-        }
-        if (json.mapBaseLayer && json.mapBaseLayer != opus.mapBaseLayer) {
-            opus.mapBaseLayer = json.mapBaseLayer
-        }
-        if (json.biocacheUrl && json.biocacheUrl != opus.biocacheUrl) {
-            opus.biocacheUrl = json.biocacheUrl
-        }
-        if (json.biocacheName && json.biocacheName != opus.biocacheName) {
-            opus.biocacheName = json.biocacheName
+        if (json.containsKey("mapConfig")) {
+            if (!opus.mapConfig) {
+                opus.mapConfig = new MapConfig()
+            }
+            if (json.mapConfig.mapAttribution && json.mapConfig.mapAttribution != opus.mapConfig.mapAttribution) {
+                opus.mapConfig.mapAttribution = json.mapConfig.mapAttribution
+            }
+            if (json.mapConfig.mapPointColour && json.mapConfig.mapPointColour != opus.mapConfig.mapPointColour) {
+                opus.mapConfig.mapPointColour = json.mapConfig.mapPointColour;
+            }
+            if (json.mapConfig.mapDefaultLatitude && json.mapConfig.mapDefaultLatitude != opus.mapConfig.mapDefaultLatitude) {
+                opus.mapConfig.mapDefaultLatitude = json.mapConfig.mapDefaultLatitude as Float
+            }
+            if (json.mapConfig.mapDefaultLongitude && json.mapConfig.mapDefaultLongitude != opus.mapConfig.mapDefaultLongitude) {
+                opus.mapConfig.mapDefaultLongitude = json.mapConfig.mapDefaultLongitude as Float
+            }
+            if (json.mapConfig.mapZoom && json.mapConfig.mapZoom != opus.mapConfig.mapZoom) {
+                opus.mapConfig.mapZoom = json.mapConfig.mapZoom as int
+            }
+            if (json.mapConfig.maxZoom && json.mapConfig.maxZoom != opus.mapConfig.maxZoom) {
+                opus.mapConfig.maxZoom = json.mapConfig.maxZoom as int
+            }
+            if (json.mapConfig.maxAutoZoom && json.mapConfig.maxAutoZoom != opus.mapConfig.maxAutoZoom) {
+                opus.mapConfig.maxAutoZoom = json.mapConfig.maxAutoZoom as int
+            }
+            if (json.mapConfig.autoZoom != null && json.mapConfig.autoZoom != opus.mapConfig.autoZoom) {
+                opus.mapConfig.autoZoom = json.mapConfig.autoZoom?.toBoolean() ?: false
+            }
+            if (json.mapConfig.mapBaseLayer && json.mapConfig.mapBaseLayer != opus.mapConfig.mapBaseLayer) {
+                opus.mapConfig.mapBaseLayer = json.mapConfig.mapBaseLayer
+            }
+            if (json.mapConfig.biocacheUrl && json.mapConfig.biocacheUrl != opus.mapConfig.biocacheUrl) {
+                opus.mapConfig.biocacheUrl = json.mapConfig.biocacheUrl
+            }
+            if (json.mapConfig.biocacheName && json.mapConfig.biocacheName != opus.mapConfig.biocacheName) {
+                opus.mapConfig.biocacheName = json.mapConfig.biocacheName
+            }
         }
         if (json.containsKey("approvedImageOption")) {
             ImageOption option = ImageOption.valueOf(json.approvedImageOption.toUpperCase())

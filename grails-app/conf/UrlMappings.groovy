@@ -94,6 +94,7 @@ class UrlMappings {
         "/report/recentComments" controller: "report", action: [GET: "recentComments"]
 
         "/image/$imageId" controller: "image", action: [GET: "getImageInfo"]
+        "/image/$imageId/metadata" controller: "image", action: [GET: "getImageInfo", POST: "updateImageMetadata"]
 
         "/statistics/" controller: "statistics", action: [GET: "index"]
 

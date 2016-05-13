@@ -96,6 +96,10 @@ class SearchService extends BaseDataAccessService {
         if (alaMatchedName && term != alaMatchedName) {
             otherNames << alaMatchedName
         }
+//        String nslMatchedName = nameService.matchNSLName(term)?.scientificName
+//        if (nslMatchedName && term != nslMatchedName) {
+//            otherNames << nslMatchedName
+//        }
 
         // make sure the provided term is not in the list of alternate names (case insensitive)
         term = otherNames.find { it?.equalsIgnoreCase(term) } ?: term

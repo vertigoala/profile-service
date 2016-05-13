@@ -36,14 +36,7 @@ class OpusMarshaller {
                     enableKeyUpload            : opus.enableKeyUpload != null ? opus.enableKeyUpload : true,
                     privateCollection          : opus.privateCollection != null ? opus.privateCollection : false,
                     keepImagesPrivate          : opus.keepImagesPrivate ?: false,
-                    mapAttribution             : opus.mapAttribution ?: 'Atlas',
-                    mapPointColour             : opus.mapPointColour ?: "FF9900",
-                    mapDefaultLatitude         : opus.mapDefaultLatitude ?: Utils.DEFAULT_MAP_LATITUDE,
-                    mapDefaultLongitude        : opus.mapDefaultLongitude ?: Utils.DEFAULT_MAP_LONGITUDE,
-                    mapZoom                    : opus.mapZoom ?: Utils.DEFAULT_MAP_ZOOM,
-                    mapBaseLayer               : opus.mapBaseLayer ?: Utils.DEFAULT_MAP_BASE_LAYER,
-                    biocacheUrl                : opus.biocacheUrl,
-                    biocacheName               : opus.biocacheName ?: 'Atlas',
+                    mapConfig                  : opus.mapConfig ?: [:],
                     supportingOpuses           : marshalSupportingOpuses(opus.supportingOpuses?.findAll {
                         it.requestStatus == ShareRequestStatus.ACCEPTED
                     }),
@@ -64,7 +57,6 @@ class OpusMarshaller {
                                                   email   : opus.email,
                                                   facebook: opus.facebook],
                     hasAboutPage               : opus.aboutHtml != null,
-                    excludeRanksFromMap        : opus.excludeRanksFromMap ?: [],
                     profileCount               : opus.profileCount,
                     citationHtml               : opus.citationHtml,
                     accessToken                : opus.accessToken
