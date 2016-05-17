@@ -19,6 +19,7 @@ class Profile {
         matchedName component: true, boost: 10
         opus component: true
         attributes component: true
+        nslNameIdentifier index: NOT_ANALYZED_INDEX
         uuid index: NOT_ANALYZED_INDEX
         guid index: NOT_ANALYZED_INDEX
         lastUpdated index: NOT_ANALYZED_INDEX

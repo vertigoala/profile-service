@@ -99,7 +99,6 @@ class Opus {
         twitter nullable: true
         featureListSectionName nullable: true
         accessToken nullable: true
-        autoDraftProfiles nullable: true
     }
 
     def beforeValidate() {

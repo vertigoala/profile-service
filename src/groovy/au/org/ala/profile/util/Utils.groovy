@@ -1,6 +1,7 @@
 package au.org.ala.profile.util
 
 import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
+import static org.apache.http.HttpStatus.SC_OK
 
 class Utils {
 
@@ -73,5 +74,10 @@ class Utils {
         }
 
         icon
+    }
+
+    /** Returns true for HTTP status codes from 200 to 299 */
+    static  boolean isSuccessful(int statusCode) {
+        return statusCode >= SC_OK && statusCode <= 299
     }
 }

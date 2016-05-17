@@ -1,12 +1,14 @@
 package au.org.ala.profile
 
 import au.org.ala.names.search.HomonymException
+import au.org.ala.ws.service.WebService
 
 import static com.xlson.groovycsv.CsvParser.parseCsv
 import static au.org.ala.profile.util.Utils.enc
+import static au.org.ala.profile.util.Utils.isSuccessful
+import static au.org.ala.profile.util.Utils.cleanupText
 
 import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
-import au.org.ala.profile.util.Utils
 import au.org.ala.names.model.LinnaeanRankClassification
 import au.org.ala.names.model.NameSearchResult
 import au.org.ala.names.search.ALANameSearcher
@@ -17,6 +19,12 @@ import javax.annotation.PostConstruct
 
 @Transactional
 class NameService extends BaseDataAccessService {
+
+    static final String NSL_APC_PRODUCT = "apc"
+    static final String NSL_APC_PLANT_TREE = "1133571"
+    static final int NSL_DEFAULT_MAX_RESULTS = 100
+
+    WebService webService
 
     def grailsApplication
     ALANameSearcher nameSearcher
@@ -159,6 +167,30 @@ class NameService extends BaseDataAccessService {
         }
 
         match
+    }
+
+    List searchNSLName(String name) {
+        List matches
+
+        String url = "${grailsApplication.config.nsl.search.service.url.prefix}?product=${NSL_APC_PRODUCT}&tree.id=${NSL_APC_PLANT_TREE}&max=${NSL_DEFAULT_MAX_RESULTS}&display=${NSL_APC_PRODUCT}&inc.scientific=on&search=true&format=json&name=${enc(name)}"
+        Map result = webService.get(url)
+        if (result?.resp && isSuccessful(result?.statusCode)) {
+            matches = result.resp.collect {
+                String permalink = it.name?.primaryInstance?._links[0]?.permalink?.link
+                String id = permalink ? permalink?.substring(permalink?.lastIndexOf("/") + 1) : null
+
+                [
+                        scientificName: it.name?.simpleName,
+                        fullName: it.name?.fullName,
+                        nslId: id
+                ]
+            }
+        } else {
+            matches = []
+            log.error("Failed to query NSL for name matches: ${result.error}")
+        }
+
+        matches
     }
 
     String extractAuthorsFromNameHtml(String nameHtml) {
@@ -349,8 +381,8 @@ class NameService extends BaseDataAccessService {
                 def csv = parseCsv(reader)
 
                 csv.each { fields ->
-                    String simpleName = Utils.cleanupText(fields.simple_name_html)
-                    String fullName = Utils.cleanupText(fields.full_name_html)
+                    String simpleName = cleanupText(fields.simple_name_html)
+                    String fullName = cleanupText(fields.full_name_html)
 
                     Map name = [scientificName    : simpleName,
                                 scientificNameHtml: fields.simple_name_html,

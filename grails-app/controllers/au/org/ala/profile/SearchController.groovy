@@ -2,6 +2,7 @@ package au.org.ala.profile
 
 import au.ala.org.ws.security.RequireApiKey
 import au.org.ala.profile.util.ProfileSortOption
+import au.org.ala.profile.util.SearchOptions
 import grails.converters.JSON
 
 class SearchController extends BaseController {
@@ -14,13 +15,18 @@ class SearchController extends BaseController {
             List<String> opusIds = params.opusId?.split(",") ?: []
 
             String term = params.term as String
-            boolean nameOnly = params.nameOnly?.toBoolean()
             int pageSize = params.pageSize ? params.pageSize as int : -1
             int offset = params.offset ? params.offset as int : 0
-            boolean includeArchived = params.includeArchived?.toBoolean()
-            boolean matchAll = params.matchAll?.toBoolean()
 
-            render searchService.search(opusIds, term, offset, pageSize, nameOnly, matchAll, includeArchived) as JSON
+            SearchOptions options = new SearchOptions()
+            options.nameOnly = params.nameOnly?.toBoolean()
+            options.includeArchived = params.includeArchived?.toBoolean()
+            options.matchAll = params.matchAll?.toBoolean()
+            options.searchAla = params.searchAla?.toBoolean()
+            options.searchNsl = params.searchNsl?.toBoolean()
+            options.includeNameAttributes = params.includeNameAttributes?.toBoolean()
+
+            render searchService.search(opusIds, term, offset, pageSize, options) as JSON
         }
     }
 
