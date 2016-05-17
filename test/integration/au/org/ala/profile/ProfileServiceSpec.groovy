@@ -75,7 +75,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.authorship[0].text == "Fred Bloggs"
     }
 
-    def "createProfile should NPT automatically put the profile in draft mode if the Opus.autoDraftProfiles flag = false"() {
+    def "createProfile should NOT automatically put the profile in draft mode if the Opus.autoDraftProfiles flag = false"() {
         given:
         Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title", autoDraftProfiles: false)
         save opus
@@ -97,6 +97,89 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
         then:
         profile.draft != null
+    }
+
+    def "duplicateProfile should fail if the profile to copy is null"() {
+        when:
+        service.duplicateProfile("123", null, [scientificName: "test"])
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def "duplicateProfile should create a new profile with the content of the profile to copy"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Vocab vocab = new Vocab(name: "vocab1")
+        Term term = new Term(uuid: "1", name: "title")
+        vocab.addToTerms(term)
+        save vocab
+        Profile existingProfile = new Profile(opus: opus,
+                scientificName: "name",
+                specimenIds: ["1", "2"],
+                links: [new Link(uuid: "L1", title: "link1")],
+                bhlLinks: [new Link(uuid: "B1", title: "bhl1")],
+                bibliography: [new Bibliography(uuid: "B1", text: "bib1")],
+                authorship: [new Authorship(term: term, text: "bib1")],
+        )
+        save existingProfile
+
+        expect:
+        Profile.count() == 1
+
+        when:
+        Profile newProfile = service.duplicateProfile(opus.uuid, existingProfile, [scientificName: "test"])
+
+        then:
+        Profile.count() == 2
+        newProfile.uuid != null
+        newProfile.uuid != existingProfile.uuid
+        newProfile.specimenIds == ["1", "2"]
+        !newProfile.is(existingProfile.specimenIds)
+        newProfile.links.size() == 1
+        newProfile.links[0] != existingProfile.links[0]
+        newProfile.bhlLinks.size() == 1
+        newProfile.bhlLinks[0] != existingProfile.bhlLinks[0]
+        newProfile.bibliography.size() == 1
+        newProfile.bibliography[0] != existingProfile.bibliography[0]
+        newProfile.authorship.size() == 1
+        !newProfile.authorship[0].is(existingProfile.authorship[0]) // authorship doens't have an ID, so object equality will match, but reference equality should not
+    }
+
+    def "duplicateProfile should clone the attributes for the profile being duplicated"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Profile existingProfile = new Profile(opus: opus, scientificName: "name", specimenIds: ["1", "2"])
+
+        Vocab vocab = new Vocab(name: "vocab1")
+        Term term = new Term(uuid: "1", name: "title")
+        vocab.addToTerms(term)
+        save vocab
+        Attribute attribute1 = new Attribute(uuid: "1", title: term, text: "text")
+        existingProfile.addToAttributes(attribute1)
+        Attribute attribute2 = new Attribute(uuid: "2", title: term, text: "text2")
+        existingProfile.addToAttributes(attribute2)
+
+        save existingProfile
+
+        expect:
+        Profile.count() == 1
+        Attribute.count() == 2
+
+        when:
+        Profile newProfile = service.duplicateProfile(opus.uuid, existingProfile, [scientificName: "test"])
+
+        then:
+        Profile.count() == 2
+        Attribute.count() == 4
+        Profile.list()[0].is(existingProfile)
+        !Profile.list()[1].is(existingProfile)
+        newProfile.attributes.size() == 2
+        !newProfile.attributes.is(existingProfile.attributes)
+        newProfile.attributes[0].uuid != "1" && newProfile.attributes[0].uuid != "2"
+        newProfile.attributes[1].uuid != "1" && newProfile.attributes[1].uuid != "2"
     }
 
     def "delete profile should remove the record"() {

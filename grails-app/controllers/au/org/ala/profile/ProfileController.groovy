@@ -300,6 +300,33 @@ class ProfileController extends BaseController {
         }
     }
 
+    def duplicateProfile() {
+        def json = request.getJSON()
+
+        if (!params.profileId || !json || !json.scientificName || !json.opusId) {
+            badRequest "The profileId parameter and a json body with at least the scientificName and an opus id are required"
+        } else {
+            Opus opus = getOpus()
+            if (!opus) {
+                notFound "No matching opus can be found"
+            } else {
+                Profile profile = Profile.findByScientificNameAndOpus(json.scientificName, opus)
+
+                if (profile) {
+                    sendError HttpStatus.SC_NOT_ACCEPTABLE, "A profile already exists for ${json.scientificName}"
+                } else {
+                    Profile sourceProfile = getProfile()
+                    if (sourceProfile) {
+                        profile = profileService.duplicateProfile(opus.uuid, sourceProfile, json);
+                        render profile as JSON
+                    } else {
+                        notFound "No existing profile with id ${params.profileId} was found to duplicate"
+                    }
+                }
+            }
+        }
+    }
+
     def renameProfile() {
         def json = request.getJSON()
 

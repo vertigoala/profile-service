@@ -16,7 +16,7 @@ import spock.lang.Specification
 
 import static au.org.ala.profile.util.ImageOption.EXCLUDE
 
-class DraftUtilTest extends Specification {
+class CloneAndDraftUtilTest extends Specification {
 
     Profile original
     Contributor fred
@@ -56,7 +56,7 @@ class DraftUtilTest extends Specification {
 
     def "createDraft should copy all fields"() {
         when:
-        DraftProfile draft = DraftUtil.createDraft(original)
+        DraftProfile draft = CloneAndDraftUtil.createDraft(original)
 
         then:
         draft.uuid == original.uuid
@@ -104,7 +104,7 @@ class DraftUtilTest extends Specification {
         Authorship original = new Authorship(category: new Term(name: "cat1"), text: "text1")
 
         when:
-        Authorship clone = DraftUtil.cloneAuthorship(original)
+        Authorship clone = CloneAndDraftUtil.cloneAuthorship(original)
 
         then:
         !clone.is(original)
@@ -116,7 +116,7 @@ class DraftUtilTest extends Specification {
         Classification original = new Classification(name: "name", rank: "rank", guid: "guid")
 
         when:
-        Classification clone = DraftUtil.cloneClassification(original)
+        Classification clone = CloneAndDraftUtil.cloneClassification(original)
 
         then:
         !clone.is(original)
@@ -128,7 +128,7 @@ class DraftUtilTest extends Specification {
         Bibliography original = new Bibliography(uuid: "uuid", text: "text", order: 1)
 
         when:
-        Bibliography clone = DraftUtil.cloneBibliography(original)
+        Bibliography clone = CloneAndDraftUtil.cloneBibliography(original)
 
         then:
         !clone.is(original)
@@ -140,7 +140,7 @@ class DraftUtilTest extends Specification {
         Link original = new Link(uuid: "uuid", url: "url", title: "title", description: "description", doi: "doi", edition: "edition", publisherName: "publisher", fullTitle: "fullTitle")
 
         when:
-        Link clone = DraftUtil.cloneLink(original)
+        Link clone = CloneAndDraftUtil.cloneLink(original)
 
         then:
         !clone.is(original)
@@ -152,7 +152,7 @@ class DraftUtilTest extends Specification {
         Publication original = new Publication(uuid: "uuid", publicationDate: new Date(), title: "title", doi: "doi", userId: "userId", authors: "authors")
 
         when:
-        Publication clone = DraftUtil.clonePublication(original)
+        Publication clone = CloneAndDraftUtil.clonePublication(original)
 
         then:
         !clone.is(original)
@@ -164,7 +164,7 @@ class DraftUtilTest extends Specification {
         Attachment original = new Attachment(uuid: "uuid", title: "title", description: "description", rights: "rights", rightsHolder: "rightsHolder", licence: "licence", creator: "creator", createdDate: new Date())
 
         when:
-        Attachment clone = DraftUtil.cloneAttachment(original)
+        Attachment clone = CloneAndDraftUtil.cloneAttachment(original)
 
         then:
         !clone.is(original)
@@ -177,7 +177,7 @@ class DraftUtilTest extends Specification {
         Attribute original = new Attribute(uuid: "uuid", text: "text", id: 1L, title: term, original: attribute1, creators: [fred, jill], editors: [bob, jill])
 
         when:
-        Attribute clone = DraftUtil.cloneAttribute(original)
+        Attribute clone = CloneAndDraftUtil.cloneAttribute(original)
 
         then:
         !clone.is(original)

@@ -1,6 +1,6 @@
 package au.org.ala.profile
 
-import au.org.ala.profile.util.DraftUtil
+import au.org.ala.profile.util.CloneAndDraftUtil
 import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.StorageExtension
 import au.org.ala.profile.util.Utils
@@ -103,6 +103,44 @@ class ProfileService extends BaseDataAccessService {
             profile = null
         } else if (opus.autoDraftProfiles) {
             toggleDraftMode(profile.uuid)
+        }
+
+        profile
+    }
+
+    Profile duplicateProfile(String opusId, Profile sourceProfile, Map json) {
+        checkArgument sourceProfile
+
+        Profile profile = createProfile(opusId, json)
+
+        if (profile) {
+            // certain things cannot be cloned, such as ids, profile-specific properties like image config and the
+            // occurrence query, and attachments
+            profile.specimenIds = sourceProfile.specimenIds?.collect()
+            profile.authorship = sourceProfile.authorship?.collect { CloneAndDraftUtil.cloneAuthorship(it) }
+            profile.links = sourceProfile.links?.collect { CloneAndDraftUtil.cloneLink(it, false) }
+            profile.links?.each {
+                it.uuid = UUID.randomUUID().toString()
+            }
+            profile.bhlLinks = sourceProfile.bhlLinks?.collect { CloneAndDraftUtil.cloneLink(it, false) }
+            profile.bhlLinks?.each {
+                it.uuid = UUID.randomUUID().toString()
+            }
+            profile.bibliography = sourceProfile.bibliography?.collect { CloneAndDraftUtil.cloneBibliography(it, false) }
+            profile.bibliography?.each {
+                it.uuid = UUID.randomUUID().toString()
+            }
+
+            sourceProfile.attributes?.each {
+                Attribute newAttribute = CloneAndDraftUtil.cloneAttribute(it, false)
+                newAttribute.uuid = UUID.randomUUID().toString()
+                profile.addToAttributes(newAttribute)
+            }
+
+            boolean success = save profile
+            if (!success) {
+                profile = null
+            }
         }
 
         profile
@@ -284,7 +322,7 @@ class ProfileService extends BaseDataAccessService {
                 }
             }
 
-            DraftUtil.updateProfileFromDraft(profile)
+            CloneAndDraftUtil.updateProfileFromDraft(profile)
 
             Set<Attribute> attributesToDelete = profile.attributes.findAll {
                 String uuid = it.uuid
@@ -301,7 +339,7 @@ class ProfileService extends BaseDataAccessService {
 
             save profile
         } else {
-            profile.draft = DraftUtil.createDraft(profile)
+            profile.draft = CloneAndDraftUtil.createDraft(profile)
             profile.draft.createdBy = authService.getUserForUserId(authService.getUserId()).displayName
 
             save profile

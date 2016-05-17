@@ -82,6 +82,8 @@ class UrlMappings {
         "/opus/$opusId/profile/$profileId/attachment/$attachmentId" controller: "profile", action: [GET: "getAttachmentMetadata", DELETE: "deleteAttachment"]
         "/opus/$opusId/profile/$profileId/attachment/" controller: "profile", action: [GET: "getAttachmentMetadata", POST: "saveAttachment"]
 
+        "/opus/$opusId/profile/$profileId/duplicate" controller: "profile", action: [PUT: "duplicateProfile"]
+
         "/opus/$opusId/archive/$profileId" controller: "profile", action: [POST: "archiveProfile"]
         "/opus/$opusId/restore/$profileId" controller: "profile", action: [POST: "restoreArchivedProfile"]
 
