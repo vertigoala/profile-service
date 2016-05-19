@@ -137,7 +137,12 @@ class SearchController extends BaseController {
             List children = searchService.getImmediateChildren(opus, params.rank, params.name, filter, max, startFrom)
             response.setContentType("application/json")
             render children.collect { profile ->
-                Profile relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(profile.guid, opus)
+                Profile relatedProfile
+                if (profile.guid) {
+                    relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(profile.guid, opus)
+                } else {
+                    relatedProfile = Profile.findByScientificNameAndOpusAndArchivedDateIsNull(profile.name, opus)
+                }
 
                 [
                         profileId  : relatedProfile?.uuid,

@@ -40,6 +40,7 @@ class CloneAndDraftUtil {
         profile.publications = profile.draft.publications
         profile.privateImages = profile.draft.privateImages
         profile.attachments = profile.draft.attachments
+        profile.manualClassification = profile.draft.manualClassification
 
         // Update the existing record rather than replacing it with the draft object,
         // otherwise, the hibernate dirty check will fail (dirty check looks for changes since the entity
@@ -77,6 +78,7 @@ class CloneAndDraftUtil {
         clone.specimenIds = profile.specimenIds?.collect()
         clone.authorship = profile.authorship?.collect { cloneAuthorship(it) }
         clone.classification = profile.classification?.collect { cloneClassification(it) }
+        clone.manualClassification = profile.manualClassification
         clone.links = profile.links?.collect { cloneLink(it) }
         clone.bhlLinks = profile.bhlLinks?.collect { cloneLink(it) }
         clone.bibliography = profile.bibliography?.collect { cloneBibliography(it) }

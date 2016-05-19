@@ -64,7 +64,7 @@ class BaseController {
                     ne "uuid", profile.uuid
 
                     "classification" {
-                        eq "rank", "${cl.rank.toLowerCase()}"
+                        eq "rank", "${cl.rank?.toLowerCase()}"
                         ilike "name", "${cl.name}"
                     }
 
@@ -73,9 +73,9 @@ class BaseController {
                     }
                 }[0]
 
-                Profile relatedProfile = Profile.findByScientificNameAndGuidAndOpusAndArchivedDateIsNull(cl.name, cl.guid, opus)
+                Profile relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(cl.guid, opus)
                 if (!relatedProfile) {
-                    relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(cl.guid, opus)
+                    relatedProfile = Profile.findByScientificNameAndOpusAndArchivedDateIsNull(cl.name, opus)
                 }
                 cl.profileId = relatedProfile?.uuid
                 cl.profileName = relatedProfile?.scientificName

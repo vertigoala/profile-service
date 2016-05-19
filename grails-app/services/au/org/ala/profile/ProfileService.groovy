@@ -1,9 +1,9 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.Utils
 import au.org.ala.profile.util.CloneAndDraftUtil
 import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.StorageExtension
-import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
 import org.apache.commons.lang3.StringUtils
 import org.springframework.transaction.annotation.Transactional
@@ -36,25 +36,25 @@ class ProfileService extends BaseDataAccessService {
         List providedScientificNameDuplicates = findByName(name, opus)
         if (providedScientificNameDuplicates) {
             result.providedNameDuplicates = providedScientificNameDuplicates.collect {
-                [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor]
+                [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor, rank: it.rank]
             }
         }
 
         // 2. attempt to match the name
         Map matchedName = nameService.matchName(name)
         if (matchedName) {
-            result.matchedName = [scientificName: matchedName.scientificName, fullName: matchedName.fullName, nameAuthor: matchedName.author, guid: matchedName.guid]
+            result.matchedName = [scientificName: matchedName.scientificName, fullName: matchedName.fullName, nameAuthor: matchedName.author, guid: matchedName.guid, rank: matchedName.rank]
 
             List matchedScientificNameDuplicates = findByName(result.matchedName.scientificName, opus)
             if (matchedScientificNameDuplicates) {
                 result.matchedNameDuplicates = matchedScientificNameDuplicates.collect {
-                    [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor]
+                    [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor, rank: it.rank]
                 }
             }
             List matchedFullNameDuplicates = findByName(result.matchedName.fullName, opus)
             if (matchedFullNameDuplicates) {
                 result.matchedNameDuplicates = matchedFullNameDuplicates.collect {
-                    [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor]
+                    [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor, rank: it.rank]
                 }
             }
         }
@@ -90,7 +90,7 @@ class ProfileService extends BaseDataAccessService {
 
         Map matchedName = nameService.matchName(json.scientificName, [:], json.manuallyMatchedGuid ?: null)
 
-        updateNameDetails(profile, matchedName, json.scientificName)
+        updateNameDetails(profile, matchedName, json.scientificName, json.manualHierarchy ?: [])
 
         if (authService.getUserId()) {
             Term term = vocabService.getOrCreateTerm("Author", opus.authorshipVocabUuid)
@@ -146,7 +146,7 @@ class ProfileService extends BaseDataAccessService {
         profile
     }
 
-    private void updateNameDetails(profile, Map matchedName, String providedName) {
+    private void updateNameDetails(profile, Map matchedName, String providedName, List manualHierarchy) {
         if (matchedName) {
             if (providedName.equalsIgnoreCase(matchedName.fullName) || providedName.equalsIgnoreCase(matchedName.scientificName)) {
                 profile.scientificName = matchedName.scientificName
@@ -159,7 +159,6 @@ class ProfileService extends BaseDataAccessService {
             }
             profile.matchedName = new Name(matchedName)
             profile.guid = matchedName.guid
-            populateTaxonHierarchy(profile)
         } else {
             profile.scientificName = providedName
             profile.fullName = providedName
@@ -169,6 +168,8 @@ class ProfileService extends BaseDataAccessService {
             profile.classification = []
             profile.rank = null
         }
+
+        populateTaxonHierarchy(profile, manualHierarchy)
 
         // try to match the name against the NSL. If we get a match, and there is currently no name author, use the author from the NSL match
         Map matchedNSLName = nameService.matchNSLName(providedName)
@@ -195,11 +196,11 @@ class ProfileService extends BaseDataAccessService {
         if (json.newName) {
             Map matchedName = nameService.matchName(json.newName, [:], json.manuallyMatchedGuid ?: null)
 
-            updateNameDetails(profileOrDraft(profile), matchedName, json.newName)
+            updateNameDetails(profileOrDraft(profile), matchedName, json.newName, json.manualHierarchy ?: [])
         }
 
         if (json.clearMatch?.booleanValue()) {
-            updateNameDetails(profileOrDraft(profile), null, profileOrDraft(profile).scientificName)
+            updateNameDetails(profileOrDraft(profile), null, profileOrDraft(profile).scientificName, json.manualHierarchy ?: [])
         }
 
         boolean success = save profile
@@ -211,9 +212,13 @@ class ProfileService extends BaseDataAccessService {
         profile
     }
 
-    void populateTaxonHierarchy(profile) {
-        if (profile && profile.guid) {
-            def classificationJson = bieService.getClassification(profile.guid)
+    void populateTaxonHierarchy(profile, List manualHierarchy) {
+        if (!profile) {
+            return
+        }
+
+        if (profile.guid) {
+            List classificationJson = bieService.getClassification(profile.guid)
 
             if (classificationJson) {
                 profile.classification = classificationJson.collect {
@@ -226,9 +231,45 @@ class ProfileService extends BaseDataAccessService {
 
                 Map speciesProfile = bieService.getSpeciesProfile(profile.guid)
                 profile.taxonomyTree = speciesProfile?.taxonConcept?.infoSourceName
+                profile.manualClassification = false
             } else {
                 log.info("Unable to find species classification for ${profile.scientificName}, with GUID ${profile.guid}")
             }
+        } else if (manualHierarchy) {
+            // If there is a matched name, then the classification (aka taxonomic hierarchy) will always be derived from
+            // the matched name.
+            // If there is no matched name, then the user could have specified the hierarchy. In that case, the hierarchy
+            // will be in the opposite order (lowest rank first since the user enters the parent of the profile - i.e.
+            // they work up the hierarchy, not down - whereas we need to store in highest rank first).
+            // The manual hierarchy could have some unknown items in it, and it could have 1 recognised name.
+            // If we have a recognised name, then the hierarchy from that point UP needs to be derived from the name.
+            profile.classification = []
+
+            // The profile's rank will be stored in the first element of the manually entered hierarchy
+            profile.rank = manualHierarchy[0].rank
+
+            manualHierarchy.reverse().each { manualHierarchyItem ->
+                // The manually selected hierarchy item could be one of (mutually exclusive):
+                // 1. A name from the ALA name index, in which case the guid will be the LSID/GUID of the Name; or
+                // 2. Another profile, in which case the guid will be the UUID of the parent profile; or
+                // 3. Another unrecognised name that does not have a profile, in which case the guid will be null
+
+                if (manualHierarchyItem.guid && Utils.isUuid(manualHierarchyItem.guid)) {
+                    Profile parent = Profile.findByUuid(manualHierarchyItem.guid)
+                    parent?.classification?.each {
+                        profile.classification << new Classification(rank: it.rank ?: "", guid: it.guid, name: it.name)
+                    }
+                } else if (manualHierarchyItem.guid && !Utils.isUuid(manualHierarchyItem.guid)) {
+                    List derivedHierarchy = bieService.getClassification(manualHierarchyItem.guid)
+                    derivedHierarchy.each {
+                        profile.classification << new Classification(rank: it.rank ?: "", guid: it.guid, name: it.scientificName)
+                    }
+                } else {
+                    profile.classification << new Classification(name: manualHierarchyItem.name, guid: manualHierarchyItem.guid, rank: manualHierarchyItem.rank ?: "")
+                }
+            }
+
+            profile.manualClassification = true
         }
     }
 

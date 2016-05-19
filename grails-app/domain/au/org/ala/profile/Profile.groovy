@@ -53,6 +53,7 @@ class Profile {
     List<String> specimenIds
     List<Authorship> authorship
     List<Classification> classification
+    boolean manualClassification = false
     List<Link> links
     List<Link> bhlLinks
     List<Bibliography> bibliography

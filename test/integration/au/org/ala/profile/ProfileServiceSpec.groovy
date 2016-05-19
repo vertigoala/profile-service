@@ -8,6 +8,7 @@ import org.springframework.web.multipart.commons.CommonsMultipartFile
 class ProfileServiceSpec extends BaseIntegrationSpec {
 
     ProfileService service = new ProfileService()
+    BieService bieService
 
     def setup() {
         service.nameService = Mock(NameService)
@@ -15,13 +16,14 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         service.authService = Mock(AuthService)
         service.authService.getUserId() >> "fred"
         service.authService.getUserForUserId(_) >> [displayName: "Fred Bloggs"]
-        service.bieService = Mock(BieService)
-        service.bieService.getClassification(_) >> null
+        bieService = Mock(BieService)
+        bieService.getClassification(_) >> null
+        service.bieService = bieService
         service.doiService = Mock(DoiService)
         service.doiService.mintDOI(_, _) >> [status: "success", doi: "1234"]
-        service.grailsApplication = [config: [snapshot:[directory: "bla"]]]
+        service.grailsApplication = [config: [snapshot: [directory: "bla"]]]
         service.vocabService = Mock(VocabService)
-        service.vocabService.getOrCreateTerm(_, _) >> {name, id -> [name: name, vocabId: id]}
+        service.vocabService.getOrCreateTerm(_, _) >> { name, id -> [name: name, vocabId: id] }
         service.attachmentService = Mock(AttachmentService)
     }
 
@@ -238,20 +240,20 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         save profile
 
         when: "incoming data contains a variety of fields"
-        Map data = [primaryImage: "09876",
+        Map data = [primaryImage : "09876",
                     imageSettings: [[imageId: "image4", caption: '', displayOption: EXCLUDE.name()], [imageId: "image5", caption: 'potato', displayOption: EXCLUDE.name()], [imageId: "image6", displayOption: EXCLUDE.name()]],
-                    specimenIds: ["4", "5", "6"],
-                    bhlLinks: [[url: "three"], [url: "four"]],
-                    links: [[url: "five"], [url: "six"]],
-                    bibliography: [[text: "bib1"], [text: "bib2"]]]
+                    specimenIds  : ["4", "5", "6"],
+                    bhlLinks     : [[url: "three"], [url: "four"]],
+                    links        : [[url: "five"], [url: "six"]],
+                    bibliography : [[text: "bib1"], [text: "bib2"]]]
         service.updateProfile(profile.uuid, data)
 
         then: "all appropriate fields are updated"
         profile.primaryImage == "09876"
         profile.imageSettings == [image4: new ImageSettings(imageDisplayOption: EXCLUDE), image5: new ImageSettings(imageDisplayOption: EXCLUDE, caption: 'potato'), image6: new ImageSettings(imageDisplayOption: EXCLUDE)]
         profile.specimenIds == ["4", "5", "6"]
-        profile.bhlLinks.every {it.url == "three" || it.url == "four"}
-        profile.links.every {it.url == "five" || it.url == "six"}
+        profile.bhlLinks.every { it.url == "three" || it.url == "four" }
+        profile.links.every { it.url == "five" || it.url == "six" }
         profile.bibliography.each { it.text == "bib1" || it.text == "bib2" }
     }
 
@@ -527,7 +529,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
     def "saveBHLLinks should throw an IllegalArgumentException if the profile id or data are not provided"() {
         when:
-        service.saveBHLLinks(null, [a:"b"])
+        service.saveBHLLinks(null, [a: "b"])
 
         then:
         thrown IllegalArgumentException
@@ -541,7 +543,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
     def "saveBHLLinks should throw an IllegalStateException if the profile does not exist"() {
         when:
-        service.saveBHLLinks("unknown", [a:"b"])
+        service.saveBHLLinks("unknown", [a: "b"])
 
         then:
         thrown IllegalStateException
@@ -577,7 +579,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         service.saveBHLLinks(profile.uuid, [links: [[url: "three"], [url: "four"]]])
 
         then:
-        profile.bhlLinks.every {it.url == "three" || it.url == "four"}
+        profile.bhlLinks.every { it.url == "three" || it.url == "four" }
     }
 
     def "saveBHLLinks should combine all links if the incoming list contains new and existing elements"() {
@@ -593,7 +595,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         service.saveBHLLinks(profile.uuid, [links: [[url: "one", uuid: "1"], [url: "four"]]])
 
         then:
-        profile.bhlLinks.every {it.url == "one" || it.url == "four"}
+        profile.bhlLinks.every { it.url == "one" || it.url == "four" }
     }
 
     def "saveBHLLinks should update the profile draft if one exists"() {
@@ -602,20 +604,20 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         save opus
         Link link1 = new Link(uuid: "1", url: "one", description: "desc", title: "title")
         Link link2 = new Link(uuid: "2", url: "two", description: "desc", title: "title")
-        Profile profile = new Profile(opus: opus, scientificName: "sciName", bhlLinks: [link1, link2], draft: [uuid: "123",scientificName: "sciName", bhlLinks: [link1, link2]])
+        Profile profile = new Profile(opus: opus, scientificName: "sciName", bhlLinks: [link1, link2], draft: [uuid: "123", scientificName: "sciName", bhlLinks: [link1, link2]])
         save profile
 
         when:
         service.saveBHLLinks(profile.uuid, [links: [[url: "three"], [url: "four"]]])
 
         then:
-        profile.bhlLinks.every {it.url == "one" || it.url == "two"}
-        profile.draft.bhlLinks.every {it.url == "three" || it.url == "four"}
+        profile.bhlLinks.every { it.url == "one" || it.url == "two" }
+        profile.draft.bhlLinks.every { it.url == "three" || it.url == "four" }
     }
 
     def "saveLinks should throw an IllegalArgumentException if the profile id or data are not provided"() {
         when:
-        service.saveLinks(null, [a:"b"])
+        service.saveLinks(null, [a: "b"])
 
         then:
         thrown IllegalArgumentException
@@ -629,7 +631,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
     def "saveLinks should throw an IllegalStateException if the profile does not exist"() {
         when:
-        service.saveLinks("unknown", [a:"b"])
+        service.saveLinks("unknown", [a: "b"])
 
         then:
         thrown IllegalStateException
@@ -665,7 +667,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         service.saveLinks(profile.uuid, [links: [[url: "three"], [url: "four"]]])
 
         then:
-        profile.links.every {it.url == "three" || it.url == "four"}
+        profile.links.every { it.url == "three" || it.url == "four" }
     }
 
     def "saveLinks should combine all links if the incoming list contains new and existing elements"() {
@@ -681,7 +683,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         service.saveLinks(profile.uuid, [links: [[url: "one", uuid: "1"], [url: "four"]]])
 
         then:
-        profile.links.every {it.url == "one" || it.url == "four"}
+        profile.links.every { it.url == "one" || it.url == "four" }
     }
 
     def "saveLinks should update the profile draft if one exists"() {
@@ -697,8 +699,8 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         service.saveLinks(profile.uuid, [links: [[url: "three"], [url: "four"]]])
 
         then:
-        profile.links.every {it.url == "one" || it.url == "two"}
-        profile.draft.links.every {it.url == "three" || it.url == "four"}
+        profile.links.every { it.url == "one" || it.url == "two" }
+        profile.draft.links.every { it.url == "three" || it.url == "four" }
     }
 
     def "savePublication should throw an IllegalArgumentException if no profile id or file are provided"() {
@@ -1533,13 +1535,13 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         given:
         Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
         save opus1
-        Profile profile = new Profile(opus: opus1, uuid:"profile1", scientificName: "sciName", fullName: "sciName author", nameAuthor:"author")
+        Profile profile = new Profile(opus: opus1, uuid: "profile1", scientificName: "sciName", fullName: "sciName author", nameAuthor: "author")
         save profile
 
-        service.nameService.matchName(_,_,_) >> [scientificName: "sciName", author: "fred", guid: "ABC", fullName:"sciName fred"]
+        service.nameService.matchName(_, _, _) >> [scientificName: "sciName", author: "fred", guid: "ABC", fullName: "sciName fred"]
 
         when:
-        service.renameProfile("profile1", [newName:"SCINAME"])
+        service.renameProfile("profile1", [newName: "SCINAME"])
         profile = Profile.findByUuid("profile1") // reload the profile
 
         then:
@@ -1574,5 +1576,104 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.draft.lastPublished > profile.lastPublished
     }
 
+    def "populateTaxonHierarchy should add a fully customised hierarchy as the classification for the profile, in reverse order"() {
+        given:
+        List customHierarchy = [
+                [name: "profile", rank: "species"],
+                [name: "parent", rank: "genus"],
+                [name: "grandparent", rank: "family"],
+                [name: "greatGrandparent", rank: "class"]
+        ]
+        Profile profile = new Profile()
+
+        when:
+        service.populateTaxonHierarchy(profile, customHierarchy)
+
+        then:
+        profile.classification.size() == 4
+        profile.classification[0].name == "greatGrandparent"
+        profile.classification[1].name == "grandparent"
+        profile.classification[2].name == "parent"
+        profile.classification[3].name == "profile"
+    }
+
+    def "populateTaxonHierarchy should set the profile's rank to the rank of the first item of the hierarchy"() {
+        given:
+        List customHierarchy = [
+                [name: "profile", rank: "species"],
+                [name: "parent", rank: "genus"],
+                [name: "grandparent", rank: "family"],
+                [name: "greatGrandparent", rank: "class"]
+        ]
+        Profile profile = new Profile()
+
+        when:
+        service.populateTaxonHierarchy(profile, customHierarchy)
+
+        then:
+        profile.rank == "species"
+    }
+
+    def "populateTaxonHierarchy should retrieve the classification from the bie service for an item with a GUID"() {
+        given: "a hierarchy with the new profile and parent with a known name"
+        List customHierarchy = [
+                [name: "profile", rank: "species"],
+                [name: "parent", rank: "genus", guid: "1234"]
+        ]
+        Profile profile = new Profile()
+
+        when:
+        service.populateTaxonHierarchy(profile, customHierarchy)
+
+        then: "the classification should contain the hierarchy of the known name, plus the new profile"
+
+        1 * bieService.getClassification(_) >> [
+                [scientificName: "greatGrandparent", rank: "class", guid: "3"],
+                [scientificName: "grandparent", rank: "family", guid: "2"],
+                [scientificName: "parent", rank: "genus", guid: "1234"]
+        ]
+
+        profile.classification.size() == 4
+        profile.classification[0].name == "greatGrandparent"
+        profile.classification[0].guid == "3"
+        profile.classification[1].name == "grandparent"
+        profile.classification[1].guid == "2"
+        profile.classification[2].name == "parent"
+        profile.classification[2].guid == "1234"
+        profile.classification[3].name == "profile"
+    }
+
+    def "populateTaxonHierarchy should retrieve the classification from the parent profile for an item with a profile id"() {
+        given: "a hierarchy with the new profile and parent with a known profileid"
+        Profile profile = new Profile()
+
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile parentProfile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        parentProfile.classification = [
+                new Classification(name: "greatGrandparent", rank: "class", guid: "3"),
+                new Classification(name: "grandparent", rank: "family", guid: "2"),
+                new Classification(name: "parent", rank: "genus", guid: "1234")
+        ]
+        save parentProfile
+
+        List customHierarchy = [
+                [name: "profile", rank: "species"],
+                [name: "parent", rank: "genus", guid: parentProfile.uuid]
+        ]
+
+        when:
+        service.populateTaxonHierarchy(profile, customHierarchy)
+
+        then: "the classification should contain the classification of the parent profile, plus the new profile"
+        profile.classification.size() == 4
+        profile.classification[0].name == "greatGrandparent"
+        profile.classification[0].guid == "3"
+        profile.classification[1].name == "grandparent"
+        profile.classification[1].guid == "2"
+        profile.classification[2].name == "parent"
+        profile.classification[2].guid == "1234"
+        profile.classification[3].name == "profile"
+    }
 }
 

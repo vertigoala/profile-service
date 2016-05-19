@@ -6,7 +6,7 @@ import groovy.json.JsonSlurper
 class BieService {
     def grailsApplication
 
-    def getClassification(String guid) {
+    List getClassification(String guid) {
         try {
             String resp = new URL("${grailsApplication.config.bie.base.url}/classification/${guid}").text
             JsonSlurper jsonSlurper = new JsonSlurper()
@@ -17,7 +17,7 @@ class BieService {
         }
     }
 
-    def getSpeciesProfile(String guid) {
+    Map getSpeciesProfile(String guid) {
         try {
             String resp = new URL("${grailsApplication.config.bie.base.url}/species/${guid}").text
             JsonSlurper jsonSlurper = new JsonSlurper()

@@ -94,7 +94,8 @@ class NameService extends BaseDataAccessService {
         Map match = [
                 guid          : result.lsid,
                 scientificName: result.getRankClassification().getScientificName(),
-                nameAuthor    : result.getRankClassification().getAuthorship()
+                nameAuthor    : result.getRankClassification().getAuthorship(),
+                rank          : result.rank?.rank
         ]
 
         // Autonym workaround. Autonyms have the author name in the middle, and the name service does not currently

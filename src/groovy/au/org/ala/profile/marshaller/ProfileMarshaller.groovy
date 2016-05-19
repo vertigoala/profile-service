@@ -28,6 +28,7 @@ class ProfileMarshaller {
                                                                       nameAuthor    : profile.matchedName.nameAuthor,
                                                                       fullName      : profile.matchedName.fullName] : null,
                     classification           : profile.classification,
+                    manualClassification     : profile.manualClassification,
                     taxonomyTree             : profile.taxonomyTree,
                     attributes               : profile.attributes?.sort(),
                     links                    : profile.links,
