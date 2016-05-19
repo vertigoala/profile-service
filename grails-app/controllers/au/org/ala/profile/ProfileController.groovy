@@ -291,7 +291,7 @@ class ProfileController extends BaseController {
                 Profile profile = Profile.findByScientificNameAndOpus(json.scientificName, opus)
 
                 if (profile) {
-                    sendError HttpStatus.SC_NOT_ACCEPTABLE, "A profile already exists for ${json.scientificName}"
+                    badRequest "A profile already exists for ${json.scientificName}"
                 } else {
                     profile = profileService.createProfile(opus.uuid, json);
                     render profile as JSON
@@ -313,7 +313,7 @@ class ProfileController extends BaseController {
                 Profile profile = Profile.findByScientificNameAndOpus(json.scientificName, opus)
 
                 if (profile) {
-                    sendError HttpStatus.SC_NOT_ACCEPTABLE, "A profile already exists for ${json.scientificName}"
+                    badRequest "A profile already exists for ${json.scientificName}"
                 } else {
                     Profile sourceProfile = getProfile()
                     if (sourceProfile) {

@@ -136,7 +136,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         newProfile.uuid != null
         newProfile.uuid != existingProfile.uuid
         newProfile.specimenIds == ["1", "2"]
-        !newProfile.is(existingProfile.specimenIds)
+        !newProfile.specimenIds.is(existingProfile.specimenIds)
         newProfile.links.size() == 1
         newProfile.links[0] != existingProfile.links[0]
         newProfile.bhlLinks.size() == 1
