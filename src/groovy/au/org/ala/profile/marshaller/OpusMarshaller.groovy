@@ -76,8 +76,8 @@ class OpusMarshaller {
     private static Map marshalDataResourceConfig(DataResourceConfig config) {
         Map result = [:]
         if (config) {
-            result.recordResourceOption = config.recordResourceOption.name()
-            result.imageResourceOption = config.imageResourceOption.name()
+            result.recordResourceOption = config.recordResourceOption?.name() ?: DataResourceOption.NONE.name()
+            result.imageResourceOption = config.imageResourceOption?.name() ?: DataResourceOption.NONE.name()
             result.imageSources = config.imageSources
             result.recordSources = config.recordSources
         } else {
