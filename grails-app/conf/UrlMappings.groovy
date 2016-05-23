@@ -8,6 +8,7 @@ class UrlMappings {
 
         // 'Internal' ALA API
         "/admin/search/reindex" controller: "search", action: [POST: "reindex"]
+        "/admin/rematchNames" controller: "admin", action: [POST: "rematchNames"]
 
         "/audit/object/$entityId" controller: "audit", action: [GET: "auditTrailForObject"]
 

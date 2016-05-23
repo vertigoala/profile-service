@@ -46,6 +46,7 @@ class Profile {
     boolean privateMode = false
 
     Name matchedName
+    boolean manuallyMatchedName = false
     String taxonomyTree
     String primaryImage
     Map<String, ImageSettings> imageSettings = [:]

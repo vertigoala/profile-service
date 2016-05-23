@@ -97,6 +97,12 @@ class ProfileService extends BaseDataAccessService {
             profile.authorship = [new Authorship(category: term, text: authService.getUserForUserId(authService.getUserId()).displayName)]
         }
 
+        if (json.manuallyMatchedGuid) {
+            profile.manuallyMatchedName = true
+        } else {
+            profile.manuallyMatchedName = false
+        }
+
         boolean success = save profile
 
         if (!success) {
@@ -201,6 +207,12 @@ class ProfileService extends BaseDataAccessService {
 
         if (json.clearMatch?.booleanValue()) {
             updateNameDetails(profileOrDraft(profile), null, profileOrDraft(profile).scientificName, json.manualHierarchy ?: [])
+        }
+
+        if (json.manuallyMatchedGuid) {
+            profile.manuallyMatchedName = true
+        } else {
+            profile.manuallyMatchedName = false
         }
 
         boolean success = save profile

@@ -1,40 +1,14 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.util.DataResourceOption
+import au.org.ala.ws.controller.BasicWSController
 
 import static au.org.ala.profile.util.Utils.isUuid
 import static au.org.ala.profile.util.Utils.enc
-import grails.converters.JSON
 
-import static org.apache.http.HttpStatus.*
-
-class BaseController {
-    public static final String CONTEXT_TYPE_JSON = "application/json"
+class BaseController extends BasicWSController {
 
     ProfileService profileService
-
-    def notFound = {String message = null ->
-        sendError(SC_NOT_FOUND, message ?: "")
-    }
-
-    def badRequest = {String message = null ->
-        sendError(SC_BAD_REQUEST, message ?: "")
-    }
-
-    def success = { resp ->
-        response.status = SC_OK
-        response.setContentType(CONTEXT_TYPE_JSON)
-        render resp as JSON
-    }
-
-    def saveFailed = {
-        sendError(SC_INTERNAL_SERVER_ERROR)
-    }
-
-    def sendError = {int status, String msg = null ->
-        response.status = status
-        response.sendError(status, msg)
-    }
 
     Profile getProfile() {
         Profile profile

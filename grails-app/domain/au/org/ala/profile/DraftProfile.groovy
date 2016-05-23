@@ -14,6 +14,7 @@ class DraftProfile {
     String nameAuthor
     String fullName
     Name matchedName
+    boolean manuallyMatchedName = false
     String rank
     String nslNameIdentifier
     String nslNomenclatureIdentifier

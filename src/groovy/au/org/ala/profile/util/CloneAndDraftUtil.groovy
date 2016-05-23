@@ -25,6 +25,7 @@ class CloneAndDraftUtil {
         profile.fullName = profile.draft.fullName
         profile.taxonomyTree = profile.draft.taxonomyTree
         profile.matchedName = cloneName(profile.draft.matchedName)
+        profile.manuallyMatchedName = profile.draft.manuallyMatchedName
         profile.rank = profile.draft.rank
         profile.nslNameIdentifier = profile.draft.nslNameIdentifier
         profile.nslNomenclatureIdentifier = profile.draft.nslNomenclatureIdentifier
@@ -67,6 +68,7 @@ class CloneAndDraftUtil {
         clone.nameAuthor = profile.nameAuthor
         clone.fullName = profile.fullName
         clone.matchedName = cloneName(profile.matchedName)
+        clone.manuallyMatchedName = profile.manuallyMatchedName
         clone.rank = profile.rank
         clone.guid = profile.guid
         clone.taxonomyTree = profile.taxonomyTree
