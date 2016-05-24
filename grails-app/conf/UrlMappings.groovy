@@ -96,6 +96,11 @@ class UrlMappings {
         "/report/recentChanges" controller: "report", action: [GET: "recentChanges"]
         "/report/recentComments" controller: "report", action: [GET: "recentComments"]
 
+        "/job/$jobType/next" controller: "job", action: [GET: "getNextPendingJob"]
+        "/job/$jobType/$jobId" controller: "job", action: [DELETE: "deleteJob", POST: "updateJob"]
+        "/job/$jobType" controller: "job", action: [GET: "listAllPendingJobs", PUT: "createJob"]
+        "/job/" controller: "job", action: [GET: "listAllPendingJobs", PUT: "createJob"]
+
         "/image/$imageId" controller: "image", action: [GET: "getImageInfo"]
         "/image/$imageId/metadata" controller: "image", action: [GET: "getImageInfo", POST: "updateMetadata"]
 
