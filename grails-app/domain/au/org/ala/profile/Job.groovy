@@ -13,11 +13,13 @@ class Job {
     int attempt
     Map params
     String error
+    String startDate
     Date dateCreated
     Date lastUpdated
     String userEmail
 
     static constraints = {
+        startDate nullable: true
         error nullable: true
         userEmail nullable: true
     }

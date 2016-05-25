@@ -40,6 +40,7 @@ class JobService extends BaseDataAccessService {
         job.attempt = json.attempt
         job.error = json.error
         job.params = json.params
+        job.startDate = json.startDate
 
         boolean success = save job
 
