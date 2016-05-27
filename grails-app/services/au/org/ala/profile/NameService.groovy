@@ -376,29 +376,26 @@ class NameService extends BaseDataAccessService {
                               'nom. cons., orth. cons.', 'nom. et typ. cons.', 'orth. cons.', 'typ. cons.', '[default]']
 
         try {
-            URL url = new URL("${grailsApplication.config.nsl.simple.name.export.url}")
+            URL url = new URL("${grailsApplication.config.nsl.name.export.url}")
 
             url.withReader { reader ->
                 def csv = parseCsv(reader)
 
                 csv.each { fields ->
-                    String simpleName = cleanupText(fields.simple_name_html)
-                    String fullName = cleanupText(fields.full_name_html)
+                    Map name = [scientificName    : fields.canonicalName,
+                                scientificNameHtml: fields.canonicalNameHtml,
+                                fullName          : fields.scientificName,
+                                fullNameHtml      : fields.scientificNameHtml,
+                                url               : fields.scientificNameID,
+                                nslIdentifier     : fields.scientificNameID.substring(fields.scientificNameID.lastIndexOf("/") + 1),
+                                rank              : fields.taxonRank,
+                                nameAuthor        : fields.scientificNameAuthorship,
+                                nslProtologue     : "${fields.namePublishedIn ?: ''} ${namePublishedYear}".trim(),
+                                valid             : validStatuses.contains(fields.nomenclaturalStatus),
+                                status            : fields.nomenclaturalStatus]
 
-                    Map name = [scientificName    : simpleName,
-                                scientificNameHtml: fields.simple_name_html,
-                                fullName          : fullName,
-                                fullNameHtml      : fields.full_name_html,
-                                url               : fields.id,
-                                nslIdentifier     : fields.id.substring(fields.id.lastIndexOf("/") + 1),
-                                rank              : fields.rank,
-                                nameAuthor        : fields.authority,
-                                nslProtologue     : fields.proto_citation,
-                                valid             : validStatuses.contains(fields.nom_stat),
-                                status            : fields.nom_stat]
-
-                    result.bySimpleName[simpleName] << name
-                    result.byFullName[fullName] << name
+                    result.bySimpleName[fields.canonicalName] << name
+                    result.byFullName[fields.scientificName] << name
                 }
             }
 
