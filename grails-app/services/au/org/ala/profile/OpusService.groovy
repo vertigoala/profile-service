@@ -195,6 +195,9 @@ class OpusService extends BaseDataAccessService {
             if (json.mapConfig.autoZoom != null && json.mapConfig.autoZoom != opus.mapConfig.autoZoom) {
                 opus.mapConfig.autoZoom = json.mapConfig.autoZoom?.toBoolean() ?: false
             }
+            if (json.mapConfig.allowSnapshots != null && json.mapConfig.allowSnapshots != opus.mapConfig.allowSnapshots) {
+                opus.mapConfig.allowSnapshots = json.mapConfig.allowSnapshots?.toBoolean() ?: false
+            }
             if (json.mapConfig.mapBaseLayer && json.mapConfig.mapBaseLayer != opus.mapConfig.mapBaseLayer) {
                 opus.mapConfig.mapBaseLayer = json.mapConfig.mapBaseLayer
             }

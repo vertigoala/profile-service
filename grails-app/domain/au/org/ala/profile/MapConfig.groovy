@@ -17,6 +17,7 @@ class MapConfig {
     Integer maxZoom
     Integer maxAutoZoom
     boolean autoZoom = false
+    boolean allowSnapshots = false
 
     static constraints = {
         mapAttribution nullable: true
@@ -29,6 +30,7 @@ class MapConfig {
         biocacheName nullable: true
         maxZoom nullable: true
         maxAutoZoom nullable: true
+        allowSnapshots nullable: true
     }
 
     static mapping = {
@@ -40,5 +42,6 @@ class MapConfig {
         maxAutoZoom defaultValue: Utils.DEFAULT_MAP_MAX_AUTO_ZOOM
         mapBaseLayer defaultValue: Utils.DEFAULT_MAP_BASE_LAYER
         autoZoom defaultValue: false
+        allowSnapshots defaultValue: false
     }
 }
