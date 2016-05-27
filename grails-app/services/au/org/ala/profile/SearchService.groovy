@@ -271,13 +271,7 @@ class SearchService extends BaseDataAccessService {
                         fullName      : it.fullName,
                         rank          : it.rank,
                         opus          : [uuid: opus.uuid, title: opus.title, shortName: opus.shortName],
-                        taxonomicOrder: order++,
-                        description   : it.attributes ? it.attributes.findResults {
-                            it.title.name.toLowerCase().contains("description") ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
-                        } : [],
-                        otherNames    : it.attributes ? it.attributes.findResults {
-                            it.title.name.toLowerCase().contains("name") ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
-                        } : []
+                        taxonomicOrder: order++
                 ]
             }
         }
