@@ -9,25 +9,21 @@ class SearchController extends BaseController {
     SearchService searchService
 
     def search() {
-        if (!params.term) {
-            badRequest "term is a required parameter"
-        } else {
-            List<String> opusIds = params.opusId?.split(",") ?: []
+        List<String> opusIds = params.opusId?.split(",") ?: []
 
-            String term = params.term as String
-            int pageSize = params.pageSize ? params.pageSize as int : -1
-            int offset = params.offset ? params.offset as int : 0
+        String term = params.term as String
+        int pageSize = params.pageSize ? params.pageSize as int : -1
+        int offset = params.offset ? params.offset as int : 0
 
-            SearchOptions options = new SearchOptions()
-            options.nameOnly = params.nameOnly?.toBoolean()
-            options.includeArchived = params.includeArchived?.toBoolean()
-            options.matchAll = params.matchAll?.toBoolean()
-            options.searchAla = params.searchAla?.toBoolean()
-            options.searchNsl = params.searchNsl?.toBoolean()
-            options.includeNameAttributes = params.includeNameAttributes?.toBoolean()
+        SearchOptions options = new SearchOptions()
+        options.nameOnly = params.nameOnly?.toBoolean()
+        options.includeArchived = params.includeArchived?.toBoolean()
+        options.matchAll = params.matchAll?.toBoolean()
+        options.searchAla = params.searchAla?.toBoolean()
+        options.searchNsl = params.searchNsl?.toBoolean()
+        options.includeNameAttributes = params.includeNameAttributes?.toBoolean()
 
-            render searchService.search(opusIds, term, offset, pageSize, options) as JSON
-        }
+        render searchService.search(opusIds, term, offset, pageSize, options) as JSON
     }
 
     def findByScientificName() {

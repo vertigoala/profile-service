@@ -1,6 +1,8 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.util.SearchOptions
+import org.elasticsearch.index.query.QueryBuilders
+import org.elasticsearch.search.sort.SortBuilders
 
 import static org.elasticsearch.index.query.MatchQueryBuilder.Operator.AND
 import static org.elasticsearch.index.query.MatchQueryBuilder.Operator.OR
@@ -44,17 +46,27 @@ class SearchService extends BaseDataAccessService {
         String[] accessibleCollections = getAccessibleCollections(opusIds)?.collect { it.uuid } as String[]
 
         Map results = [:]
-        if (term && accessibleCollections) {
+        if (accessibleCollections) {
             Map params = [
                     score: true,
                     from : offset,
                     size : pageSize
             ]
 
-            QueryBuilder query = options.nameOnly ? buildNameSearch(term, accessibleCollections, options) : buildTextSearch(term, accessibleCollections, options)
+            QueryBuilder query
+
+            if (!term) {
+                query = filteredQuery(matchAllQuery(), buildFilter(accessibleCollections, options.includeArchived))
+                // if no term was provided then assume we are retrieving all records (in pages) sorted by the profile name (aka scientificName)
+                params.sort = SortBuilders.fieldSort("scientificNameLower")
+            } else {
+                query = options.nameOnly ? buildNameSearch(term, accessibleCollections, options) : buildTextSearch(term, accessibleCollections, options)
+                // if there is a term, then we need to use the ES relevance sorting, so we don't need a SortBuilder
+            }
             log.debug(query)
+
             long start = System.currentTimeMillis()
-            def rawResults = elasticSearchService.search(query, null, params)
+            def rawResults = elasticSearchService.search(params, query, null)
             log.debug("${options.nameOnly ? 'name' : 'text'} search for ${term} took ${System.currentTimeMillis() - start}ms and returned ${rawResults.total} results")
 
             results.total = rawResults.total
@@ -70,7 +82,7 @@ class SearchService extends BaseDataAccessService {
                         opusId        : it.opus.uuid,
                         archivedDate  : it.archivedDate,
                         classification: it.classification ?: [],
-                        score         : rawResults.scores[it.id.toString()],
+                        score         : term ? rawResults.scores[it.id.toString()] : -1,
                         description   : it.attributes ? it.attributes.findResults {
                             it.title.name.toLowerCase().contains("description") ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
                         } : [],
@@ -259,7 +271,13 @@ class SearchService extends BaseDataAccessService {
                         fullName      : it.fullName,
                         rank          : it.rank,
                         opus          : [uuid: opus.uuid, title: opus.title, shortName: opus.shortName],
-                        taxonomicOrder: order++
+                        taxonomicOrder: order++,
+                        description   : it.attributes ? it.attributes.findResults {
+                            it.title.name.toLowerCase().contains("description") ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
+                        } : [],
+                        otherNames    : it.attributes ? it.attributes.findResults {
+                            it.title.name.toLowerCase().contains("name") ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
+                        } : []
                 ]
             }
         }
