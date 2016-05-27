@@ -383,14 +383,14 @@ class NameService extends BaseDataAccessService {
 
                 csv.each { fields ->
                     Map name = [scientificName    : fields.canonicalName,
-                                scientificNameHtml: fields.canonicalNameHtml,
+                                scientificNameHtml: fields.canonicalNameHTML,
                                 fullName          : fields.scientificName,
-                                fullNameHtml      : fields.scientificNameHtml,
+                                fullNameHtml      : fields.scientificNameHTML,
                                 url               : fields.scientificNameID,
                                 nslIdentifier     : fields.scientificNameID.substring(fields.scientificNameID.lastIndexOf("/") + 1),
                                 rank              : fields.taxonRank,
                                 nameAuthor        : fields.scientificNameAuthorship,
-                                nslProtologue     : "${fields.namePublishedIn ?: ''} ${namePublishedYear}".trim(),
+                                nslProtologue     : "${fields.namePublishedIn ?: ''} ${fields.namePublishedInYear}".trim(),
                                 valid             : validStatuses.contains(fields.nomenclaturalStatus),
                                 status            : fields.nomenclaturalStatus]
 
