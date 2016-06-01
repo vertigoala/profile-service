@@ -141,9 +141,11 @@ class ExportService extends BaseDataAccessService {
 
                     if (!summary || title.containsName || title.summary) {
                         profile.attributes << [
-                                id   : attribute.uuid,
-                                title: title.name,
-                                text : attribute.text
+                                id     : attribute.uuid,
+                                title  : title.name,
+                                text   : attribute.text,
+                                name   : title.containsName,
+                                summary: title.summary
                         ]
                     }
                 }
