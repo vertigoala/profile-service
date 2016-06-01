@@ -22,16 +22,24 @@ class VocabService extends BaseDataAccessService {
         data.terms.each { item ->
             if (item.termId) {
                 Term term = Term.findByUuid(item.termId)
+
                 if (term) {
                     retainedTermIds << item.termId
                     term.name = item.name
                     term.order = item.order
-                    term.required = item.required == null ? false : item.required.asBoolean()
+                    term.required = item.required == null ? false : item.required.toBoolean()
+                    term.summary = item.summary == null ? false : item.summary.toBoolean()
+                    term.containsName = item.containsName == null ? false : item.containsName.toBoolean()
                 }
             } else {
                 // GRAILS-8061 beforeValidate does not get called on child records during a cascade save of the parent
                 // Therefore, we cannot rely on the beforeValidate method of Term, which usually creates the UUID.
-                Term term = new Term(uuid: UUID.randomUUID().toString(), name: item.name, order: item.order ?: vocab.terms.size() + 1)
+                Term term = new Term(uuid: UUID.randomUUID().toString(),
+                        name: item.name,
+                        order: item.order ?: vocab.terms.size() + 1,
+                        required: item.required.toBoolean(),
+                        summary: item.summary.toBoolean(),
+                        containsName: item.containsName.toBoolean())
                 term.vocab = vocab
                 vocab.terms << term
             }

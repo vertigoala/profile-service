@@ -177,7 +177,7 @@ class SearchController extends BaseController {
             save status
         }
 
-        searchService.reindex()
+        searchService.reindexAll()
 
        render (Status.first() as JSON)
     }

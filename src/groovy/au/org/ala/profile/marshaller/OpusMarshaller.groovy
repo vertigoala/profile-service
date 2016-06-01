@@ -60,7 +60,8 @@ class OpusMarshaller {
                     hasAboutPage               : opus.aboutHtml != null,
                     profileCount               : opus.profileCount,
                     citationHtml               : opus.citationHtml,
-                    accessToken                : opus.accessToken
+                    accessToken                : opus.accessToken,
+                    tags                       : opus.tags?.collect { [uuid: it.uuid, colour: it.colour, name: it.name, abbrev: it.abbrev ] } ?: []
             ]
         }
     }

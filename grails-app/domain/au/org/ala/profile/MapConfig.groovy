@@ -30,7 +30,6 @@ class MapConfig {
         biocacheName nullable: true
         maxZoom nullable: true
         maxAutoZoom nullable: true
-        allowSnapshots nullable: true
     }
 
     static mapping = {

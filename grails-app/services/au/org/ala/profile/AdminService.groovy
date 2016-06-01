@@ -84,4 +84,48 @@ class AdminService extends BaseDataAccessService {
         rematch.endDate = new Date()
         save rematch
     }
+
+    Tag createTag(Map properties) {
+        properties.abbrev = properties.abbrev.toUpperCase()
+        Tag tag = new Tag(properties)
+        tag.uuid = UUID.randomUUID().toString()
+
+        boolean success = save tag
+
+        if (!success) {
+            tag = null
+        }
+
+        tag
+    }
+
+    Tag updateTag(String tagId, Map properties) {
+        Tag tag = Tag.findByUuid(tagId)
+
+        if (tag) {
+            tag.colour = properties.colour
+            tag.name = properties.name
+            tag.abbrev = properties.abbrev.toUpperCase()
+
+            save tag
+        }
+
+        tag
+    }
+
+    void deleteTag(String tagId) {
+        Tag tag = Tag.findByUuid(tagId)
+
+        if (tag) {
+            tag.delete()
+
+            Opus.list().each {
+                Tag t = it.tags?.find { it.uuid == tagId }
+                if (t) {
+                    it.tags.remove(t)
+                    save it
+                }
+            }
+        }
+    }
 }

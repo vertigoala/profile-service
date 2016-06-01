@@ -1,11 +1,13 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.security.RequiresAccessToken
 import org.apache.http.HttpStatus
 
 class AccessTokenFilters {
 
-    def grailsApplication
     static final String ACCESS_TOKEN_HEADER = 'ACCESS-TOKEN'
+
+    def grailsApplication
 
     def filters = {
 
@@ -13,8 +15,9 @@ class AccessTokenFilters {
             before = {
                 def controller = grailsApplication.getArtefactByLogicalPropertyName("Controller", controllerName)
                 Class controllerClass = controller?.clazz
+                def method = controllerClass?.getMethod(actionName ?: "index", [] as Class[])
 
-                if (controllerClass && controllerClass.package.name.startsWith("au.org.ala.profile.api")) {
+                if (controllerClass?.isAnnotationPresent(RequiresAccessToken) || method?.isAnnotationPresent(RequiresAccessToken)) {
                     String token = request.getHeader(ACCESS_TOKEN_HEADER)
                     String opusId = params.opusId
 

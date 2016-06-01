@@ -1,7 +1,6 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.util.SearchOptions
-import org.elasticsearch.index.query.QueryBuilders
 import org.elasticsearch.search.sort.SortBuilders
 
 import static org.elasticsearch.index.query.MatchQueryBuilder.Operator.AND
@@ -43,7 +42,11 @@ class SearchService extends BaseDataAccessService {
     Map search(List<String> opusIds, String term, int offset, int pageSize, SearchOptions options) {
         log.debug("Searching for ${term} in collection(s) ${opusIds} with options ${options}")
 
-        String[] accessibleCollections = getAccessibleCollections(opusIds)?.collect { it.uuid } as String[]
+        List<Opus> opusList = getAccessibleCollections(opusIds)
+        String[] accessibleCollections = opusList?.collect { it.uuid } as String[]
+        List<Vocab> vocabs = Vocab.findAllByUuidInList(opusList*.attributeVocabUuid)
+        String[] summaryTerms = Term.findAllByVocabInListAndSummary(vocabs, true)*.uuid
+        String[] nameTerms = Term.findAllByVocabInListAndContainsName(vocabs, true)*.uuid
 
         Map results = [:]
         if (accessibleCollections) {
@@ -84,10 +87,10 @@ class SearchService extends BaseDataAccessService {
                         classification: it.classification ?: [],
                         score         : term ? rawResults.scores[it.id.toString()] : -1,
                         description   : it.attributes ? it.attributes.findResults {
-                            it.title.name.toLowerCase().contains("description") ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
+                            summaryTerms.contains(it.title.uuid) ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
                         } : [],
                         otherNames    : it.attributes ? it.attributes.findResults {
-                            it.title.name.toLowerCase().contains("name") ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
+                            nameTerms.contains(it.title.uuid) ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
                         } : []
                 ]
             }
@@ -166,9 +169,10 @@ class SearchService extends BaseDataAccessService {
     }
 
     private static QueryBuilder getNameAttributeQuery(String term) {
+        List<Term> nameTerms = Term.findAllByContainsName(true)
         // a name attribute is one where the attribute title contains the word 'name'
         boolQuery()
-                .must(nestedQuery("attributes.title", boolQuery().must(matchQuery("attributes.title.name", "name"))))
+                .must(nestedQuery("attributes.title", boolQuery().must(termsQuery("attributes.title.uuid", nameTerms*.uuid))))
                 .must(matchQuery("text", term).operator(AND))
     }
 
@@ -595,7 +599,7 @@ class SearchService extends BaseDataAccessService {
     }
 
     @Async
-    def reindex() {
+    def reindexAll() {
         Status status = Status.list()[0]
         status.searchReindex = true
         save status
@@ -615,5 +619,14 @@ class SearchService extends BaseDataAccessService {
             save status
 
         log.warn("Search re-index complete in ${time} milliseconds")
+    }
+
+    @Async
+    def reindex(Collection<Profile> profiles) {
+        if (profiles) {
+            log.debug("Re-indexing ${profiles.size()} profiles...")
+            elasticSearchService.index(profiles)
+            log.debug("Finished re-indexing ${profiles.size()} profiles")
+        }
     }
 }

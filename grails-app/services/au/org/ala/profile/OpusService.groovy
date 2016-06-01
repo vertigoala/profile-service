@@ -113,7 +113,6 @@ class OpusService extends BaseDataAccessService {
             }
         }
         
-        
         if (json.copyrightText != opus.copyrightText) {
             opus.copyrightText = json.copyrightText
         }
@@ -257,6 +256,12 @@ class OpusService extends BaseDataAccessService {
         }
         if (json.containsKey("autoDraftProfiles") && json.autoDraftProfiles.toBoolean() != opus.autoDraftProfiles) {
             opus.autoDraftProfiles = json.autoDraftProfiles.toBoolean()
+        }
+        if (json.containsKey("tags")) {
+            opus.tags = []
+            json.tags.each {
+                opus.tags << Tag.findByUuid(it.uuid)
+            }
         }
 
         boolean success = save opus

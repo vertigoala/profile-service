@@ -7,14 +7,19 @@ import groovy.transform.ToString
 @EqualsAndHashCode
 class Term implements Comparable<Term> {
 
+    private static final String NOT_ANALYZED_INDEX = "not_analyzed"
+
     static searchable = {
-        only = "name"
+        only = ["name", "summary", "containsName", "uuid"]
+        uuid index: NOT_ANALYZED_INDEX
     }
 
     String uuid
     String name
     int order = -1
     boolean required = false
+    boolean summary = false
+    boolean containsName = false
 
     static belongsTo = [vocab: Vocab]
 

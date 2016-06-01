@@ -6,13 +6,18 @@ class UrlMappings {
         "/api/v1/opus/$opusId/export" controller: "export", action: [GET: "exportCollection"]
         "/api/v1/opus/$opusId/count" controller: "export", action: [GET: "countProfiles"]
 
+        "/api/v1/profiles/" controller: "export", action: [GET: "getProfiles"]
+
         // 'Internal' ALA API
         "/admin/search/reindex" controller: "search", action: [POST: "reindex"]
         "/admin/rematchNames" controller: "admin", action: [POST: "rematchNames"]
+        "/admin/tag/$tagId?" controller: "admin", action: [GET: "getTag", PUT: "createTag", POST: "updateTag", DELETE: "deleteTag"]
 
         "/audit/object/$entityId" controller: "audit", action: [GET: "auditTrailForObject"]
 
         "/audit/user/$userId" controller: "audit", action: [GET: "auditTrailForUser"]
+
+        "/tags" controller: "opus", action: [GET: "getTags"]
 
         "/opus/$opusId/glossary/item/" controller: "opus", action: [PUT: "createGlossaryItem"]
         "/opus/$opusId/glossary/item/$glossaryItemId" controller: "opus", action: [DELETE: "deleteGlossaryItem", POST: "updateGlossaryItem"]
