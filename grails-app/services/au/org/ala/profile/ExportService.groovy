@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.Utils
 import grails.converters.JSON
 import org.bson.types.ObjectId
 
@@ -143,7 +144,7 @@ class ExportService extends BaseDataAccessService {
                         profile.attributes << [
                                 id     : attribute.uuid,
                                 title  : title.name,
-                                text   : attribute.text,
+                                text   : title.containsName ? Utils.cleanupText(attribute.text) : attribute.text,
                                 name   : title.containsName,
                                 summary: title.summary
                         ]
