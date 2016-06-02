@@ -119,11 +119,13 @@ class AdminService extends BaseDataAccessService {
         if (tag) {
             tag.delete()
 
-            Opus.list().each {
-                Tag t = it.tags?.find { it.uuid == tagId }
+            Opus.list().each { opus ->
+                Tag t = opus.tags?.find {
+                    it.uuid == tagId
+                }
                 if (t) {
-                    it.tags.remove(t)
-                    save it
+                    opus.tags.remove(t)
+                    save opus
                 }
             }
         }
