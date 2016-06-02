@@ -107,6 +107,7 @@ class ExportService extends BaseDataAccessService {
                         nslNameId        : data.nslNameIdentifier,
                         nslNomenclatureId: data.nslNomenclatureIdentifier,
                         attributes       : [],
+                        thumbnailUrl     : constructThumbnailUrl(data, opus),
                         url              : "${grailsApplication.config.profile.hub.base.url}opus/${opus.shortName ?: opus.uuid}/profile/${data.scientificName}".toString()
                 ]
 
@@ -167,4 +168,29 @@ class ExportService extends BaseDataAccessService {
         Vocab.findByUuid(vocabId)?.terms?.collectEntries { [it.id, it] }
     }
 
+    private String constructThumbnailUrl(profile, Opus opus) {
+        String url
+
+        if (profile.primaryImage) {
+            def image = profile.privateImages.find { it.imageId == profile.primaryImage }
+            if (image) {
+                // the primary image is a local image
+                url = "${grailsApplication.config.profile.hub.base.url}opus/${opus.uuid}/profile/${profile.uuid}/image/thumbnail/${profile.primaryImage}.${Utils.getFileExtension(image.originalFileName)}?type=PRIVATE"
+            } else {
+                // the primary image is from the ALA Image Service
+                url = "${grailsApplication.config.images.base.ur}/image/proxyImageThumbnailLarge?imageId=${profile.primaryImage}"
+            }
+        } else if (profile.privateImages) {
+            // if there is no primary image but there are local images (i.e. the editor has provided images that are not
+            // in the ALA image service), then we use the first local image as the primary.
+            def image = profile.privateImages[0]
+            url = "${grailsApplication.config.profile.hub.base.url}opus/${opus.uuid}/profile/${profile.uuid}/image/thumbnail/${profile.primaryImage}.${Utils.getFileExtension(image.originalFileName)}?type=PRIVATE"
+        } else {
+            // If there is no explicitly specified primary image and we have no local images, then leave the url blank:
+            // the calling system can retrieve an image directly from the image service if one is required in this case.
+            url = null
+        }
+
+        url
+    }
 }
