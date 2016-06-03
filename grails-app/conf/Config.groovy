@@ -113,6 +113,11 @@ environments {
         }
     }
     test {
+        app.file.upload.path = "./target/archive"
+        // It does not have to be a real url but a valid one
+        // Used for integration testing
+        app.uploads.url = "http://devt.ala.org.au:8082/profile-service/document/download?filename="
+
         elasticSearch {
             client.mode = 'local'
             index.store.type = 'memory' // store local node in memory and not on disk

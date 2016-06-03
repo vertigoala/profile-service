@@ -121,6 +121,9 @@ class UrlMappings {
 
         "/user/details" controller: "userDetails", action: [GET: "getUserDetails"]
 
+        //"/document"(controller: "document"){ action = [GET:"list", POST:"create"] }
+        "/document/$id/file"(controller: "document", action: "getFile")
+
         "500" view: '/error'
 
         "/" view: "/index"
