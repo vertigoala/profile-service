@@ -121,8 +121,12 @@ class UrlMappings {
 
         "/user/details" controller: "userDetails", action: [GET: "getUserDetails"]
 
-        //"/document"(controller: "document"){ action = [GET:"list", POST:"create"] }
-        "/document/$id/file"(controller: "document", action: "getFile")
+
+        "/document/search" controller: "document", action: [POST:"search"]
+
+        "/document/$id?(.$format)?"(controller: "document"){ action = [GET:"index", POST:"update", DELETE: "delete"] }
+        // document getFile and download actions need to be enabled if this system is going to host attachments
+        // See ecodata implementation for details
 
         "500" view: '/error'
 

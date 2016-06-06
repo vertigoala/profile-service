@@ -26,13 +26,13 @@ class DocumentService {
     static final FILE_LOCK = new Object()
 
     static final DIRECTORY_PARTITION_FORMAT = 'yyyy-MM'
-    static  final MOBILE_APP_ROLE = [ "android",
-                                     "blackberry",
-                                     "iTunes",
-                                     "windowsPhone"]
+    static final MOBILE_APP_ROLE = ["android",
+                                    "blackberry",
+                                    "iTunes",
+                                    "windowsPhone"]
 
     def grailsApplication
-    
+
     /**
      * Converts the domain object into a map of properties, including
      * dynamic properties.
@@ -50,7 +50,7 @@ class DocumentService {
         if (document?.type == Document.DOCUMENT_TYPE_IMAGE) {
             mapOfProperties.thumbnailUrl = document.thumbnailUrl
         }
-        mapOfProperties.findAll {k,v -> v != null}
+        mapOfProperties.findAll { k, v -> v != null }
     }
 
     def get(id, levelOfDetail = []) {
@@ -60,8 +60,8 @@ class DocumentService {
 
     def getAll(boolean includeDeleted = false, levelOfDetail = []) {
         includeDeleted ?
-            Document.findAllByTypeNotEqual(LINKTYPE).collect { toMap(it, levelOfDetail) } :
-            Document.findAllByStatusAndTypeNotEqual(ACTIVE, LINKTYPE).collect { toMap(it, levelOfDetail) }
+                Document.findAllByTypeNotEqual(LINKTYPE).collect { toMap(it, levelOfDetail) } :
+                Document.findAllByStatusAndTypeNotEqual(ACTIVE, LINKTYPE).collect { toMap(it, levelOfDetail) }
     }
 
     def getAllLinks(levelOfDetail = []) {
@@ -71,7 +71,7 @@ class DocumentService {
     def findAllForProjectId(id, levelOfDetail = [], version = null) {
         if (version) {
             def all = AuditMessage.findAllByProjectIdAndEntityTypeAndDateLessThanEquals(id, Document.class.name,
-                    new Date(version as Long), [sort:'date', order:'desc'])
+                    new Date(version as Long), [sort: 'date', order: 'desc'])
             def documents = []
             def found = []
             all?.each {
@@ -85,7 +85,9 @@ class DocumentService {
             }
             documents
         } else {
-            Document.findAllByProjectIdAndStatusAndTypeNotEqual(id, ACTIVE, LINKTYPE).collect { toMap(it, levelOfDetail) }
+            Document.findAllByProjectIdAndStatusAndTypeNotEqual(id, ACTIVE, LINKTYPE).collect {
+                toMap(it, levelOfDetail)
+            }
         }
     }
 
@@ -111,30 +113,33 @@ class DocumentService {
     }
 
     def findAllForProjectIdAndIsPrimaryProjectImage(id, levelOfDetail = []) {
-		Document.findAllByProjectIdAndStatusAndIsPrimaryProjectImage(id, ACTIVE,true).collect { toMap(it, levelOfDetail) }
-	}
+        Document.findAllByProjectIdAndStatusAndIsPrimaryProjectImage(id, ACTIVE, true).collect {
+            toMap(it, levelOfDetail)
+        }
+    }
 
 
     def findAllForOutputId(id, levelOfDetail = []) {
         Document.findAllByOutputIdAndStatus(id, ACTIVE).collect { toMap(it, levelOfDetail) }
     }
+
     def findAllForProjectActivityId(id, levelOfDetail = []) {
         Document.findAllByProjectActivityIdAndStatus(id, ACTIVE).collect { toMap(it, levelOfDetail) }
     }
 
-    String findImageUrlForProjectId(id, levelOfDetail = []){
+    String findImageUrlForProjectId(id, levelOfDetail = []) {
         Document primaryImageDoc;
         Document logoDoc = Document.findByProjectIdAndRoleAndStatus(id, LOGO, ACTIVE);
         String urlImage;
         urlImage = logoDoc?.url ? logoDoc.getThumbnailUrl() : ''
-        if(!urlImage){
+        if (!urlImage) {
             primaryImageDoc = Document.findByProjectIdAndIsPrimaryProjectImage(id, true)
             urlImage = primaryImageDoc?.url;
         }
         urlImage
     }
 
-    String getLogoAttributionForProjectId(String id){
+    String getLogoAttributionForProjectId(String id) {
         Document.findByProjectIdAndRoleAndStatus(id, LOGO, ACTIVE)?.attribution
     }
 
@@ -147,25 +152,23 @@ class DocumentService {
     public Map search(Map searchCriteria, Integer max = 100, Integer offset = 0, String sort = null, String orderBy = null) {
 
         BuildableCriteria criteria = Document.createCriteria()
-        List documents = criteria.list(max:max, offset:offset) {
+        List documents = criteria.list(max: max, offset: offset) {
             ne("status", DELETED)
-            searchCriteria.each { prop,value ->
+            searchCriteria.each { prop, value ->
 
                 if (value instanceof List) {
                     inList(prop, value)
-                }
-                else {
+                } else {
                     eq(prop, value)
                 }
             }
             if (sort) {
-                order(sort, orderBy?:'asc')
+                order(sort, orderBy ?: 'asc')
             }
 
         }
-        [documents:documents.collect{toMap(it)}, count:documents.totalCount]
+        [documents: documents.collect { toMap(it) }, count: documents.totalCount]
     }
-
 
     /**
      * Creates a new Document object associated with the supplied file.
@@ -173,21 +176,21 @@ class DocumentService {
      * @param fileIn an InputStream attached to the file to save.  This will be saved to the uploads directory.
      */
     def create(props, fileIn) {
-        def d = new Document(documentId: Identifiers.getNew(true,''))
+        def d = new Document(documentId: Identifiers.getNew(true, ''))
         props.remove('url')
         props.remove('thumbnailUrl')
 
         try {
-            d.save([failOnError: true]) // The document appears to need to be associated with a session before setting any dynamic properties. The exact reason for this is unclear - I am unable to reproduce in a test app.
+            d.save([failOnError: true])
+            // The document appears to need to be associated with a session before setting any dynamic properties. The exact reason for this is unclear - I am unable to reproduce in a test app.
             props.remove 'documentId'
 
             if (fileIn) {
                 DateFormat dateFormat = new SimpleDateFormat(DIRECTORY_PARTITION_FORMAT)
                 def partition = dateFormat.format(new Date())
-				if(props.saveAs?.equals("pdf")){
-					props.filename = saveAsPDF(fileIn, partition, props.filename,false)
-				}
-				else {
+                if (props.saveAs?.equals("pdf")) {
+                    props.filename = saveAsPDF(fileIn, partition, props.filename, false)
+                } else {
                     props.filename = saveFile(partition, props.filename, fileIn, false)
                     if (props.type == Document.DOCUMENT_TYPE_IMAGE) {
                         makeThumbnail(partition, props.filename)
@@ -196,7 +199,7 @@ class DocumentService {
                 props.filepath = partition
             }
             updateProperties(d, props)
-            return [status:'ok',documentId:d.documentId, url:d.url]
+            return [status: 'ok', documentId: d.documentId, url: d.url]
         } catch (Exception e) {
             // clear session to avoid exception when GORM tries to autoflush the changes
             e.printStackTrace()
@@ -204,7 +207,7 @@ class DocumentService {
             Document.withSession { session -> session.clear() }
             def error = "Error creating document for ${props.filename} - ${e.message}"
             log.error error
-            return [status:'error',error:error]
+            return [status: 'error', error: error]
         }
     }
 
@@ -224,17 +227,17 @@ class DocumentService {
                 props.remove('url')
                 props.remove('thumbnailUrl')
                 updateProperties(d, props)
-                return [status:'ok',documentId:d.documentId, url:d.url]
+                return [status: 'ok', documentId: d.documentId, url: d.url]
             } catch (Exception e) {
                 Document.withSession { session -> session.clear() }
                 def error = "Error updating document ${id} - ${e.message}"
                 log.error error
-                return [status:'error',error:error]
+                return [status: 'error', error: error]
             }
         } else {
             def error = "Error updating document - no such id ${id}"
             log.error error
-            return [status:'error',error:error]
+            return [status: 'error', error: error]
         }
     }
 
@@ -254,7 +257,7 @@ class DocumentService {
                 //create upload dir if it doesnt exist...
                 def uploadDir = new File(fullPath(filepath, ''))
 
-                if(!uploadDir.exists()){
+                if (!uploadDir.exists()) {
                     FileUtils.forceMkdir(uploadDir)
                 }
 
@@ -274,12 +277,11 @@ class DocumentService {
      */
     def makeThumbnail(filepath, filename, overwrite = true) {
 
-        File tnFile = new File(fullPath(filepath, Document.THUMBNAIL_PREFIX+filename))
+        File tnFile = new File(fullPath(filepath, Document.THUMBNAIL_PREFIX + filename))
         if (tnFile.exists()) {
             if (!overwrite) {
                 return
-            }
-            else {
+            } else {
                 tnFile.delete();
             }
         }
@@ -290,52 +292,52 @@ class DocumentService {
         try {
             def success = ImageIO.write(tn, ext, tnFile)
             log.debug "Thumbnailing: " + success
-        } catch(IOException e) {
+        } catch (IOException e) {
             e.printStackTrace()
             log.error "Write error for " + tnFile.getPath() + ": " + e.getMessage()
         }
 
     }
 
-	/**
-	 * Saves the contents of the supplied string to the file system as pdf using the supplied filename.  If overwrite
-	 * is false and a supplied file name exits, a new filename will be generated by pre-pending the
-	 * filename with a counter.
-	 * @param content file contents
-	 * @param fileName file name
-	 * @param overwrite true if an existing file should be overwritten.
-	 * @return the filename (not the full path) the file was saved using.  This may not be the same as the supplied
-	 * filename in the case that overwrite is false.
-	 */
-	private saveAsPDF(content, filepath, filename, overwrite){
-		synchronized (FILE_LOCK) {
-			def uploadDir = new File(fullPath(filepath, ''))
-			if(!uploadDir.exists()){
-				FileUtils.forceMkdir(uploadDir)
-			}
-			// make sure we don't overwrite the file.
-			if (!overwrite) {
-				filename = nextUniqueFileName(filepath, filename)
-			}
-			OutputStream file = new FileOutputStream(new File(fullPath(filepath, filename)));
-			
-			//supply outputstream to itext to write the PDF data,
-			com.itextpdf.text.Document document = new com.itextpdf.text.Document();
-			document.setPageSize(PageSize.LETTER.rotate());
-			PdfWriter.getInstance(document, file);
-			document.open();
-			HTMLWorker htmlWorker = new HTMLWorker(document);
-			StringWriter writer = new StringWriter();
-			IOUtils.copy(content, writer);
-			htmlWorker.parse(new StringReader(writer.toString()));
-			document.close();
-			file.close();
-			return filename
-			
-		}
-		
-	}
-			
+    /**
+     * Saves the contents of the supplied string to the file system as pdf using the supplied filename.  If overwrite
+     * is false and a supplied file name exits, a new filename will be generated by pre-pending the
+     * filename with a counter.
+     * @param content file contents
+     * @param fileName file name
+     * @param overwrite true if an existing file should be overwritten.
+     * @return the filename (not the full path) the file was saved using.  This may not be the same as the supplied
+     * filename in the case that overwrite is false.
+     */
+    private saveAsPDF(content, filepath, filename, overwrite) {
+        synchronized (FILE_LOCK) {
+            def uploadDir = new File(fullPath(filepath, ''))
+            if (!uploadDir.exists()) {
+                FileUtils.forceMkdir(uploadDir)
+            }
+            // make sure we don't overwrite the file.
+            if (!overwrite) {
+                filename = nextUniqueFileName(filepath, filename)
+            }
+            OutputStream file = new FileOutputStream(new File(fullPath(filepath, filename)));
+
+            //supply outputstream to itext to write the PDF data,
+            com.itextpdf.text.Document document = new com.itextpdf.text.Document();
+            document.setPageSize(PageSize.LETTER.rotate());
+            PdfWriter.getInstance(document, file);
+            document.open();
+            HTMLWorker htmlWorker = new HTMLWorker(document);
+            StringWriter writer = new StringWriter();
+            IOUtils.copy(content, writer);
+            htmlWorker.parse(new StringReader(writer.toString()));
+            document.close();
+            file.close();
+            return filename
+
+        }
+
+    }
+
     /**
      * We are preserving the file name so the URLs look nicer and the file extension isn't lost.
      * As filename are not guaranteed to be unique, we are pre-pending the file with a counter if necessary to
@@ -354,9 +356,9 @@ class DocumentService {
     String fullPath(String filepath, String filename) {
         String path = filepath ?: ''
         if (path) {
-            path = path+File.separator
+            path = path + File.separator
         }
-        return grailsApplication.config.app.file.upload.path + '/' + path  + filename
+        return grailsApplication.config.app.file.upload.path + '/' + path + filename
     }
 
     void deleteAllForProject(String projectId, boolean destroy = false) {
@@ -390,8 +392,10 @@ class DocumentService {
      * @return true if the delete operation was successful.
      */
     boolean deleteFile(Document document) {
-        File fileToDelete = new File(fullPath(document.filepath, document.filename))
-        fileToDelete.delete();
+        if (document?.filename) {
+            File fileToDelete = new File(fullPath(document.filepath, document.filename))
+            fileToDelete.delete();
+        }
     }
 
     /**
@@ -401,14 +405,16 @@ class DocumentService {
      * @return the new absolute location of the file
      */
     void archiveFile(Document document) {
-        File fileToArchive = new File(fullPath(document.filepath, document.filename))
+        if (document?.filename) {
+            File fileToArchive = new File(fullPath(document.filepath, document.filename))
 
-        if (fileToArchive.exists()) {
-            File archiveDir = new File("${grailsApplication.config.app.file.archive.path}/${document.filepath}")
+            if (fileToArchive.exists()) {
+                File archiveDir = new File("${grailsApplication.config.app.file.archive.path}/${document.filepath}")
 
-            FileUtils.moveFileToDirectory(fileToArchive, archiveDir, true)
-        } else {
-            log.warn("Unable to move file for document ${document.documentId}: the file ${fileToArchive.absolutePath} does not exist.")
+                FileUtils.moveFileToDirectory(fileToArchive, archiveDir, true)
+            } else {
+                log.warn("Unable to move file for document ${document.documentId}: the file ${fileToArchive.absolutePath} does not exist.")
+            }
         }
     }
 
@@ -416,14 +422,14 @@ class DocumentService {
         def query = Document.createCriteria()
 
         def results = query {
-           ne('type', LINKTYPE)
-           eq(ownerType, owner)
-           if (!includeDeleted) {
-               ne('status', DELETED)
-           }
+            ne('type', LINKTYPE)
+            eq(ownerType, owner)
+            if (!includeDeleted) {
+                ne('status', DELETED)
+            }
         }
 
-        results.collect{toMap(it, 'flat')}
+        results.collect { toMap(it, 'flat') }
     }
 
     def findAllLinksByOwner(ownerType, owner, includeDeleted = false) {
@@ -437,10 +443,10 @@ class DocumentService {
             }
         }
 
-        results.collect{toMap(it, 'flat')}
+        results.collect { toMap(it, 'flat') }
     }
 
-    Boolean isMobileAppForProject(Map project){
+    Boolean isMobileAppForProject(Map project) {
         List links = project.links
         Boolean isMobileApp = false;
         isMobileApp = links?.any {
@@ -454,8 +460,8 @@ class DocumentService {
      * @param doc
      * @return doc
      */
-    public Map embargoDocument (Map doc){
-        List blackListProps = ['thumbnailUrl','url','dataTaken','attribution','notes','filename','filepath','documentId']
+    public Map embargoDocument(Map doc) {
+        List blackListProps = ['thumbnailUrl', 'url', 'dataTaken', 'attribution', 'notes', 'filename', 'filepath', 'documentId']
         doc.isEmbargoed = true;
         blackListProps.each { item ->
             doc.remove(item)
@@ -483,7 +489,7 @@ class DocumentService {
         props.remove('id')
         props.remove('api_key')  // don't ever let this be stored in public data
         props.remove('lastUpdated') // in case we are loading from dumped data
-        props.each { k,v ->
+        props.each { k, v ->
             log.debug "updating ${k} to ${v}"
             /*
              * Checks the domain for properties of type Date and converts them.
@@ -503,7 +509,7 @@ class DocumentService {
             o[k] = v
         }
         // always flush the update so that that any exceptions are caught before the service returns
-        o.save(flush:true,failOnError:true)
+        o.save(flush: true, failOnError: true)
         if (o.hasErrors()) {
             log.error("has errors:")
             o.errors.each { log.error it }

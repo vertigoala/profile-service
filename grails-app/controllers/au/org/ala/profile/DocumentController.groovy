@@ -8,14 +8,6 @@ class DocumentController {
     def documentService
     static allowedMethods = [save: "POST", update: "POST", delete: "DELETE", search:"POST", listImages: "POST"]
 
-    // JSON response is returned as the unconverted model with the appropriate
-    // content-type. The JSON conversion is handled in the filter. This allows
-    // for universal JSONP support.
-    def asJson = { model ->
-        response.setContentType("application/json; charset=UTF-8")
-        model
-    }
-
     def index() {
         log.debug "Total documents (including links) = ${Document.count()}"
         render "${Document.count()} documents"
@@ -26,19 +18,19 @@ class DocumentController {
         if (id) {
             def doc = documentService.get(id, detail)
             if (doc) {
-                asJson doc
+                render doc as JSON
             } else {
                 render status:404, text: 'No such id'
             }
         } else if (params.links as boolean) {
             def list = documentService.getAllLinks(params.view)
             //log.debug list
-            asJson([list: list])
+            render ([list: list]) as JSON
         } else {
             def list = documentService.getAll(params.includeDeleted as boolean, params.view)
             list.sort {it.name}
             //log.debug list
-            asJson([list: list])
+            render ([list: list]) as JSON
         }
     }
 
@@ -79,10 +71,10 @@ class DocumentController {
     def find(String entity, String id) {
         if (params.links as boolean) {
             def result = documentService.findAllLinksByOwner(entity+'Id', id)
-            asJson([documents:result])
+            render ([documents:result]) as JSON
         } else {
             def result = documentService.findAllByOwner(entity+'Id', id)
-            asJson([documents:result])
+            render ([documents:result]) as JSON
         }
     }
 
@@ -107,6 +99,9 @@ class DocumentController {
      */
     @RequireApiKey
     def search() {
+
+//        log.debug("Search been called")
+
         def searchCriteria = request.JSON
         def max = searchCriteria.remove('max') as Integer
         def offset = searchCriteria.remove('offset') as Integer
@@ -114,7 +109,10 @@ class DocumentController {
         String order = searchCriteria.remove('order')
 
         def searchResults = documentService.search(searchCriteria, max, offset, sort, order)
-        asJson searchResults
+
+//        log.debug("searchResults: ${searchResults}")
+
+        render searchResults as JSON
     }
 
     @RequireApiKey
@@ -148,6 +146,9 @@ class DocumentController {
      */
     @RequireApiKey
     def update(String id) {
+
+        log.debug("Updating ID ${id}")
+
         def props, file = null
         def stream = null
         if (request.respondsTo('getFile')) {
