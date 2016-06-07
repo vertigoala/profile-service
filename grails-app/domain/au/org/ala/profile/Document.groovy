@@ -19,10 +19,7 @@ class Document {
     static mapping = {
         name index: true
         projectId index: true
-        siteId index: true
-        activityId index: true
-        outputId index: true
-        organisationId index: true
+        parentId index: true
         status index: true
         version false
     }
@@ -41,13 +38,8 @@ class Document {
 
     String status = ACTIVE
     String projectId
-    String siteId
-    String activityId
-    String projectActivityId
-    String outputId
-    String organisationId
     String externalUrl
-    Boolean isSciStarter = false
+    String parentId
 
     boolean thirdPartyConsentDeclarationMade = false
     String thirdPartyConsentDeclarationText
@@ -113,10 +105,7 @@ class Document {
         type nullable: true
         role nullable: true
         projectId nullable: true
-        organisationId nullable: true
-        siteId nullable: true
-        activityId nullable: true
-        outputId nullable: true
+        parentId nullable: true
         filename nullable: true
         dateCreated nullable: true
         lastUpdated nullable: true
@@ -124,8 +113,6 @@ class Document {
         thirdPartyConsentDeclarationMade nullable: true
         thirdPartyConsentDeclarationText nullable: true
         externalUrl nullable: true
-        projectActivityId nullable: true
         labels nullable: true
-        isSciStarter nullable: true
     }
 }
