@@ -224,7 +224,7 @@ class ProfileService extends BaseDataAccessService {
         profile
     }
 
-    void populateTaxonHierarchy(profile, List manualHierarchy) {
+    void populateTaxonHierarchy(profile, List manualHierarchy = []) {
         if (!profile) {
             return
         }
