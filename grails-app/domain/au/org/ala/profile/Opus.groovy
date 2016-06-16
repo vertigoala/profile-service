@@ -63,6 +63,7 @@ class Opus {
     List<Attachment> attachments
     boolean autoApproveShareRequests = true
     boolean keepImagesPrivate = false
+    boolean usePrivateRecordData = false
     ImageOption approvedImageOption = ImageOption.INCLUDE
 
     String accessToken

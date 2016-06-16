@@ -6,7 +6,6 @@ import au.org.ala.ws.service.WebService
 import static com.xlson.groovycsv.CsvParser.parseCsv
 import static au.org.ala.profile.util.Utils.enc
 import static au.org.ala.profile.util.Utils.isSuccessful
-import static au.org.ala.profile.util.Utils.cleanupText
 
 import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
 import au.org.ala.names.model.LinnaeanRankClassification
@@ -60,7 +59,7 @@ class NameService extends BaseDataAccessService {
             } catch (HomonymException e) {
                 match = searchPotentialMatches(name, e.results)
             } catch (Exception e) {
-                log.warn("Name matching exception thrown. No match will be returned.", e)
+                log.warn("Name matching exception thrown when attempting to match ${name}. No match will be returned.", e)
                 match = null
             }
         }
