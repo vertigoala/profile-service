@@ -3,7 +3,7 @@ package au.org.ala.profile
 import au.ala.org.ws.security.RequireApiKey
 import grails.converters.JSON
 
-class DocumentController {
+class DocumentController extends BaseController {
 
     def documentService
     static allowedMethods = [save: "POST", update: "POST", delete: "DELETE", search:"POST", listImages: "POST"]
@@ -116,20 +116,35 @@ class DocumentController {
     }
 
     @RequireApiKey
-    def delete(String id) {
-        Document document = Document.findByDocumentId(id)
-        if (document) {
-            if (document.type == documentService.LINKTYPE) {
-                document.delete()
-            } else {
-                boolean destroy = params.destroy == null ? false : params.destroy.toBoolean()
+    def list() {
 
-                documentService.deleteDocument(id, destroy)
-            }
-            render (status: 200, text: 'deleted')
+        Profile profile = getProfile()
+        if (!profile) {
+            notFound()
         } else {
-            response.status = 404
-            render status:404, text: 'No such id'
+            def result = documentService.list(profile)
+            render result as JSON
+        }
+    }
+
+    @RequireApiKey
+    def delete(String id) {
+
+        if (!profile) {
+            notFound()
+        } else {
+            def result
+            def message
+            boolean destroy = params.destroy == null ? false : params.destroy.toBoolean()
+            result = documentService.deleteDocument(profile.uuid, id, destroy)
+            message = [message: 'deleted', documentId: result.documentId, url: result.url]
+            if (result.status == 'ok') {
+                response.status = 200
+                render message as JSON
+            } else {
+                log.error result.error
+                render status: 400, text: result.error
+            }
         }
     }
 
@@ -146,7 +161,6 @@ class DocumentController {
      */
     @RequireApiKey
     def update(String id) {
-
         log.debug("Updating ID ${id}")
 
         def props, file = null
@@ -175,20 +189,28 @@ class DocumentController {
         def result
         def message
 
-        if (id) {
-            result = documentService.update(props,id, stream)
-            message = [message: 'updated', documentId: result.documentId, url:result.url]
+        Profile profile = getProfile()
+
+        if (!profile) {
+            notFound()
         } else {
-            result = documentService.create(props, stream)
-            message = [message: 'created', documentId: result.documentId, url:result.url]
-        }
-        if (result.status == 'ok') {
-            response.status = 200
-            render message as JSON
-        } else {
-            //Document.withSession { session -> session.clear() }
-            log.error result.error
-            render status:400, text: result.error
+
+            if (id) {
+                result = documentService.update(profile.uuid, props, id, stream)
+                message = [message: 'updated', documentId: result.documentId, url: result.url]
+            } else {
+                result = documentService.create(profile.uuid, props, stream)
+                message = [message: 'created', documentId: result.documentId, url: result.url]
+            }
+
+            if (result.status == 'ok') {
+                response.status = 200
+                render message as JSON
+            } else {
+                //Document.withSession { session -> session.clear() }
+                log.error result.error
+                render status: 400, text: result.error
+            }
         }
     }
 

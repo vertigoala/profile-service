@@ -6,6 +6,7 @@ import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.StorageExtension
 import au.org.ala.web.AuthService
 import org.apache.commons.lang3.StringUtils
+import org.codehaus.groovy.grails.commons.DomainClassArtefactHandler
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.commons.CommonsMultipartFile
@@ -601,6 +602,73 @@ class ProfileService extends BaseDataAccessService {
             }
         }
     }
+
+    boolean updateDocument(Profile profile, Map newDocument, String id) {
+        checkArgument profile
+        checkArgument json
+
+        profile = profileOrDraft(profile)
+
+        if(profile.documents) {
+            profile.documents = new ArrayList<Document>()
+        }
+
+        if(id) {
+            Document existingDocument = profile.documents.find {
+                it.id == id
+            }
+
+            updateProperties(existingDocument, newDocument)
+        }
+
+    }
+
+    /**
+     * Updates all properties other than 'id' and converts date strings to BSON dates.
+     *
+     * Note that dates are assumed to be ISO8601 in UTC with no millisecs
+     *
+     * Booleans must be handled explicitly because the JSON string "false" will by truthy if just
+     *  assigned to a boolean property.
+     *
+     * @param o the domain instance
+     * @param props the properties to use
+     */
+    private updateProperties(o, props) {
+        assert grailsApplication
+        def domainDescriptor = grailsApplication.getArtefact(DomainClassArtefactHandler.TYPE,
+                o.getClass().name)
+        props.remove('id')
+        props.remove('api_key')  // don't ever let this be stored in public data
+        props.remove('lastUpdated') // in case we are loading from dumped data
+        props.each { k, v ->
+            log.debug "updating ${k} to ${v}"
+            /*
+             * Checks the domain for properties of type Date and converts them.
+             * Expects dates as strings in the form 'yyyy-MM-ddThh:mm:ssZ'. As indicated by the 'Z' these must be
+             * UTC time. They are converted to java dates by forcing a zero time offset so that local timezone is
+             * not used. All conversions to and from local time are the responsibility of the service consumer.
+             */
+            if (v instanceof String && domainDescriptor.hasProperty(k) && domainDescriptor?.getPropertyByName(k)?.getType() == Date) {
+                v = v ? parse(v) : null
+            }
+            if (v == "false") {
+                v = false
+            }
+            if (v == "null") {
+                v = null
+            }
+            o[k] = v
+        }
+        // always flush the update so that that any exceptions are caught before the service returns
+        o.save(flush: true, failOnError: true)
+        if (o.hasErrors()) {
+            log.error("has errors:")
+            o.errors.each { log.error it }
+            throw new Exception(o.errors[0] as String);
+        }
+    }
+
 
     boolean saveBHLLinks(String profileId, Map json, boolean deferSave = false) {
         checkArgument profileId

@@ -355,6 +355,26 @@ class ProfileController extends BaseController {
         }
     }
 
+    def updateDocument() {
+        def json = request.getJSON()
+
+        if (!json || !params.profileId) {
+            badRequest()
+        } else {
+            Profile profile = getProfile()
+
+            if (!profile) {
+                notFound()
+            } else {
+                profileService.updateProfile(profile.uuid, json, id)
+
+                profile = getProfile()
+
+                render profile as JSON
+            }
+        }
+    }
+
     def updateProfile() {
         def json = request.getJSON()
 

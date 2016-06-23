@@ -33,6 +33,10 @@ class Document {
     String filepath
     String type // image, document, sound, etc
     String role // eg primary, carousel, photoPoint
+    String embeddedAudio
+    boolean primaryAudio = false
+    String embeddedVideo
+    boolean primaryVideo = false
 
     List<String> labels = [] // allow for searching on custom attributes
 
@@ -104,12 +108,13 @@ class Document {
         filepath nullable: true
         type nullable: true
         role nullable: true
+        embeddedAudio nullable: true
+        embeddedVideo nullable: true
         projectId nullable: true
         parentId nullable: true
         filename nullable: true
         dateCreated nullable: true
         lastUpdated nullable: true
-		isPrimaryProjectImage nullable: true
         thirdPartyConsentDeclarationMade nullable: true
         thirdPartyConsentDeclarationText nullable: true
         externalUrl nullable: true

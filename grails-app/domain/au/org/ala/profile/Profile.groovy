@@ -58,6 +58,7 @@ class Profile {
     List<Link> links
     List<Link> bhlLinks
     List<Bibliography> bibliography
+    List<Document> documents
     List<Publication> publications
 
     List<LocalImage> privateImages = []
@@ -88,7 +89,7 @@ class Profile {
     @Transient
     String getMatchedNameLower() { matchedName?.scientificName?.toLowerCase() }
 
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'matchedName', 'privateImages', 'attachments', 'imageSettings']
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'documents', 'matchedName', 'privateImages', 'attachments', 'imageSettings']
 
     static hasMany = [attributes: Attribute]
 

@@ -19,7 +19,7 @@ import java.text.SimpleDateFormat
 import static au.org.ala.profile.Document.ACTIVE
 import static au.org.ala.profile.Document.DELETED
 
-class DocumentService {
+class DocumentService extends BaseDataAccessService {
 
     static final LINKTYPE = "link"
     static final LOGO = 'logo'
@@ -170,19 +170,36 @@ class DocumentService {
         [documents: documents.collect { toMap(it) }, count: documents.totalCount]
     }
 
+    def profileOrDraft(Profile profile) {
+        profile.draft ?: profile
+    }
+
     /**
      * Creates a new Document object associated with the supplied file.
      * @param props the desired properties of the Document.
      * @param fileIn an InputStream attached to the file to save.  This will be saved to the uploads directory.
      */
-    def create(props, fileIn) {
+    def create(String profileId, props, fileIn) {
+
+        checkArgument profileId
+        checkArgument props
+
+        Profile originalProfile = Profile.findByUuid(profileId)
+        checkState originalProfile
+
+        def profile = profileOrDraft(originalProfile)
+
+        if(!profile.documents) {
+            profile.documents = new ArrayList<Document>()
+        }
+
         def d = new Document(documentId: Identifiers.getNew(true, ''))
         props.remove('url')
         props.remove('thumbnailUrl')
 
         try {
-            d.save([failOnError: true])
-            // The document appears to need to be associated with a session before setting any dynamic properties. The exact reason for this is unclear - I am unable to reproduce in a test app.
+            profile.documents << d
+            save originalProfile
             props.remove 'documentId'
 
             if (fileIn) {
@@ -199,6 +216,7 @@ class DocumentService {
                 props.filepath = partition
             }
             updateProperties(d, props)
+            save originalProfile
             return [status: 'ok', documentId: d.documentId, url: d.url]
         } catch (Exception e) {
             // clear session to avoid exception when GORM tries to autoflush the changes
@@ -217,8 +235,23 @@ class DocumentService {
      * @param fileIn (optional) an InputStream attached to the file to save.  If supplied, this will overwrite any
      * file with the same name in the uploads directory.
      */
-    def update(props, id, fileIn = null) {
-        def d = Document.findByDocumentId(id)
+    def update(String profileId, Map props, String id, String  fileIn = null) {
+        checkArgument profileId
+        checkArgument props
+
+        Profile originalProfile = Profile.findByUuid(profileId)
+        checkState originalProfile
+
+        def profile = profileOrDraft(originalProfile)
+
+        if(!profile.documents) {
+            profile.documents = new ArrayList<Document>()
+        }
+
+        Document d = profile.documents.find {
+            it.documentId == id
+        }
+
         if (d) {
             try {
                 if (fileIn) {
@@ -227,9 +260,10 @@ class DocumentService {
                 props.remove('url')
                 props.remove('thumbnailUrl')
                 updateProperties(d, props)
+                save originalProfile
                 return [status: 'ok', documentId: d.documentId, url: d.url]
             } catch (Exception e) {
-                Document.withSession { session -> session.clear() }
+                Profile.withSession { session -> session.clear() }
                 def error = "Error updating document ${id} - ${e.message}"
                 log.error error
                 return [status: 'error', error: error]
@@ -372,17 +406,44 @@ class DocumentService {
         documentIds?.each { deleteDocument(it, destroy) }
     }
 
-    void deleteDocument(String documentId, boolean destroy = false) {
-        Document document = Document.findByDocumentId(documentId)
+    def deleteDocument(String profileId, String documentId, boolean destroy = false) {
+
+        checkArgument profileId
+        checkArgument documentId
+
+        Profile originalProfile = Profile.findByUuid(profileId)
+        checkState originalProfile
+
+        def profile = profileOrDraft(originalProfile)
+
+        if (!profile.documents) {
+            profile.documents = new ArrayList<Document>()
+        }
+
+        Document document = profile.documents.find {
+            it.documentId == documentId
+        }
         if (document) {
-            if (destroy) {
-                document.delete()
-                deleteFile(document)
-            } else {
-                document.status = DELETED
-                archiveFile(document)
-                document.save(flush: true)
+            try {
+                if (destroy) {
+                    profile.documents.remove(document)
+                    deleteFile(document)
+                } else {
+                    document.status = DELETED
+                    archiveFile(document)
+                }
+                save originalProfile
+                return [status: 'ok', documentId: document.documentId]
+            } catch (Exception e) {
+                Profile.withSession { session -> session.clear() }
+                def error = "Error deleting document ${documentId} - ${e.message}"
+                log.error error, e
+                return [status: 'error', error: error]
             }
+        } else {
+            def error = "Error deleting document - no such id ${documentId}"
+            log.error error
+            return [status: 'error', error: error]
         }
     }
 
@@ -509,15 +570,24 @@ class DocumentService {
             o[k] = v
         }
         // always flush the update so that that any exceptions are caught before the service returns
-        o.save(flush: true, failOnError: true)
-        if (o.hasErrors()) {
-            log.error("has errors:")
-            o.errors.each { log.error it }
-            throw new Exception(o.errors[0] as String);
-        }
+//        o.save(flush: true, failOnError: true)
+//        if (o.hasErrors()) {
+//            log.error("has errors:")
+//            o.errors.each { log.error it }
+//            throw new Exception(o.errors[0] as String);
+//        }
     }
 
     private Date parse(String dateStr) {
         return dateFormat.parse(dateStr.replace("Z", "+0000"))
+    }
+
+    def list(Profile profile) {
+        List<Document> documents = profile.documents?: new ArrayList<Document>()
+
+        documents = documents.findAll {
+            it.status != DELETED
+        }
+        [documents: documents.collect { toMap(it) }, count: documents.size()]
     }
 }
