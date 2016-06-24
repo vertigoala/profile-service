@@ -46,6 +46,9 @@ class ProfileMarshaller {
                     bibliography             : profile.bibliography?.collect {
                         [uuid: it.uuid, text: it.text, plainText: Utils.cleanupText(it.text), order: it.order]
                     }?.sort { it.order },
+                    documents             : profile.documents?.collect {
+                        [documentId: it.documentId, name: it.name, attribution: it.attribution, licence: it.licence, embeddedContent:  (it.role == "embeddedVideo") ? it.embeddedVideo : it.embeddedAudio ]
+                    },
                     publications             : profile.publications?.sort { left, right -> right.publicationDate <=> left.publicationDate },
                     lastAttributeChange      : profile.lastAttributeChange,
                     createdDate              : profile.dateCreated,

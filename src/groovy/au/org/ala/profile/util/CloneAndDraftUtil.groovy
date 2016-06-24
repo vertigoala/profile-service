@@ -39,6 +39,7 @@ class CloneAndDraftUtil {
         profile.links = profile.draft.links
         profile.bhlLinks = profile.draft.bhlLinks
         profile.bibliography = profile.draft.bibliography
+        profile.documents = profile.draft.documents
         profile.publications = profile.draft.publications
         profile.privateImages = profile.draft.privateImages
         profile.attachments = profile.draft.attachments
