@@ -132,8 +132,8 @@ class SearchService extends BaseDataAccessService {
         if (options.searchNsl) {
             // use the provided name to search the NSL: the matched term was matched against the ALA, and we don't want
             // mix matching logic.
-            nameService.searchNSLName(term)?.each {
-                query.should(termQuery("nslNameIdentifier", it.nslId))
+            nameService.searchNSLName(term)?.each { String possibleName, String taxonomicStatus ->
+                query.should(buildBaseNameSearch(possibleName, options))
             }
         }
 
@@ -150,8 +150,9 @@ class SearchService extends BaseDataAccessService {
         term = term.toLowerCase()
 
         QueryBuilder query = boolQuery()
-                // rank exact matches on the profile name highest of all
+                // rank exact matches on the profile name and full name highest of all
                 .should(termQuery("scientificNameLower", term).boost(4))
+                .should(termQuery("fullNameLower", term).boost(4))
                 // exact match on either the scientific or full MATCHED name (profile name might be different)
                 .should(termQuery("matchedNameLower", term))
                 // match any attribute that is considered a 'name' attribute (e.g. common, vernacular, indigenous names etc)

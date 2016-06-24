@@ -13,7 +13,9 @@ class Profile {
     private static final String NOT_ANALYZED_INDEX = "not_analyzed"
 
     static searchable = {
-        only = ["uuid", "guid", "scientificName", "fullName", "matchedName", "rank", "primaryImage", "opus", "attributes", "lastUpdated", "archivedDate", "archivedWithName", "scientificNameLower", "archivedNameLower", "matchedNameLower"]
+        only = ["uuid", "guid", "scientificName", "fullName", "matchedName", "rank", "primaryImage", "opus",
+                "attributes", "lastUpdated", "archivedDate", "archivedWithName", "scientificNameLower",
+                "archivedNameLower", "matchedNameLower", "fullNameLower"]
         scientificName multi_field: true, boost: 20
         archivedWithName multi_field: true, boost: 20
         matchedName component: true, boost: 10
@@ -28,6 +30,7 @@ class Profile {
         scientificNameLower index: NOT_ANALYZED_INDEX
         archivedNameLower index: NOT_ANALYZED_INDEX
         matchedNameLower index: NOT_ANALYZED_INDEX
+        fullNameLower index: NOT_ANALYZED_INDEX
     }
 
     ObjectId id
@@ -83,6 +86,8 @@ class Profile {
 
     @Transient
     String getScientificNameLower() { scientificName?.toLowerCase() }
+    @Transient
+    String getFullNameLower() { fullName?.toLowerCase() }
     @Transient
     String getArchivedNameLower() { archivedWithName?.toLowerCase() }
     @Transient
