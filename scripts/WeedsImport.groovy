@@ -70,8 +70,10 @@ class WeedsImport {
 
                 List<Element> attributeRows = profilePage.select("#tabdescription tr")
                 List<String> ignoreRows = ["&nbsp;", "Photograph", "Distribution map", ""]
-                attributeRows.each { Element row ->
-                    String title = row.child(0).text().trim().replaceAll(":", "") ?: "Description"
+                attributeRows.eachWithIndex { Element row, int index ->
+                    String title = row.child(0).text().trim().replaceAll(":", "")
+                    title = index == 1 ? "Description" : title
+
                     String text = row.children().size() == 2 ? row.child(1).html().trim() : ""
                     text = text.replaceAll("<[a-zA-Z]+> *</[a-zA-Z]+>", "")
                     if (text.length() > 1 && !ignoreRows.contains(title) && title.length() > 1) {
