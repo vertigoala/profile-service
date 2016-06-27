@@ -2,11 +2,11 @@ package au.org.ala.profile
 
 import au.org.ala.names.search.HomonymException
 import au.org.ala.ws.service.WebService
+import org.apache.commons.lang3.StringUtils
 
 import static com.xlson.groovycsv.CsvParser.parseCsv
 import static au.org.ala.profile.util.Utils.enc
 import static au.org.ala.profile.util.Utils.isSuccessful
-import static au.org.ala.profile.util.Utils.cleanupText
 
 import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
 import au.org.ala.names.model.LinnaeanRankClassification
@@ -20,9 +20,7 @@ import javax.annotation.PostConstruct
 @Transactional
 class NameService extends BaseDataAccessService {
 
-    static final String NSL_APC_PRODUCT = "apc"
-    static final String NSL_APC_PLANT_TREE = "1133571"
-    static final int NSL_DEFAULT_MAX_RESULTS = 100
+    static final String NSL_APC_PRODUCT = "AOC"
 
     WebService webService
 
@@ -60,7 +58,7 @@ class NameService extends BaseDataAccessService {
             } catch (HomonymException e) {
                 match = searchPotentialMatches(name, e.results)
             } catch (Exception e) {
-                log.warn("Name matching exception thrown. No match will be returned.", e)
+                log.warn("Name matching exception thrown when attempting to match ${name}. No match will be returned.", e)
                 match = null
             }
         }
@@ -170,24 +168,50 @@ class NameService extends BaseDataAccessService {
         match
     }
 
-    List searchNSLName(String name) {
-        List matches
+    /**
+     * Search the NSL for the name and return a map containing all possible versions of the name (the accepted name,
+     * synonyms, etc) with the taxonomic status for each name.
+     *
+     * @param name The name to search for
+     * @return Map containing [alternateName : taxonomicStatus]
+     */
+    Map<String, String> searchNSLName(String name) {
+        Map<String, String> matches = [:]
 
-        String url = "${grailsApplication.config.nsl.search.service.url.prefix}?product=${NSL_APC_PRODUCT}&tree.id=${NSL_APC_PLANT_TREE}&max=${NSL_DEFAULT_MAX_RESULTS}&display=${NSL_APC_PRODUCT}&inc.scientific=on&search=true&format=json&name=${enc(name)}"
+        String url = "${grailsApplication.config.nsl.search.service.url.prefix}?tree=${NSL_APC_PRODUCT}&q=${enc(StringUtils.capitalize(name))}"
         Map result = webService.get(url)
-        if (result?.resp && isSuccessful(result?.statusCode)) {
-            matches = result.resp.collect {
-                String permalink = it.name?.primaryInstance?._links[0]?.permalink?.link
-                String id = permalink ? permalink?.substring(permalink?.lastIndexOf("/") + 1) : null
 
-                [
-                        scientificName: it.name?.simpleName,
-                        fullName: it.name?.fullName,
-                        nslId: id
-                ]
+        if (result?.resp && isSuccessful(result?.statusCode) && result?.resp?.records) {
+            // The return structure from the NSL search service is (where all entities are optional)
+            // {
+            //     records: {
+            //         synonyms: [
+            //                 …
+            //         ],
+            //         acceptedNames: {
+            //             …,
+            //             synonyms: [
+            //                     …
+            //             ]
+            //         }
+            //     }
+            // }
+            result.resp.records.synonyms?.each { Map synonym ->
+                matches.put(synonym.canonicalName, synonym.taxonomicStatus)
+                if (synonym.acceptedNameUsage) {
+                    matches.put(synonym.acceptedNameUsage, synonym.taxonomicStatus)
+                }
+            }
+
+            result.resp.records.acceptedNames?.each { String nameId, Map nslName ->
+                matches.put(nslName.canonicalName, nslName.taxonomicStatus)
+
+                nslName.synonyms?.each { Map synonym ->
+                    matches.put(synonym.canonicalName, synonym.taxonomicStatus)
+                }
             }
         } else {
-            matches = []
+            matches = [:]
             log.error("Failed to query NSL for name matches: ${result.error}")
         }
 

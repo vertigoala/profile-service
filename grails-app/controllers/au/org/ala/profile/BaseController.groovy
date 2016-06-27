@@ -85,7 +85,12 @@ class BaseController extends BasicWSController {
 
             String occurrenceQuery = query
 
-            if (opus.dataResourceConfig) {
+            if (opus.usePrivateRecordData) {
+                DataResourceConfig config = opus.dataResourceConfig
+                if (config?.privateRecordSources) {
+                    occurrenceQuery = "${query} AND (data_resource_uid:${config.privateRecordSources?.join(" OR data_resource_uid:")})"
+                }
+            } else if (opus.dataResourceConfig) {
                 DataResourceConfig config = opus.dataResourceConfig
                 switch (config.recordResourceOption) {
                     case DataResourceOption.ALL:

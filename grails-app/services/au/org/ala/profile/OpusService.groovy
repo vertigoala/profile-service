@@ -99,6 +99,15 @@ class OpusService extends BaseDataAccessService {
                 opus.dataResourceConfig.recordSources.addAll(json.dataResourceConfig.recordSources)
             }
 
+            if (json.dataResourceConfig.containsKey("privateRecordSources") && json.dataResourceConfig.privateRecordSources != opus.dataResourceConfig.privateRecordSources) {
+                if (opus.dataResourceConfig.privateRecordSources) {
+                    opus.dataResourceConfig.privateRecordSources.clear()
+                } else {
+                    opus.dataResourceConfig.privateRecordSources = []
+                }
+                opus.dataResourceConfig.privateRecordSources.addAll(json.dataResourceConfig.privateRecordSources)
+            }
+
             if (json.dataResourceConfig.containsKey("imageResourceOption") && json.dataResourceConfig.imageResourceOption != opus.dataResourceConfig.imageResourceOption) {
                 opus.dataResourceConfig.imageResourceOption = json.dataResourceConfig.imageResourceOption.toUpperCase() as DataResourceOption
             }
@@ -237,6 +246,9 @@ class OpusService extends BaseDataAccessService {
         if (json.has("keepImagesPrivate") && json.keepImagesPrivate != opus.keepImagesPrivate) {
             opus.keepImagesPrivate = json.keepImagesPrivate?.toBoolean()
         }
+        if (json.has("usePrivateRecordData") && json.usePrivateRecordData != opus.usePrivateRecordData) {
+            opus.usePrivateRecordData = json.usePrivateRecordData?.toBoolean()
+        }
         if (json.has("privateCollection") && json.privateCollection != opus.privateCollection) {
             opus.privateCollection = json.privateCollection?.toBoolean()
             // if we are changing from public to private, then all other collections that have been granted access to
@@ -367,40 +379,42 @@ class OpusService extends BaseDataAccessService {
         save opus
     }
 
-    boolean deleteOpus(String opusId) {
+    boolean deleteOpus(String opusId, boolean profilesOnly = false) {
         Opus opus = Opus.findByUuid(opusId);
 
         List profiles = Profile.findAllByOpus(opus)
         Profile.deleteAll(profiles)
 
-        if (opus.glossary) {
-            GlossaryItem glossaryItems = GlossaryItem.findByGlossary(opus.glossary)
-            if (glossaryItems) {
-                GlossaryItem.deleteAll(glossaryItems)
+        if (!profilesOnly) {
+            if (opus.glossary) {
+                GlossaryItem glossaryItems = GlossaryItem.findByGlossary(opus.glossary)
+                if (glossaryItems) {
+                    GlossaryItem.deleteAll(glossaryItems)
+                }
+                delete opus.glossary
             }
-            delete opus.glossary
-        }
 
-        if (opus.attributeVocabUuid) {
-            Vocab vocab = Vocab.findByUuid(opus.attributeVocabUuid)
-            Term.deleteAll(vocab.terms)
-            delete vocab
-        }
-        if (opus.authorshipVocabUuid) {
-            Vocab vocab = Vocab.findByUuid(opus.authorshipVocabUuid)
-            Term.deleteAll(vocab.terms)
-            delete vocab
-        }
+            if (opus.attributeVocabUuid) {
+                Vocab vocab = Vocab.findByUuid(opus.attributeVocabUuid)
+                Term.deleteAll(vocab.terms)
+                delete vocab
+            }
+            if (opus.authorshipVocabUuid) {
+                Vocab vocab = Vocab.findByUuid(opus.authorshipVocabUuid)
+                Term.deleteAll(vocab.terms)
+                delete vocab
+            }
 
-        Opus.withCriteria {
-            eq "supportingOpuses.uuid", opus.uuid
-        }?.each {
-            SupportingOpus supporting = it.supportingOpuses.find { it.uuid == opus.uuid }
-            it.supportingOpuses.remove(supporting)
-            save it
-        }
+            Opus.withCriteria {
+                eq "supportingOpuses.uuid", opus.uuid
+            }?.each {
+                SupportingOpus supporting = it.supportingOpuses.find { it.uuid == opus.uuid }
+                it.supportingOpuses.remove(supporting)
+                save it
+            }
 
-        delete opus
+            delete opus
+        }
     }
 
     def updateSupportingOpuses(String opusId, Map json) {

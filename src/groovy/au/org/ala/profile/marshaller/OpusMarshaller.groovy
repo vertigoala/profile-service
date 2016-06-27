@@ -37,6 +37,7 @@ class OpusMarshaller {
                     enableKeyUpload            : opus.enableKeyUpload != null ? opus.enableKeyUpload : true,
                     privateCollection          : opus.privateCollection != null ? opus.privateCollection : false,
                     keepImagesPrivate          : opus.keepImagesPrivate ?: false,
+                    usePrivateRecordData       : opus.usePrivateRecordData ?: false,
                     mapConfig                  : opus.mapConfig ?: [:],
                     supportingOpuses           : marshalSupportingOpuses(opus.supportingOpuses?.findAll {
                         it.requestStatus == ShareRequestStatus.ACCEPTED
@@ -61,7 +62,9 @@ class OpusMarshaller {
                     profileCount               : opus.profileCount,
                     citationHtml               : opus.citationHtml,
                     accessToken                : opus.accessToken,
-                    tags                       : opus.tags?.collect { [uuid: it.uuid, colour: it.colour, name: it.name, abbrev: it.abbrev ] } ?: []
+                    tags                       : opus.tags?.collect {
+                        [uuid: it.uuid, colour: it.colour, name: it.name, abbrev: it.abbrev]
+                    } ?: []
             ]
         }
     }
@@ -81,9 +84,11 @@ class OpusMarshaller {
             result.imageResourceOption = config.imageResourceOption?.name() ?: DataResourceOption.NONE.name()
             result.imageSources = config.imageSources
             result.recordSources = config.recordSources
+            result.privateRecordSources = config.privateRecordSources
         } else {
             result.imageSources = []
             result.recordSources = []
+            result.privateRecordSources = []
             result.imageResourceOption = DataResourceOption.NONE.name()
             result.recordResourceOption = DataResourceOption.NONE.name()
         }
