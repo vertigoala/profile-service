@@ -133,6 +133,7 @@ class ExportService extends BaseDataAccessService {
                         [url: it.url, description: it.description, name: it.name]
                     }
                     profile.bibliography = data.bibliography?.collect { it.text }
+                    profile.documents = data.documents
                     profile.specimens = data.specimens?.collect { it }
                     profile.occurrenceQuery = data.occurrenceQuery
                 }
@@ -154,10 +155,10 @@ class ExportService extends BaseDataAccessService {
                     }
                 }
 
-                def mainVideoCursor = Document.collection.
-                        find([parentId: data.scientificName, role: 'embeddedVideo', status: 'active'])
-                if (mainVideoCursor.hasNext()) {
-                    Map video = mainVideoCursor.next()
+                def video = profile?.documents.find {
+                    it.status == 'active' && it.role == 'embeddedVideo'
+                }
+                if (video) {
                     profile.mainVideo = [
                             id: video.documentId,
                             name: video.name,
@@ -167,10 +168,10 @@ class ExportService extends BaseDataAccessService {
                     ]
                 }
 
-                def mainAudioCursor = Document.collection.
-                        find([parentId: data.scientificName, role: 'embeddedAudio', status: 'active'])
-                if (mainAudioCursor.hasNext()) {
-                    Map audio = mainAudioCursor.next()
+                def audio = profile?.documents.find {
+                    it.status == 'active' && it.role == 'embeddedAudio'
+                }
+                if (audio) {
                     profile.mainAudio = [
                             id: audio.documentId,
                             name: audio.name,
