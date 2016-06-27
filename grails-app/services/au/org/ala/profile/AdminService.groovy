@@ -40,7 +40,7 @@ class AdminService extends BaseDataAccessService {
             results[opus.uuid].profilesUpdated = [:] as ConcurrentHashMap
 
             withPool(THREAD_POOL_SIZE) {
-                profiles.each { Profile profile ->
+                profiles.eachParallel { Profile profile ->
                     try {
                         Map<String, String> classification = profile.classification?.collectEntries {
                             [(it.rank): it.name]
