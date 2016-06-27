@@ -26,7 +26,7 @@
             </ul>
         </li>
         <li>
-            <b>Retrieve specific profiles from one or more public collections</b> - /api/v1/profiles?scientificNames=...&guids=...&opusIds=...&summary=false
+            <b>Retrieve specific profiles from one or more public collections</b> - /api/v1/profiles?profileNames=...&guids=...&opusIds=...&summary=false
             <ul>
                 <li>profileNames - comma-separated list of profile names to be exported. This can be used instead or as well as the guids parameter, but one or the other must be provided.</li>
                 <li>guids - comma-separated list of name GUIDs to be exported. This can be used instead or as well as the profileNames parameter, but one or the other must be provided. The GUID is the ID of the ALA-matched Name for the profile (aka LSID).</li>
