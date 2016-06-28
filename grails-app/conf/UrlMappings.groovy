@@ -27,17 +27,17 @@ class UrlMappings {
 
         "/opus/$opusId/about/" controller: "opus", action: [GET: "about", PUT: "updateAbout"]
         "/opus/$opusId/vocab/" controller: "vocab", action: "index"
-        "/opus/$opusId/vocab/$vocabId" controller: "vocab", action: [GET: "show", POST: "updateDocument"]
+        "/opus/$opusId/vocab/$vocabId" controller: "vocab", action: [GET: "show", POST: "update"]
         "/opus/$opusId/vocab/usages/find" controller: "vocab", action: "findUsagesOfTerm"
         "/opus/$opusId/vocab/usages/replace" controller: "vocab", action: [POST: "replaceUsagesOfTerm"]
 
-        "/opus/" controller: "opus", action: [GET: "index", PUT: "createDocument", POST: "createDocument"]
+        "/opus/" controller: "opus", action: [GET: "index", PUT: "create", POST: "create"]
 
         "/opus/$opusId/updateUsers" controller: "opus", action: [POST: "updateUserAccess"]
         "/opus/$opusId/access/token" controller: "opus", action: [POST: "generateAccessToken", PUT: "generateAccessToken", DELETE: "revokeAccessToken"]
 
         "/opus/$opusId/supportingCollections/respond/$requestingOpusId/$requestAction" controller: "opus", action: [POST: "respondToSupportingOpusRequest"]
-        "/opus/$opusId/supportingCollections/updateDocument" controller: "opus", action: [POST: "updateSupportingOpuses"]
+        "/opus/$opusId/supportingCollections/update" controller: "opus", action: [POST: "updateSupportingOpuses"]
 
         "/opus/$opusId/attachment/$attachmentId/download" controller: "opus", action: [GET: "downloadAttachment"]
         "/opus/$opusId/attachment/$attachmentId" controller: "opus", action: [GET: "getAttachmentMetadata", DELETE: "deleteAttachment"]
@@ -60,8 +60,9 @@ class UrlMappings {
         "/opus/$opusId/profile/$profileId/discardDraftChanges/" controller: "profile", action: [POST: "discardDraftChanges"]
         "/opus/$opusId/profile/$profileId/rename/" controller: "profile", action: [POST: "renameProfile"]
 
-        "/opus/$opusId/profile/$profileId/attribute/" controller: "attribute", action: [GET: "index", PUT: "createDocument", POST: "createDocument"]
-        "/opus/$opusId/profile/$profileId/attribute/$attributeId" controller: "attribute", action: [GET: "show", PUT: "updateDocument", DELETE: "delete", POST: "updateDocument"]
+        "/opus/$opusId/profile/$profileId/attribute/" controller: "attribute", action: [GET: "index", PUT: "create", POST: "create"]
+        "/opus/$opusId/profile/$profileId/attribute/$attributeId" controller: "attribute", action: [GET: "show", PUT: "update", DELETE: "delete", POST: "update"]
+
 
         "/opus/$opusId/profile/$profileId/document/" controller: "profile", action: [POST:"updateDocument", DELETE: "deleteDocument"]
         "/opus/$opusId/profile/$profileId/document/list" controller: "profile", action: [GET:"listDocuments"]
