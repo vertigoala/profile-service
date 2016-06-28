@@ -33,7 +33,7 @@ class AdminService extends BaseDataAccessService {
         collections.each { Opus opus ->
             List<Profile> profiles = Profile.findAllByOpus(opus)
 
-            log.debug("Processing Opus ${opus.title} (${opus.uuid}) with ${profiles.size()} profiles...")
+            log.info("Processing Opus ${opus.title} (${opus.uuid}) with ${profiles.size()} profiles...")
             results[opus.uuid] = [:] as ConcurrentHashMap
             results[opus.uuid].totalProfiles = profiles.size()
             results[opus.uuid].opusTitle = opus.title
@@ -77,7 +77,7 @@ class AdminService extends BaseDataAccessService {
             }
         }
 
-        log.debug("Name rematched finished in ${System.currentTimeMillis() - start}ms")
+        log.info("Name rematched finished - updated ${changed.get()} profiles in ${System.currentTimeMillis() - start}ms")
         rematch.numberOfProfilesChanged = changed.get()
         rematch.numberOfProfilesChecked = total.get()
         rematch.results = results
