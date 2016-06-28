@@ -133,7 +133,6 @@ class ExportService extends BaseDataAccessService {
                         [url: it.url, description: it.description, name: it.name]
                     }
                     profile.bibliography = data.bibliography?.collect { it.text }
-                    profile.documents = data.documents
                     profile.specimens = data.specimens?.collect { it }
                     profile.occurrenceQuery = data.occurrenceQuery
                 }
@@ -154,6 +153,8 @@ class ExportService extends BaseDataAccessService {
                         ]
                     }
                 }
+
+                profile.documents = data.documents
 
                 def video = profile?.documents.find {
                     it.status == 'active' && it.role == 'embeddedVideo'
