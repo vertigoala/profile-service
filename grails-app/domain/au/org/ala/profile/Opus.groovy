@@ -26,22 +26,16 @@ class Opus {
     String title
     String description
     String dataResourceUid
-    List<String> imageSources            // a list of drs that are providing images we can include
-    List<String> recordSources         // a list of drs that are providing images we can include
+
     List<String> approvedLists
     List<String> featureLists
     String featureListSectionName
 
     BrandingConfig brandingConfig
+    ProfileLayoutConfig profileLayoutConfig
+    MapConfig mapConfig
+    DataResourceConfig dataResourceConfig
 
-    String mapAttribution // e.g. AVH (CHAH)
-    String mapPointColour = "FF9900"
-    Float mapDefaultLatitude = Utils.DEFAULT_MAP_LATITUDE
-    Float mapDefaultLongitude = Utils.DEFAULT_MAP_LONGITUDE
-    Integer mapZoom = Utils.DEFAULT_MAP_ZOOM
-    String mapBaseLayer = Utils.DEFAULT_MAP_BASE_LAYER
-    String biocacheUrl    // e.g.  http://avh.ala.org.au/
-    String biocacheName    ///e.g. Australian Virtual Herbarium
     String attributeVocabUuid
     String authorshipVocabUuid
     Boolean enablePhyloUpload = false
@@ -64,35 +58,37 @@ class Opus {
     String email
     String facebook
     String twitter
-    List<String> excludeRanksFromMap
     List<SupportingOpus> supportingOpuses
     List<SupportingOpus> sharingDataWith
     List<Attachment> attachments
     boolean autoApproveShareRequests = true
     boolean keepImagesPrivate = false
+    boolean usePrivateRecordData = false
     ImageOption approvedImageOption = ImageOption.INCLUDE
 
     String accessToken
 
+    boolean autoDraftProfiles = false // automatically lock profiles for draft when they are created
+
     @Transient
     int profileCount
 
-    static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority]
-    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig']
+    static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, tags: Tag]
+    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig', 'profileLayoutConfig', 'dataResourceConfig']
 
     static constraints = {
         shortName nullable: true
         description nullable: true
         brandingConfig nullable: true
+        profileLayoutConfig nullable: true
+        mapConfig nullable: true
+        dataResourceConfig nullable: true
         attributeVocabUuid nullable: true
         authorshipVocabUuid nullable: true
         enablePhyloUpload nullable: true
         enableOccurrenceUpload nullable: true
         enableTaxaUpload nullable: true
         enableKeyUpload nullable: true
-        mapAttribution nullable: true
-        biocacheUrl nullable: true
-        biocacheName nullable: true
         keybaseProjectId nullable: true
         keybaseKeyId nullable: true
         aboutHtml nullable: true

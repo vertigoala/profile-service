@@ -2,25 +2,28 @@ package au.org.ala.profile
 
 import au.ala.org.ws.security.RequireApiKey
 import au.org.ala.profile.util.ProfileSortOption
+import au.org.ala.profile.util.SearchOptions
 import grails.converters.JSON
 
 class SearchController extends BaseController {
     SearchService searchService
 
     def search() {
-        if (!params.term) {
-            badRequest "term is a required parameter"
-        } else {
-            List<String> opusIds = params.opusId?.split(",") ?: []
+        List<String> opusIds = params.opusId?.split(",") ?: []
 
-            String term = params.term as String
-            boolean nameOnly = params.nameOnly?.toBoolean()
-            int pageSize = params.pageSize ? params.pageSize as int : -1
-            int offset = params.offset ? params.offset as int : 0
-            boolean includeArchived = params.includeArchived?.toBoolean()
+        String term = params.term as String
+        int pageSize = params.pageSize ? params.pageSize as int : -1
+        int offset = params.offset ? params.offset as int : 0
 
-            render searchService.search(opusIds, term, offset, pageSize, nameOnly, includeArchived) as JSON
-        }
+        SearchOptions options = new SearchOptions()
+        options.nameOnly = params.nameOnly?.toBoolean()
+        options.includeArchived = params.includeArchived?.toBoolean()
+        options.matchAll = params.matchAll?.toBoolean()
+        options.searchAla = params.searchAla?.toBoolean()
+        options.searchNsl = params.searchNsl?.toBoolean()
+        options.includeNameAttributes = params.includeNameAttributes?.toBoolean()
+
+        render searchService.search(opusIds, term, offset, pageSize, options) as JSON
     }
 
     def findByScientificName() {
@@ -130,7 +133,12 @@ class SearchController extends BaseController {
             List children = searchService.getImmediateChildren(opus, params.rank, params.name, filter, max, startFrom)
             response.setContentType("application/json")
             render children.collect { profile ->
-                Profile relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(profile.guid, opus)
+                Profile relatedProfile
+                if (profile.guid) {
+                    relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(profile.guid, opus)
+                } else {
+                    relatedProfile = Profile.findByScientificNameAndOpusAndArchivedDateIsNull(profile.name, opus)
+                }
 
                 [
                         profileId  : relatedProfile?.uuid,
@@ -169,7 +177,7 @@ class SearchController extends BaseController {
             save status
         }
 
-        searchService.reindex()
+        searchService.reindexAll()
 
        render (Status.first() as JSON)
     }

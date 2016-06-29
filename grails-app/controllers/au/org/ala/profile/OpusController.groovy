@@ -407,4 +407,8 @@ class OpusController extends BaseController {
             }
         }
     }
+
+    def getTags() {
+        render([tags: Tag.list()] as JSON)
+    }
 }

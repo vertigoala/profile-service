@@ -3,7 +3,6 @@ package au.org.ala.profile
 import au.ala.org.ws.security.RequireApiKey
 import au.ala.org.ws.security.SkipApiKeyCheck
 import au.org.ala.profile.util.Utils
-import com.sun.org.apache.xpath.internal.operations.Mult
 import grails.converters.JSON
 import groovy.json.JsonSlurper
 import org.apache.commons.httpclient.HttpStatus
@@ -291,10 +290,37 @@ class ProfileController extends BaseController {
                 Profile profile = Profile.findByScientificNameAndOpus(json.scientificName, opus)
 
                 if (profile) {
-                    sendError HttpStatus.SC_NOT_ACCEPTABLE, "A profile already exists for ${json.scientificName}"
+                    badRequest "A profile already exists for ${json.scientificName}"
                 } else {
                     profile = profileService.createProfile(opus.uuid, json);
                     render profile as JSON
+                }
+            }
+        }
+    }
+
+    def duplicateProfile() {
+        def json = request.getJSON()
+
+        if (!params.profileId || !json || !json.scientificName || !json.opusId) {
+            badRequest "The profileId parameter and a json body with at least the scientificName and an opus id are required"
+        } else {
+            Opus opus = getOpus()
+            if (!opus) {
+                notFound "No matching opus can be found"
+            } else {
+                Profile profile = Profile.findByScientificNameAndOpus(json.scientificName, opus)
+
+                if (profile) {
+                    badRequest "A profile already exists for ${json.scientificName}"
+                } else {
+                    Profile sourceProfile = getProfile()
+                    if (sourceProfile) {
+                        profile = profileService.duplicateProfile(opus.uuid, sourceProfile, json);
+                        render profile as JSON
+                    } else {
+                        notFound "No existing profile with id ${params.profileId} was found to duplicate"
+                    }
                 }
             }
         }
@@ -476,6 +502,82 @@ class ProfileController extends BaseController {
             boolean success = profileService.recordPrivateImage(profile.uuid, json)
 
             render([success: success] as JSON)
+        }
+    }
+
+    def listDocuments() {
+        boolean editMode =  params?.editMode == "true"
+        Profile profile = getProfile()
+        if (!profile) {
+            notFound()
+        } else {
+            def result = profileService.listDocument(profile.uuid, editMode)
+            render result as JSON
+        }
+    }
+
+    def deleteDocument(String id) {
+
+        Profile profile = getProfile()
+
+        if (!profile) {
+            notFound()
+        } else {
+            def result
+            def message
+            boolean destroy = params.destroy == null ? false : params.destroy.toBoolean()
+            result = profileService.deleteDocument(profile.uuid, id, destroy)
+            message = [message: 'deleted', documentId: result.documentId, url: result.url]
+            if (result.status == 'ok') {
+                response.status = 200
+                render message as JSON
+            } else {
+                log.error result.error
+                render status: 400, text: result.error
+            }
+        }
+    }
+
+    /**
+     * Creates or updates a Document object via an HTTP multipart request.
+     * This method currently expects:
+     * 1) For an updateDocument, the document ID should be in the URL path.
+     * 2) The document metadata is supplied (JSON encoded) as the value of the
+     * "document" HTTP parameter.  To createDocument a text file from a supplied string, supply the filename and content
+     * as JSON properties.
+     * 3) The file contents to be supplied as the value of the "files" HTTP parameter.  This is optional for
+     * an updateDocument.
+     * @param id The ID of an existing document to updateDocument.  If not present, a new Document will be created.
+     */
+    def updateDocument(String id) {
+        log.debug("Updating ID ${id}")
+
+        def props = request.JSON
+        def result
+        def message
+
+        Profile profile = getProfile()
+
+        if (!profile) {
+            notFound()
+        } else {
+
+            if (id) {
+                result = profileService.updateDocument(profile.uuid, props, id)
+                message = [message: 'updated', documentId: result.documentId, url: result.url]
+            } else {
+                result = profileService.createDocument(profile.uuid, props)
+                message = [message: 'created', documentId: result.documentId, url: result.url]
+            }
+
+            if (result.status == 'ok') {
+                response.status = 200
+                render message as JSON
+            } else {
+                //Document.withSession { session -> session.clear() }
+                log.error result.error
+                render status: 400, text: result.error
+            }
         }
     }
 }

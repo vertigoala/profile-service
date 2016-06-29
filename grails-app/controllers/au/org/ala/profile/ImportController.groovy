@@ -114,7 +114,7 @@ class ImportController extends BaseController {
                                     "identifier": "url to the image - required",
                                     "title": "required",
                                     "creator": "",
-                                    "dateCreated": ""
+                                    "created": ""
                                     }]
                         }]
                      }"""

@@ -13,17 +13,19 @@ class AttributeMarshaller {
     void register() {
         JSON.registerObjectMarshaller(Attribute) { Attribute attr ->
             return [
-                    uuid     : attr.uuid,
-                    title    : attr.title.name,
-                    order    : attr.title.order,
-                    required : attr.title.required,
-                    text     : attr.text,
-                    source   : attr.source,
-                    plainText: Utils.cleanupText(attr.text),
-                    creators : attr.creators.collect { it.name },
-                    editors  : attr.editors.collect { it.name },
-                    original : attr.original,
-                    profile  : attr.profile ? marshalProfile(attr.profile) : null
+                    uuid        : attr.uuid,
+                    title       : attr.title.name,
+                    order       : attr.title.order,
+                    required    : attr.title.required,
+                    containsName: attr.title.containsName,
+                    summary     : attr.title.summary,
+                    text        : attr.text,
+                    source      : attr.source,
+                    plainText   : Utils.cleanupText(attr.text),
+                    creators    : attr.creators.collect { it.name },
+                    editors     : attr.editors.collect { it.name },
+                    original    : attr.original,
+                    profile     : attr.profile ? marshalProfile(attr.profile) : null
             ]
         }
     }

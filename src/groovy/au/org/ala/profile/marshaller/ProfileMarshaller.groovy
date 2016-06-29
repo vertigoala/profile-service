@@ -27,7 +27,9 @@ class ProfileMarshaller {
                     matchedName              : profile.matchedName ? [scientificName: profile.matchedName.scientificName,
                                                                       nameAuthor    : profile.matchedName.nameAuthor,
                                                                       fullName      : profile.matchedName.fullName] : null,
+                    manuallyMatchedName      : profile.manuallyMatchedName,
                     classification           : profile.classification,
+                    manualClassification     : profile.manualClassification,
                     taxonomyTree             : profile.taxonomyTree,
                     attributes               : profile.attributes?.sort(),
                     links                    : profile.links,
@@ -44,6 +46,9 @@ class ProfileMarshaller {
                     bibliography             : profile.bibliography?.collect {
                         [uuid: it.uuid, text: it.text, plainText: Utils.cleanupText(it.text), order: it.order]
                     }?.sort { it.order },
+                    documents             : profile.documents?.collect {
+                        [documentId: it.documentId, name: it.name, attribution: it.attribution, licence: it.licence, embeddedContent:  (it.role == "embeddedVideo") ? it.embeddedVideo : it.embeddedAudio ]
+                    },
                     publications             : profile.publications?.sort { left, right -> right.publicationDate <=> left.publicationDate },
                     lastAttributeChange      : profile.lastAttributeChange,
                     createdDate              : profile.dateCreated,
@@ -54,7 +59,9 @@ class ProfileMarshaller {
                     archivedDate             : profile.archivedDate,
                     archivedBy               : profile.archivedBy,
                     archivedWithName         : profile.archivedWithName,
-                    showLinkedOpusAttributes : profile.showLinkedOpusAttributes
+                    showLinkedOpusAttributes : profile.showLinkedOpusAttributes,
+                    lastPublished            : profile.lastPublished,
+                    occurrenceQuery          : profile.occurrenceQuery
             ]
         }
     }

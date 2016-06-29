@@ -29,10 +29,12 @@ class VocabController extends BaseController {
 
             vocab.terms.sort().eachWithIndex { term, index ->
                 termsToRender << [
-                        name    : term.name,
-                        termId  : term.uuid,
-                        order   : term.order == -1 ? index : term.order,
-                        required: term.required
+                        name        : term.name,
+                        termId      : term.uuid,
+                        order       : term.order == -1 ? index : term.order,
+                        required    : term.required,
+                        summary     : term.summary,
+                        containsName: term.containsName
                 ]
             }
 

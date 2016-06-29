@@ -1,9 +1,10 @@
 package au.org.ala.profile.marshaller
 
+import au.org.ala.profile.DataResourceConfig
 import au.org.ala.profile.Opus
+import au.org.ala.profile.util.DataResourceOption
 import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.ShareRequestStatus
-import au.org.ala.profile.util.Utils
 import grails.converters.JSON
 
 class OpusMarshaller {
@@ -16,17 +17,18 @@ class OpusMarshaller {
                     title                      : opus.title,
                     shortName                  : opus.shortName,
                     description                : opus.description,
-                    imageSources               : opus.imageSources ?: [],
+                    dataResourceConfig         : marshalDataResourceConfig(opus.dataResourceConfig),
                     approvedImageOption        : opus.approvedImageOption?.name() ?: ImageOption.INCLUDE.name(),
-                    recordSources              : opus.recordSources ?: [],
                     approvedLists              : opus.approvedLists ?: [],
                     featureLists               : opus.featureLists ?: [],
                     featureListSectionName     : opus.featureListSectionName,
                     brandingConfig             : opus.brandingConfig ?: [:],
+                    profileLayoutConfig        : opus.profileLayoutConfig ?: [:],
                     keybaseProjectId           : opus.keybaseProjectId,
                     keybaseKeyId               : opus.keybaseKeyId,
                     attributeVocabUuid         : opus.attributeVocabUuid,
                     authorshipVocabUuid        : opus.authorshipVocabUuid,
+                    autoDraftProfiles          : opus.autoDraftProfiles,
                     glossaryUuid               : opus.glossary?.uuid,
                     attachments                : opus.attachments ?: [],
                     enablePhyloUpload          : opus.enablePhyloUpload != null ? opus.enableKeyUpload : true,
@@ -35,14 +37,8 @@ class OpusMarshaller {
                     enableKeyUpload            : opus.enableKeyUpload != null ? opus.enableKeyUpload : true,
                     privateCollection          : opus.privateCollection != null ? opus.privateCollection : false,
                     keepImagesPrivate          : opus.keepImagesPrivate ?: false,
-                    mapAttribution             : opus.mapAttribution ?: 'Atlas',
-                    mapPointColour             : opus.mapPointColour ?: "FF9900",
-                    mapDefaultLatitude         : opus.mapDefaultLatitude ?: Utils.DEFAULT_MAP_LATITUDE,
-                    mapDefaultLongitude        : opus.mapDefaultLongitude ?: Utils.DEFAULT_MAP_LONGITUDE,
-                    mapZoom                    : opus.mapZoom ?: Utils.DEFAULT_MAP_ZOOM,
-                    mapBaseLayer               : opus.mapBaseLayer ?: Utils.DEFAULT_MAP_BASE_LAYER,
-                    biocacheUrl                : opus.biocacheUrl,
-                    biocacheName               : opus.biocacheName ?: 'Atlas',
+                    usePrivateRecordData       : opus.usePrivateRecordData ?: false,
+                    mapConfig                  : opus.mapConfig ?: [:],
                     supportingOpuses           : marshalSupportingOpuses(opus.supportingOpuses?.findAll {
                         it.requestStatus == ShareRequestStatus.ACCEPTED
                     }),
@@ -63,10 +59,12 @@ class OpusMarshaller {
                                                   email   : opus.email,
                                                   facebook: opus.facebook],
                     hasAboutPage               : opus.aboutHtml != null,
-                    excludeRanksFromMap        : opus.excludeRanksFromMap ?: [],
                     profileCount               : opus.profileCount,
                     citationHtml               : opus.citationHtml,
-                    accessToken                : opus.accessToken
+                    accessToken                : opus.accessToken,
+                    tags                       : opus.tags?.collect {
+                        [uuid: it.uuid, colour: it.colour, name: it.name, abbrev: it.abbrev]
+                    } ?: []
             ]
         }
     }
@@ -76,5 +74,25 @@ class OpusMarshaller {
                 opuses.collect {
                     [uuid: it.uuid, title: it.title, requestStatus: it.requestStatus.toString()]
                 } : []
+    }
+
+
+    private static Map marshalDataResourceConfig(DataResourceConfig config) {
+        Map result = [:]
+        if (config) {
+            result.recordResourceOption = config.recordResourceOption?.name() ?: DataResourceOption.NONE.name()
+            result.imageResourceOption = config.imageResourceOption?.name() ?: DataResourceOption.NONE.name()
+            result.imageSources = config.imageSources
+            result.recordSources = config.recordSources
+            result.privateRecordSources = config.privateRecordSources
+        } else {
+            result.imageSources = []
+            result.recordSources = []
+            result.privateRecordSources = []
+            result.imageResourceOption = DataResourceOption.NONE.name()
+            result.recordResourceOption = DataResourceOption.NONE.name()
+        }
+
+        result
     }
 }

@@ -1,11 +1,12 @@
 package au.org.ala.profile
 
-import au.org.ala.profile.util.DraftUtil
+import au.org.ala.profile.util.Utils
+import au.org.ala.profile.util.CloneAndDraftUtil
 import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.StorageExtension
-import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
 import org.apache.commons.lang3.StringUtils
+import org.codehaus.groovy.grails.commons.DomainClassArtefactHandler
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.commons.CommonsMultipartFile
@@ -14,6 +15,7 @@ import java.text.SimpleDateFormat
 
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+
 
 @Transactional
 class ProfileService extends BaseDataAccessService {
@@ -36,25 +38,25 @@ class ProfileService extends BaseDataAccessService {
         List providedScientificNameDuplicates = findByName(name, opus)
         if (providedScientificNameDuplicates) {
             result.providedNameDuplicates = providedScientificNameDuplicates.collect {
-                [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor]
+                [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor, rank: it.rank]
             }
         }
 
         // 2. attempt to match the name
         Map matchedName = nameService.matchName(name)
         if (matchedName) {
-            result.matchedName = [scientificName: matchedName.scientificName, fullName: matchedName.fullName, nameAuthor: matchedName.author, guid: matchedName.guid]
+            result.matchedName = [scientificName: matchedName.scientificName, fullName: matchedName.fullName, nameAuthor: matchedName.author, guid: matchedName.guid, rank: matchedName.rank]
 
             List matchedScientificNameDuplicates = findByName(result.matchedName.scientificName, opus)
             if (matchedScientificNameDuplicates) {
                 result.matchedNameDuplicates = matchedScientificNameDuplicates.collect {
-                    [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor]
+                    [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor, rank: it.rank]
                 }
             }
             List matchedFullNameDuplicates = findByName(result.matchedName.fullName, opus)
             if (matchedFullNameDuplicates) {
                 result.matchedNameDuplicates = matchedFullNameDuplicates.collect {
-                    [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor]
+                    [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor, rank: it.rank]
                 }
             }
         }
@@ -90,23 +92,69 @@ class ProfileService extends BaseDataAccessService {
 
         Map matchedName = nameService.matchName(json.scientificName, [:], json.manuallyMatchedGuid ?: null)
 
-        updateNameDetails(profile, matchedName, json.scientificName)
+        updateNameDetails(profile, matchedName, json.scientificName, json.manualHierarchy ?: [])
 
         if (authService.getUserId()) {
             Term term = vocabService.getOrCreateTerm("Author", opus.authorshipVocabUuid)
             profile.authorship = [new Authorship(category: term, text: authService.getUserForUserId(authService.getUserId()).displayName)]
         }
 
+        if (json.manuallyMatchedGuid) {
+            profile.manuallyMatchedName = true
+        } else {
+            profile.manuallyMatchedName = false
+        }
+
         boolean success = save profile
 
         if (!success) {
             profile = null
+        } else if (opus.autoDraftProfiles) {
+            toggleDraftMode(profile.uuid)
         }
 
         profile
     }
 
-    private void updateNameDetails(profile, Map matchedName, String providedName) {
+    Profile duplicateProfile(String opusId, Profile sourceProfile, Map json) {
+        checkArgument sourceProfile
+
+        Profile profile = createProfile(opusId, json)
+
+        if (profile) {
+            // certain things cannot be cloned, such as ids, profile-specific properties like image config and the
+            // occurrence query, and attachments
+            profile.specimenIds = sourceProfile.specimenIds?.collect()
+            profile.authorship = sourceProfile.authorship?.collect { CloneAndDraftUtil.cloneAuthorship(it) }
+            profile.links = sourceProfile.links?.collect { CloneAndDraftUtil.cloneLink(it, false) }
+            profile.links?.each {
+                it.uuid = UUID.randomUUID().toString()
+            }
+            profile.bhlLinks = sourceProfile.bhlLinks?.collect { CloneAndDraftUtil.cloneLink(it, false) }
+            profile.bhlLinks?.each {
+                it.uuid = UUID.randomUUID().toString()
+            }
+            profile.bibliography = sourceProfile.bibliography?.collect { CloneAndDraftUtil.cloneBibliography(it, false) }
+            profile.bibliography?.each {
+                it.uuid = UUID.randomUUID().toString()
+            }
+
+            sourceProfile.attributes?.each {
+                Attribute newAttribute = CloneAndDraftUtil.cloneAttribute(it, false)
+                newAttribute.uuid = UUID.randomUUID().toString()
+                profile.addToAttributes(newAttribute)
+            }
+
+            boolean success = save profile
+            if (!success) {
+                profile = null
+            }
+        }
+
+        profile
+    }
+
+    private void updateNameDetails(profile, Map matchedName, String providedName, List manualHierarchy) {
         if (matchedName) {
             if (providedName.equalsIgnoreCase(matchedName.fullName) || providedName.equalsIgnoreCase(matchedName.scientificName)) {
                 profile.scientificName = matchedName.scientificName
@@ -119,7 +167,6 @@ class ProfileService extends BaseDataAccessService {
             }
             profile.matchedName = new Name(matchedName)
             profile.guid = matchedName.guid
-            populateTaxonHierarchy(profile)
         } else {
             profile.scientificName = providedName
             profile.fullName = providedName
@@ -129,6 +176,8 @@ class ProfileService extends BaseDataAccessService {
             profile.classification = []
             profile.rank = null
         }
+
+        populateTaxonHierarchy(profile, manualHierarchy)
 
         // try to match the name against the NSL. If we get a match, and there is currently no name author, use the author from the NSL match
         Map matchedNSLName = nameService.matchNSLName(providedName)
@@ -155,11 +204,17 @@ class ProfileService extends BaseDataAccessService {
         if (json.newName) {
             Map matchedName = nameService.matchName(json.newName, [:], json.manuallyMatchedGuid ?: null)
 
-            updateNameDetails(profileOrDraft(profile), matchedName, json.newName)
+            updateNameDetails(profileOrDraft(profile), matchedName, json.newName, json.manualHierarchy ?: [])
         }
 
         if (json.clearMatch?.booleanValue()) {
-            updateNameDetails(profileOrDraft(profile), null, profileOrDraft(profile).scientificName)
+            updateNameDetails(profileOrDraft(profile), null, profileOrDraft(profile).scientificName, json.manualHierarchy ?: [])
+        }
+
+        if (json.manuallyMatchedGuid) {
+            profile.manuallyMatchedName = true
+        } else {
+            profile.manuallyMatchedName = false
         }
 
         boolean success = save profile
@@ -171,9 +226,13 @@ class ProfileService extends BaseDataAccessService {
         profile
     }
 
-    void populateTaxonHierarchy(profile) {
-        if (profile && profile.guid) {
-            def classificationJson = bieService.getClassification(profile.guid)
+    void populateTaxonHierarchy(profile, List manualHierarchy = []) {
+        if (!profile) {
+            return
+        }
+
+        if (profile.guid) {
+            List classificationJson = bieService.getClassification(profile.guid)
 
             if (classificationJson) {
                 profile.classification = classificationJson.collect {
@@ -186,9 +245,45 @@ class ProfileService extends BaseDataAccessService {
 
                 Map speciesProfile = bieService.getSpeciesProfile(profile.guid)
                 profile.taxonomyTree = speciesProfile?.taxonConcept?.infoSourceName
+                profile.manualClassification = false
             } else {
                 log.info("Unable to find species classification for ${profile.scientificName}, with GUID ${profile.guid}")
             }
+        } else if (manualHierarchy) {
+            // If there is a matched name, then the classification (aka taxonomic hierarchy) will always be derived from
+            // the matched name.
+            // If there is no matched name, then the user could have specified the hierarchy. In that case, the hierarchy
+            // will be in the opposite order (lowest rank first since the user enters the parent of the profile - i.e.
+            // they work up the hierarchy, not down - whereas we need to store in highest rank first).
+            // The manual hierarchy could have some unknown items in it, and it could have 1 recognised name.
+            // If we have a recognised name, then the hierarchy from that point UP needs to be derived from the name.
+            profile.classification = []
+
+            // The profile's rank will be stored in the first element of the manually entered hierarchy
+            profile.rank = manualHierarchy[0].rank
+
+            manualHierarchy.reverse().each { manualHierarchyItem ->
+                // The manually selected hierarchy item could be one of (mutually exclusive):
+                // 1. A name from the ALA name index, in which case the guid will be the LSID/GUID of the Name; or
+                // 2. Another profile, in which case the guid will be the UUID of the parent profile; or
+                // 3. Another unrecognised name that does not have a profile, in which case the guid will be null
+
+                if (manualHierarchyItem.guid && Utils.isUuid(manualHierarchyItem.guid)) {
+                    Profile parent = Profile.findByUuid(manualHierarchyItem.guid)
+                    parent?.classification?.each {
+                        profile.classification << new Classification(rank: it.rank ?: "", guid: it.guid, name: it.name)
+                    }
+                } else if (manualHierarchyItem.guid && !Utils.isUuid(manualHierarchyItem.guid)) {
+                    List derivedHierarchy = bieService.getClassification(manualHierarchyItem.guid)
+                    derivedHierarchy.each {
+                        profile.classification << new Classification(rank: it.rank ?: "", guid: it.guid, name: it.scientificName)
+                    }
+                } else {
+                    profile.classification << new Classification(name: manualHierarchyItem.name, guid: manualHierarchyItem.guid, rank: manualHierarchyItem.rank ?: "")
+                }
+            }
+
+            profile.manualClassification = true
         }
     }
 
@@ -282,7 +377,7 @@ class ProfileService extends BaseDataAccessService {
                 }
             }
 
-            DraftUtil.updateProfileFromDraft(profile)
+            CloneAndDraftUtil.updateProfileFromDraft(profile)
 
             Set<Attribute> attributesToDelete = profile.attributes.findAll {
                 String uuid = it.uuid
@@ -299,7 +394,7 @@ class ProfileService extends BaseDataAccessService {
 
             save profile
         } else {
-            profile.draft = DraftUtil.createDraft(profile)
+            profile.draft = CloneAndDraftUtil.createDraft(profile)
             profile.draft.createdBy = authService.getUserForUserId(authService.getUserId()).displayName
 
             save profile
@@ -324,6 +419,10 @@ class ProfileService extends BaseDataAccessService {
 
         if (json.containsKey("showLinkedOpusAttributes")) {
             profileOrDraft(profile).showLinkedOpusAttributes = json.showLinkedOpusAttributes as Boolean
+        }
+
+        if (json.containsKey("occurrenceQuery") && json.occurrenceQuery != profile.occurrenceQuery) {
+            profileOrDraft(profile).occurrenceQuery = json.occurrenceQuery
         }
 
         saveImages(profile, json, true)
@@ -408,7 +507,7 @@ class ProfileService extends BaseDataAccessService {
             }
 
             json.imageSettings?.each {
-                ImageOption imageDisplayOption = ImageOption.byName(it.displayOption, profile.opus.approvedImageOption)
+                ImageOption imageDisplayOption = it.displayOption ? ImageOption.byName(it.displayOption, profile.opus.approvedImageOption) : profile.opus.approvedImageOption
                 if (imageDisplayOption == profile.opus.approvedImageOption) {
                     imageDisplayOption = null
                 }
@@ -470,7 +569,7 @@ class ProfileService extends BaseDataAccessService {
         if (json.action == "add") {
             LocalImage image = new LocalImage()
             image.creator = json.multimedia[0].creator
-            image.dateCreated = json.multimedia[0].dateCreated ? new SimpleDateFormat("yyyy-MM-dd").parse(json.multimedia[0].dateCreated) : null
+            image.created = json.multimedia[0].created
             image.description = json.multimedia[0].description
             image.imageId = json.imageId
             image.licence = json.multimedia[0].licence
@@ -504,6 +603,73 @@ class ProfileService extends BaseDataAccessService {
             }
         }
     }
+
+    boolean updateDocument(Profile profile, Map newDocument, String id) {
+        checkArgument profile
+        checkArgument json
+
+        profile = profileOrDraft(profile)
+
+        if(profile.documents) {
+            profile.documents = new ArrayList<Document>()
+        }
+
+        if(id) {
+            Document existingDocument = profile.documents.find {
+                it.id == id
+            }
+
+            updateProperties(existingDocument, newDocument)
+        }
+
+    }
+
+    /**
+     * Updates all properties other than 'id' and converts date strings to BSON dates.
+     *
+     * Note that dates are assumed to be ISO8601 in UTC with no millisecs
+     *
+     * Booleans must be handled explicitly because the JSON string "false" will by truthy if just
+     *  assigned to a boolean property.
+     *
+     * @param o the domain instance
+     * @param props the properties to use
+     */
+    private updateProperties(o, props) {
+        assert grailsApplication
+        def domainDescriptor = grailsApplication.getArtefact(DomainClassArtefactHandler.TYPE,
+                o.getClass().name)
+        props.remove('id')
+        props.remove('api_key')  // don't ever let this be stored in public data
+        props.remove('lastUpdated') // in case we are loading from dumped data
+        props.each { k, v ->
+            log.debug "updating ${k} to ${v}"
+            /*
+             * Checks the domain for properties of type Date and converts them.
+             * Expects dates as strings in the form 'yyyy-MM-ddThh:mm:ssZ'. As indicated by the 'Z' these must be
+             * UTC time. They are converted to java dates by forcing a zero time offset so that local timezone is
+             * not used. All conversions to and from local time are the responsibility of the service consumer.
+             */
+            if (v instanceof String && domainDescriptor.hasProperty(k) && domainDescriptor?.getPropertyByName(k)?.getType() == Date) {
+                v = v ? parse(v) : null
+            }
+            if (v == "false") {
+                v = false
+            }
+            if (v == "null") {
+                v = null
+            }
+            o[k] = v
+        }
+        // always flush the updateDocument so that that any exceptions are caught before the service returns
+        o.save(flush: true, failOnError: true)
+        if (o.hasErrors()) {
+            log.error("has errors:")
+            o.errors.each { log.error it }
+            throw new Exception(o.errors[0] as String);
+        }
+    }
+
 
     boolean saveBHLLinks(String profileId, Map json, boolean deferSave = false) {
         checkArgument profileId
@@ -621,7 +787,7 @@ class ProfileService extends BaseDataAccessService {
 
     /**
      * Makes and saves a publication for a profile that has attachments when user clicks
-     * create snapshot version on Profile-Hub.
+     * createDocument snapshot version on Profile-Hub.
      * Takes the profile data, as sent via Profile-Hub as a multipartFile and all attachments for
      * this profile, bundles them up into a zip file and saves them to disk
      * @param profile
@@ -896,5 +1062,205 @@ class ProfileService extends BaseDataAccessService {
         save profile
 
         profile.attachments
+    }
+
+    /**
+     * Converts the domain object into a map of properties, including
+     * dynamic properties.
+     * @param document an Document instance
+     * @param levelOfDetail list of features to include
+     * @return map of properties
+     */
+    def documentToMap(document, levelOfDetail = []) {
+        def mapOfProperties = document instanceof Document ? document.getProperty("dbo").toMap() : document
+        def id = mapOfProperties["_id"].toString()
+        mapOfProperties["id"] = id
+        mapOfProperties.remove("_id")
+        // construct document url based on the current configuration
+        mapOfProperties.url = document.url
+        if (document?.type == Document.DOCUMENT_TYPE_IMAGE) {
+            mapOfProperties.thumbnailUrl = document.thumbnailUrl
+        }
+        mapOfProperties.findAll { k, v -> v != null }
+    }
+
+    /**
+     * Creates a new Document object associated with the supplied file.
+     * @param props the desired properties of the Document.
+     */
+    def createDocument(String profileId, props) {
+
+        checkArgument profileId
+        checkArgument props
+
+        Profile originalProfile = Profile.findByUuid(profileId)
+        checkState originalProfile
+
+        def profile = profileOrDraft(originalProfile)
+
+        if(!profile.documents) {
+            profile.documents = new ArrayList<Document>()
+        }
+
+        def d = new Document(documentId: UUID.randomUUID().toString())
+        props.remove('url')
+        props.remove('thumbnailUrl')
+
+        try {
+            profile.documents << d
+            save originalProfile
+            props.remove 'documentId'
+
+            updateDocumentProperties(d, props)
+            save originalProfile
+            return [status: 'ok', documentId: d.documentId, url: d.url]
+        } catch (Exception e) {
+            // clear session to avoid exception when GORM tries to autoflush the changes
+            e.printStackTrace()
+
+            Document.withSession { session -> session.clear() }
+            def error = "Error creating document for ${props.filename} - ${e.message}"
+            log.error error
+            return [status: 'error', error: error]
+        }
+    }
+
+    /**
+     * Updates a new Document object and optionally it's attached file.
+     * @param props the desired properties of the Document.
+     */
+    def updateDocument(String profileId, Map props, String id) {
+        checkArgument profileId
+        checkArgument props
+
+        Profile originalProfile = Profile.findByUuid(profileId)
+        checkState originalProfile
+
+        def profile = profileOrDraft(originalProfile)
+
+        if(!profile.documents) {
+            profile.documents = new ArrayList<Document>()
+        }
+
+        Document d = profile.documents.find {
+            it.documentId == id
+        }
+
+        if (d) {
+            try {
+                props.remove('url')
+                props.remove('thumbnailUrl')
+                updateDocumentProperties(d, props)
+                save originalProfile
+                return [status: 'ok', documentId: d.documentId, url: d.url]
+            } catch (Exception e) {
+                Profile.withSession { session -> session.clear() }
+                def error = "Error updating document ${id} - ${e.message}"
+                log.error error
+                return [status: 'error', error: error]
+            }
+        } else {
+            def error = "Error updating document - no such id ${id}"
+            log.error error
+            return [status: 'error', error: error]
+        }
+    }
+
+    def deleteDocument(String profileId, String documentId, boolean destroy = false) {
+
+        checkArgument profileId
+        checkArgument documentId
+
+        Profile originalProfile = Profile.findByUuid(profileId)
+        checkState originalProfile
+
+        def profile = profileOrDraft(originalProfile)
+
+        if (!profile.documents) {
+            profile.documents = new ArrayList<Document>()
+        }
+
+        Document document = profile.documents.find {
+            it.documentId == documentId
+        }
+        if (document) {
+            try {
+                profile.documents.remove(document)
+                save originalProfile
+                return [status: 'ok', documentId: document.documentId]
+            } catch (Exception e) {
+                Profile.withSession { session -> session.clear() }
+                def error = "Error deleting document ${documentId} - ${e.message}"
+                log.error error, e
+                return [status: 'error', error: error]
+            }
+        } else {
+            def error = "Error deleting document - no such id ${documentId}"
+            log.error error
+            return [status: 'error', error: error]
+        }
+    }
+
+
+    /**
+     * Updates all properties other than 'id' and converts date strings to BSON dates.
+     *
+     * Note that dates are assumed to be ISO8601 in UTC with no millisecs
+     *
+     * Booleans must be handled explicitly because the JSON string "false" will by truthy if just
+     *  assigned to a boolean property.
+     *
+     * @param o the domain instance
+     * @param props the properties to use
+     */
+    private updateDocumentProperties(o, props) {
+        assert grailsApplication
+        def domainDescriptor = grailsApplication.getArtefact(DomainClassArtefactHandler.TYPE,
+                o.getClass().name)
+        props.remove('id')
+        props.remove('api_key')  // don't ever let this be stored in public data
+        props.remove('lastUpdated') // in case we are loading from dumped data
+        props.each { k, v ->
+            log.debug "updating ${k} to ${v}"
+            /*
+             * Checks the domain for properties of type Date and converts them.
+             * Expects dates as strings in the form 'yyyy-MM-ddThh:mm:ssZ'. As indicated by the 'Z' these must be
+             * UTC time. They are converted to java dates by forcing a zero time offset so that local timezone is
+             * not used. All conversions to and from local time are the responsibility of the service consumer.
+             */
+            if (v instanceof String && domainDescriptor.hasProperty(k) && domainDescriptor?.getPropertyByName(k)?.getType() == Date) {
+                v = v ? parseDate(v) : null
+            }
+            if (v == "false") {
+                v = false
+            }
+            if (v == "null") {
+                v = null
+            }
+            o[k] = v
+        }
+    }
+
+    static dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZ")
+
+    private Date parseDate(String dateStr) {
+        return dateFormat.parse(dateStr.replace("Z", "+0000"))
+    }
+
+    def listDocument(String profileId, boolean editMode = false) {
+
+        checkArgument profileId
+
+        Profile originalProfile =   Profile.findByUuid(profileId)
+        checkState originalProfile
+
+        def profile = editMode ? profileOrDraft(originalProfile) : originalProfile
+
+        List<Document> documents = profile.documents?: new ArrayList<Document>()
+
+        documents = documents.findAll {
+            it.status != Document.DELETED
+        }
+        [documents: documents.collect { documentToMap(it) }, count: documents.size()]
     }
 }

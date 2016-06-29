@@ -13,17 +13,24 @@ class Profile {
     private static final String NOT_ANALYZED_INDEX = "not_analyzed"
 
     static searchable = {
-        only = ["uuid", "guid", "scientificName", "fullName", "matchedName", "rank", "primaryImage", "opus", "attributes", "lastUpdated", "archivedDate", "archivedWithName"]
+        only = ["uuid", "guid", "scientificName", "fullName", "matchedName", "rank", "primaryImage", "opus",
+                "attributes", "lastUpdated", "archivedDate", "archivedWithName", "scientificNameLower",
+                "archivedNameLower", "matchedNameLower", "fullNameLower"]
         scientificName multi_field: true, boost: 20
         archivedWithName multi_field: true, boost: 20
         matchedName component: true, boost: 10
         opus component: true
         attributes component: true
+        nslNameIdentifier index: NOT_ANALYZED_INDEX
         uuid index: NOT_ANALYZED_INDEX
         guid index: NOT_ANALYZED_INDEX
         lastUpdated index: NOT_ANALYZED_INDEX
         rank index: NOT_ANALYZED_INDEX
         primaryImage index: NOT_ANALYZED_INDEX
+        scientificNameLower index: NOT_ANALYZED_INDEX
+        archivedNameLower index: NOT_ANALYZED_INDEX
+        matchedNameLower index: NOT_ANALYZED_INDEX
+        fullNameLower index: NOT_ANALYZED_INDEX
     }
 
     ObjectId id
@@ -36,11 +43,13 @@ class Profile {
     String nslNameIdentifier
     String nslNomenclatureIdentifier
     String nslProtologue
+    String occurrenceQuery
 
     @Transient
     boolean privateMode = false
 
     Name matchedName
+    boolean manuallyMatchedName = false
     String taxonomyTree
     String primaryImage
     Map<String, ImageSettings> imageSettings = [:]
@@ -48,9 +57,11 @@ class Profile {
     List<String> specimenIds
     List<Authorship> authorship
     List<Classification> classification
+    boolean manualClassification = false
     List<Link> links
     List<Link> bhlLinks
     List<Bibliography> bibliography
+    List<Document> documents
     List<Publication> publications
 
     List<LocalImage> privateImages = []
@@ -65,6 +76,8 @@ class Profile {
     Date lastUpdated
     String lastUpdatedBy
 
+    Date lastPublished // The last time the profile was saved that wasn't a change to a draft.
+
     DraftProfile draft
 
     String archiveComment
@@ -72,7 +85,16 @@ class Profile {
     String archivedBy
     String archivedWithName
 
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'matchedName', 'privateImages', 'attachments', 'imageSettings']
+    @Transient
+    String getScientificNameLower() { scientificName?.toLowerCase() }
+    @Transient
+    String getFullNameLower() { fullName?.toLowerCase() }
+    @Transient
+    String getArchivedNameLower() { archivedWithName?.toLowerCase() }
+    @Transient
+    String getMatchedNameLower() { matchedName?.scientificName?.toLowerCase() }
+
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'documents', 'matchedName', 'privateImages', 'attachments', 'imageSettings']
 
     static hasMany = [attributes: Attribute]
 
@@ -99,6 +121,8 @@ class Profile {
         archivedDate nullable: true
         archivedBy nullable: true
         archivedWithName nullable: true
+        occurrenceQuery nullable: true
+        lastPublished nullable: true
     }
 
     static mapping = {
@@ -112,6 +136,11 @@ class Profile {
     def beforeValidate() {
         if (uuid == null) {
             uuid = UUID.randomUUID().toString()
+        }
+        if (draft) {
+            draft.lastPublished = new Date()
+        } else {
+            lastPublished = new Date()
         }
     }
 }

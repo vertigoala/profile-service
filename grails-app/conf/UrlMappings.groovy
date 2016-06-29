@@ -6,12 +6,18 @@ class UrlMappings {
         "/api/v1/opus/$opusId/export" controller: "export", action: [GET: "exportCollection"]
         "/api/v1/opus/$opusId/count" controller: "export", action: [GET: "countProfiles"]
 
+        "/api/v1/profiles/" controller: "export", action: [GET: "getProfiles"]
+
         // 'Internal' ALA API
         "/admin/search/reindex" controller: "search", action: [POST: "reindex"]
+        "/admin/rematchNames" controller: "admin", action: [POST: "rematchNames"]
+        "/admin/tag/$tagId?" controller: "admin", action: [GET: "getTag", PUT: "createTag", POST: "updateTag", DELETE: "deleteTag"]
 
         "/audit/object/$entityId" controller: "audit", action: [GET: "auditTrailForObject"]
 
         "/audit/user/$userId" controller: "audit", action: [GET: "auditTrailForUser"]
+
+        "/tags" controller: "opus", action: [GET: "getTags"]
 
         "/opus/$opusId/glossary/item/" controller: "opus", action: [PUT: "createGlossaryItem"]
         "/opus/$opusId/glossary/item/$glossaryItemId" controller: "opus", action: [DELETE: "deleteGlossaryItem", POST: "updateGlossaryItem"]
@@ -57,6 +63,12 @@ class UrlMappings {
         "/opus/$opusId/profile/$profileId/attribute/" controller: "attribute", action: [GET: "index", PUT: "create", POST: "create"]
         "/opus/$opusId/profile/$profileId/attribute/$attributeId" controller: "attribute", action: [GET: "show", PUT: "update", DELETE: "delete", POST: "update"]
 
+
+        "/opus/$opusId/profile/$profileId/document/" controller: "profile", action: [POST:"updateDocument", DELETE: "deleteDocument"]
+        "/opus/$opusId/profile/$profileId/document/list" controller: "profile", action: [GET:"listDocuments"]
+        "/opus/$opusId/profile/$profileId/document/$id?(.$format)?" controller: "profile", action: [POST:"updateDocument", DELETE: "deleteDocument"]
+
+
         "/opus/$opusId/profile/$profileId/links" controller: "profile", action: [POST: "saveLinks"]
 
         "/opus/$opusId/profile/$profileId/bhl" controller: "profile", action: [POST: "saveBHLLinks"]
@@ -82,6 +94,8 @@ class UrlMappings {
         "/opus/$opusId/profile/$profileId/attachment/$attachmentId" controller: "profile", action: [GET: "getAttachmentMetadata", DELETE: "deleteAttachment"]
         "/opus/$opusId/profile/$profileId/attachment/" controller: "profile", action: [GET: "getAttachmentMetadata", POST: "saveAttachment"]
 
+        "/opus/$opusId/profile/$profileId/duplicate" controller: "profile", action: [PUT: "duplicateProfile"]
+
         "/opus/$opusId/archive/$profileId" controller: "profile", action: [POST: "archiveProfile"]
         "/opus/$opusId/restore/$profileId" controller: "profile", action: [POST: "restoreArchivedProfile"]
 
@@ -93,7 +107,13 @@ class UrlMappings {
         "/report/recentChanges" controller: "report", action: [GET: "recentChanges"]
         "/report/recentComments" controller: "report", action: [GET: "recentComments"]
 
+        "/job/$jobType/next" controller: "job", action: [GET: "getNextPendingJob"]
+        "/job/$jobType/$jobId" controller: "job", action: [DELETE: "deleteJob", POST: "updateJob"]
+        "/job/$jobType" controller: "job", action: [GET: "listAllPendingJobs", PUT: "createJob"]
+        "/job/" controller: "job", action: [GET: "listAllPendingJobs", PUT: "createJob"]
+
         "/image/$imageId" controller: "image", action: [GET: "getImageInfo"]
+        "/image/$imageId/metadata" controller: "image", action: [GET: "getImageInfo", POST: "updateMetadata"]
 
         "/statistics/" controller: "statistics", action: [GET: "index"]
 

@@ -1,12 +1,6 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.util.Utils
-import com.gmongo.GMongo
-import com.mongodb.BasicDBList
-import com.mongodb.BasicDBObject
-import com.mongodb.BasicDBObjectBuilder
-import com.mongodb.DBCollection
-import grails.gorm.PagedResultList
 
 class ReportService {
 
@@ -50,8 +44,7 @@ class ReportService {
 
         if (countOnly) {
             [recordCount: count > 0 ? count : 0]
-        }
-        else {
+        } else {
             def result = Profile.withCriteria {
                 eq "opus", opus
 
@@ -74,15 +67,16 @@ class ReportService {
             [recordCount: count > -1 ? count : result.size(),
              records    : result.collect {
                  [
-                         profileId  : it.uuid,
-                         profileName: [scientificName: it.scientificName,
-                                       fullName      : it.fullName,
-                                       nameAuthor    : it.nameAuthor],
-                         matchedName: it.matchedName ? [scientificName: it.matchedName.scientificName,
-                                                        fullName      : it.matchedName.fullName,
-                                                        nameAuthor    : it.matchedName.nameAuthor,
-                                                        guid          : it.matchedName.guid] : [:],
-                         nslNameId  : it.nslNameIdentifier
+                         profileId          : it.uuid,
+                         profileName        : [scientificName: it.scientificName,
+                                               fullName      : it.fullName,
+                                               nameAuthor    : it.nameAuthor],
+                         matchedName        : it.matchedName ? [scientificName: it.matchedName.scientificName,
+                                                                fullName      : it.matchedName.fullName,
+                                                                nameAuthor    : it.matchedName.nameAuthor,
+                                                                guid          : it.matchedName.guid] : [:],
+                         manuallyMatchedName: it.manuallyMatchedName,
+                         nslNameId          : it.nslNameIdentifier
                  ]
              }]
         }
@@ -108,8 +102,7 @@ class ReportService {
 
         if (countOnly) {
             [recordCount: count > 0 ? count : 0]
-        }
-        else {
+        } else {
             //get profiles updated or profiles with the given ids
             List profiles = Profile.withCriteria {
                 eq('opus', opus)
@@ -144,22 +137,22 @@ class ReportService {
         final profileUuids = profiles*.get(0)
 
         final aggOutput = Comment.collection.aggregate([
-                [$match: [ lastUpdated: [ $gte: from, $lte: to ], profileUuid: [ $in: profileUuids ]]],
-                [$sort : [ lastUpdated: -1]],
+                [$match: [lastUpdated: [$gte: from, $lte: to], profileUuid: [$in: profileUuids]]],
+                [$sort: [lastUpdated: -1]],
                 [$group: [
                         _id        : '$profileUuid',
-                        lastUpdated: [ $first: '$lastUpdated' ],
-                        text       : [ $first: '$text' ],
-                        author     : [ $first: '$author' ]
+                        lastUpdated: [$first: '$lastUpdated'],
+                        text       : [$first: '$text'],
+                        author     : [$first: '$author']
                 ]],
-                [$sort : [lastUpdated: -1]]
+                [$sort: [lastUpdated: -1]]
         ])
 
         final results = aggOutput.results()
         final count = results.size()
 
         if (countOnly) {
-            return [ recordCount: count ]
+            return [recordCount: count]
         } else {
             final resultList = results.asList()
             final maxIndex = resultList.indices.toInt
@@ -170,16 +163,18 @@ class ReportService {
                 final profileMap = profiles.collectEntries { [(it[0]): it[1]] }
                 final endIndex = (startFrom + max) > maxIndex ? maxIndex + 1 : (startFrom + max)
                 final sizedList = max > 0 ? resultList.subList(startFrom, endIndex) : resultList
-                records = sizedList.collect { [
-                        comment       : it.text,
-                        plainComment  : Utils.cleanupText(it.text),
-                        scientificName: profileMap[it['_id']],
-                        lastUpdated   : it.lastUpdated,
-                        editor        : it.author ? Contributor.get(it.author)?.name : ''
-                ] }
+                records = sizedList.collect {
+                    [
+                            comment       : it.text,
+                            plainComment  : Utils.cleanupText(it.text),
+                            scientificName: profileMap[it['_id']],
+                            lastUpdated   : it.lastUpdated,
+                            editor        : it.author ? Contributor.get(it.author)?.name : ''
+                    ]
+                }
             }
 
-            return [ recordCount: count, records: records ]
+            return [recordCount: count, records: records]
         }
     }
 }

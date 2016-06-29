@@ -13,7 +13,7 @@ class Attribute implements Comparable<Attribute> {
     static searchable = {
         root = false
         only = ["text", "title"]
-        title component: true, index: "not_analyzed"
+        title component: true
     }
 
     String uuid

@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.security.Role
+import au.org.ala.profile.util.DataResourceOption
 import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.ShareRequestAction
 import au.org.ala.profile.util.ShareRequestStatus
@@ -59,14 +60,7 @@ class OpusService extends BaseDataAccessService {
         if (json.containsKey("description") && json.description != opus.description) {
             opus.description = json.description ? json.description : null
         }
-        if (json.containsKey("imageSources") && json.imageSources != opus.imageSources) {
-            if (opus.imageSources) {
-                opus.imageSources.clear()
-            } else {
-                opus.imageSources = []
-            }
-            opus.imageSources.addAll(json.imageSources)
-        }
+
         if (json.containsKey("approvedLists") && json.approvedLists != opus.approvedLists) {
             if (opus.approvedLists) {
                 opus.approvedLists.clear()
@@ -86,22 +80,48 @@ class OpusService extends BaseDataAccessService {
         if (json.containsKey("featureListSectionName") && json.featureListSectionName != opus.featureListSectionName) {
             opus.featureListSectionName = json.featureListSectionName
         }
-        if (json.containsKey("recordSources") && json.recordSources != opus.recordSources) {
-            if (opus.recordSources) {
-                opus.recordSources.clear()
-            } else {
-                opus.recordSources = []
+        
+        if (json.containsKey("dataResourceConfig")) {
+            if (!opus.dataResourceConfig) {
+                opus.dataResourceConfig = new DataResourceConfig()
             }
-            opus.recordSources.addAll(json.recordSources)
-        }
-        if (json.containsKey("excludeRanksFromMap") && json.excludeRanksFromMap != opus.excludeRanksFromMap) {
-            if (opus.excludeRanksFromMap) {
-                opus.excludeRanksFromMap.clear()
-            } else {
-                opus.excludeRanksFromMap = []
+
+            if (json.dataResourceConfig.containsKey("recordResourceOption") && json.dataResourceConfig.recordResourceOption != opus.dataResourceConfig.recordResourceOption) {
+                opus.dataResourceConfig.recordResourceOption = json.dataResourceConfig.recordResourceOption.toUpperCase() as DataResourceOption
             }
-            opus.excludeRanksFromMap.addAll(json.excludeRanksFromMap)
+            
+            if (json.dataResourceConfig.containsKey("recordSources") && json.dataResourceConfig.recordSources != opus.dataResourceConfig.recordSources) {
+                if (opus.dataResourceConfig.recordSources) {
+                    opus.dataResourceConfig.recordSources.clear()
+                } else {
+                    opus.dataResourceConfig.recordSources = []
+                }
+                opus.dataResourceConfig.recordSources.addAll(json.dataResourceConfig.recordSources)
+            }
+
+            if (json.dataResourceConfig.containsKey("privateRecordSources") && json.dataResourceConfig.privateRecordSources != opus.dataResourceConfig.privateRecordSources) {
+                if (opus.dataResourceConfig.privateRecordSources) {
+                    opus.dataResourceConfig.privateRecordSources.clear()
+                } else {
+                    opus.dataResourceConfig.privateRecordSources = []
+                }
+                opus.dataResourceConfig.privateRecordSources.addAll(json.dataResourceConfig.privateRecordSources)
+            }
+
+            if (json.dataResourceConfig.containsKey("imageResourceOption") && json.dataResourceConfig.imageResourceOption != opus.dataResourceConfig.imageResourceOption) {
+                opus.dataResourceConfig.imageResourceOption = json.dataResourceConfig.imageResourceOption.toUpperCase() as DataResourceOption
+            }
+
+            if (json.dataResourceConfig.containsKey("imageSources") && json.dataResourceConfig.imageSources != opus.dataResourceConfig.imageSources) {
+                if (opus.dataResourceConfig.imageSources) {
+                    opus.dataResourceConfig.imageSources.clear()
+                } else {
+                    opus.dataResourceConfig.imageSources = []
+                }
+                opus.dataResourceConfig.imageSources.addAll(json.dataResourceConfig.imageSources)
+            }
         }
+        
         if (json.copyrightText != opus.copyrightText) {
             opus.copyrightText = json.copyrightText
         }
@@ -142,31 +162,59 @@ class OpusService extends BaseDataAccessService {
             if (json.brandingConfig.containsKey("profileBannerUrl") && json.brandingConfig.profileBannerUrl != opus.brandingConfig.profileBannerUrl) {
                 opus.brandingConfig.profileBannerUrl = json.brandingConfig.profileBannerUrl
             }
+            if (json.brandingConfig.containsKey("colourTheme") && json.brandingConfig.colourTheme != opus.brandingConfig.colourTheme) {
+                opus.brandingConfig.colourTheme = json.brandingConfig.colourTheme
+            }
         }
+        if (json.containsKey("profileLayoutConfig")) {
+            if (!opus.profileLayoutConfig) {
+                opus.profileLayoutConfig = new ProfileLayoutConfig()
+            }
 
-        if (json.mapAttribution && json.mapAttribution != opus.mapAttribution) {
-            opus.mapAttribution = json.mapAttribution
+            if (json.profileLayoutConfig.containsKey("layout") && json.profileLayoutConfig.layout != opus.profileLayoutConfig.layout) {
+                opus.profileLayoutConfig.layout = json.profileLayoutConfig.layout
+            }
         }
-        if (json.mapPointColour && json.mapPointColour != opus.mapPointColour) {
-            opus.mapPointColour = json.mapPointColour;
-        }
-        if (json.mapDefaultLatitude && json.mapDefaultLatitude != opus.mapDefaultLatitude) {
-            opus.mapDefaultLatitude = json.mapDefaultLatitude as Float
-        }
-        if (json.mapDefaultLongitude && json.mapDefaultLongitude != opus.mapDefaultLongitude) {
-            opus.mapDefaultLongitude = json.mapDefaultLongitude as Float
-        }
-        if (json.mapZoom && json.mapZoom != opus.mapZoom) {
-            opus.mapZoom = json.mapZoom as int
-        }
-        if (json.mapBaseLayer && json.mapBaseLayer != opus.mapBaseLayer) {
-            opus.mapBaseLayer = json.mapBaseLayer
-        }
-        if (json.biocacheUrl && json.biocacheUrl != opus.biocacheUrl) {
-            opus.biocacheUrl = json.biocacheUrl
-        }
-        if (json.biocacheName && json.biocacheName != opus.biocacheName) {
-            opus.biocacheName = json.biocacheName
+        if (json.containsKey("mapConfig")) {
+            if (!opus.mapConfig) {
+                opus.mapConfig = new MapConfig()
+            }
+            if (json.mapConfig.mapAttribution && json.mapConfig.mapAttribution != opus.mapConfig.mapAttribution) {
+                opus.mapConfig.mapAttribution = json.mapConfig.mapAttribution
+            }
+            if (json.mapConfig.mapPointColour && json.mapConfig.mapPointColour != opus.mapConfig.mapPointColour) {
+                opus.mapConfig.mapPointColour = json.mapConfig.mapPointColour;
+            }
+            if (json.mapConfig.mapDefaultLatitude && json.mapConfig.mapDefaultLatitude != opus.mapConfig.mapDefaultLatitude) {
+                opus.mapConfig.mapDefaultLatitude = json.mapConfig.mapDefaultLatitude as Float
+            }
+            if (json.mapConfig.mapDefaultLongitude && json.mapConfig.mapDefaultLongitude != opus.mapConfig.mapDefaultLongitude) {
+                opus.mapConfig.mapDefaultLongitude = json.mapConfig.mapDefaultLongitude as Float
+            }
+            if (json.mapConfig.mapZoom && json.mapConfig.mapZoom != opus.mapConfig.mapZoom) {
+                opus.mapConfig.mapZoom = json.mapConfig.mapZoom as int
+            }
+            if (json.mapConfig.maxZoom && json.mapConfig.maxZoom != opus.mapConfig.maxZoom) {
+                opus.mapConfig.maxZoom = json.mapConfig.maxZoom as int
+            }
+            if (json.mapConfig.maxAutoZoom && json.mapConfig.maxAutoZoom != opus.mapConfig.maxAutoZoom) {
+                opus.mapConfig.maxAutoZoom = json.mapConfig.maxAutoZoom as int
+            }
+            if (json.mapConfig.autoZoom != null && json.mapConfig.autoZoom != opus.mapConfig.autoZoom) {
+                opus.mapConfig.autoZoom = json.mapConfig.autoZoom?.toBoolean() ?: false
+            }
+            if (json.mapConfig.allowSnapshots != null && json.mapConfig.allowSnapshots != opus.mapConfig.allowSnapshots) {
+                opus.mapConfig.allowSnapshots = json.mapConfig.allowSnapshots?.toBoolean() ?: false
+            }
+            if (json.mapConfig.mapBaseLayer && json.mapConfig.mapBaseLayer != opus.mapConfig.mapBaseLayer) {
+                opus.mapConfig.mapBaseLayer = json.mapConfig.mapBaseLayer
+            }
+            if (json.mapConfig.biocacheUrl && json.mapConfig.biocacheUrl != opus.mapConfig.biocacheUrl) {
+                opus.mapConfig.biocacheUrl = json.mapConfig.biocacheUrl
+            }
+            if (json.mapConfig.biocacheName && json.mapConfig.biocacheName != opus.mapConfig.biocacheName) {
+                opus.mapConfig.biocacheName = json.mapConfig.biocacheName
+            }
         }
         if (json.containsKey("approvedImageOption")) {
             ImageOption option = ImageOption.valueOf(json.approvedImageOption.toUpperCase())
@@ -198,6 +246,9 @@ class OpusService extends BaseDataAccessService {
         if (json.has("keepImagesPrivate") && json.keepImagesPrivate != opus.keepImagesPrivate) {
             opus.keepImagesPrivate = json.keepImagesPrivate?.toBoolean()
         }
+        if (json.has("usePrivateRecordData") && json.usePrivateRecordData != opus.usePrivateRecordData) {
+            opus.usePrivateRecordData = json.usePrivateRecordData?.toBoolean()
+        }
         if (json.has("privateCollection") && json.privateCollection != opus.privateCollection) {
             opus.privateCollection = json.privateCollection?.toBoolean()
             // if we are changing from public to private, then all other collections that have been granted access to
@@ -214,6 +265,15 @@ class OpusService extends BaseDataAccessService {
         }
         if (json.has("autoApproveShareRequests") && json.autoApproveShareRequests != opus.autoApproveShareRequests) {
             opus.autoApproveShareRequests = json.autoApproveShareRequests.toBoolean()
+        }
+        if (json.containsKey("autoDraftProfiles") && json.autoDraftProfiles.toBoolean() != opus.autoDraftProfiles) {
+            opus.autoDraftProfiles = json.autoDraftProfiles.toBoolean()
+        }
+        if (json.containsKey("tags")) {
+            opus.tags = []
+            json.tags.each {
+                opus.tags << Tag.findByUuid(it.uuid)
+            }
         }
 
         boolean success = save opus
@@ -319,40 +379,42 @@ class OpusService extends BaseDataAccessService {
         save opus
     }
 
-    boolean deleteOpus(String opusId) {
+    boolean deleteOpus(String opusId, boolean profilesOnly = false) {
         Opus opus = Opus.findByUuid(opusId);
 
         List profiles = Profile.findAllByOpus(opus)
         Profile.deleteAll(profiles)
 
-        if (opus.glossary) {
-            GlossaryItem glossaryItems = GlossaryItem.findByGlossary(opus.glossary)
-            if (glossaryItems) {
-                GlossaryItem.deleteAll(glossaryItems)
+        if (!profilesOnly) {
+            if (opus.glossary) {
+                GlossaryItem glossaryItems = GlossaryItem.findByGlossary(opus.glossary)
+                if (glossaryItems) {
+                    GlossaryItem.deleteAll(glossaryItems)
+                }
+                delete opus.glossary
             }
-            delete opus.glossary
-        }
 
-        if (opus.attributeVocabUuid) {
-            Vocab vocab = Vocab.findByUuid(opus.attributeVocabUuid)
-            Term.deleteAll(vocab.terms)
-            delete vocab
-        }
-        if (opus.authorshipVocabUuid) {
-            Vocab vocab = Vocab.findByUuid(opus.authorshipVocabUuid)
-            Term.deleteAll(vocab.terms)
-            delete vocab
-        }
+            if (opus.attributeVocabUuid) {
+                Vocab vocab = Vocab.findByUuid(opus.attributeVocabUuid)
+                Term.deleteAll(vocab.terms)
+                delete vocab
+            }
+            if (opus.authorshipVocabUuid) {
+                Vocab vocab = Vocab.findByUuid(opus.authorshipVocabUuid)
+                Term.deleteAll(vocab.terms)
+                delete vocab
+            }
 
-        Opus.withCriteria {
-            eq "supportingOpuses.uuid", opus.uuid
-        }?.each {
-            SupportingOpus supporting = it.supportingOpuses.find { it.uuid == opus.uuid }
-            it.supportingOpuses.remove(supporting)
-            save it
-        }
+            Opus.withCriteria {
+                eq "supportingOpuses.uuid", opus.uuid
+            }?.each {
+                SupportingOpus supporting = it.supportingOpuses.find { it.uuid == opus.uuid }
+                it.supportingOpuses.remove(supporting)
+                save it
+            }
 
-        delete opus
+            delete opus
+        }
     }
 
     def updateSupportingOpuses(String opusId, Map json) {

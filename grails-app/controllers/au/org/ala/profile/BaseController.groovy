@@ -1,37 +1,14 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.DataResourceOption
+import au.org.ala.ws.controller.BasicWSController
+
 import static au.org.ala.profile.util.Utils.isUuid
-import grails.converters.JSON
+import static au.org.ala.profile.util.Utils.enc
 
-import static org.apache.http.HttpStatus.*
-
-class BaseController {
-    public static final String CONTEXT_TYPE_JSON = "application/json"
+class BaseController extends BasicWSController {
 
     ProfileService profileService
-
-    def notFound = {String message = null ->
-        sendError(SC_NOT_FOUND, message ?: "")
-    }
-
-    def badRequest = {String message = null ->
-        sendError(SC_BAD_REQUEST, message ?: "")
-    }
-
-    def success = { resp ->
-        response.status = SC_OK
-        response.setContentType(CONTEXT_TYPE_JSON)
-        render resp as JSON
-    }
-
-    def saveFailed = {
-        sendError(SC_INTERNAL_SERVER_ERROR)
-    }
-
-    def sendError = {int status, String msg = null ->
-        response.status = status
-        response.sendError(status, msg)
-    }
 
     Profile getProfile() {
         Profile profile
@@ -61,7 +38,7 @@ class BaseController {
                     ne "uuid", profile.uuid
 
                     "classification" {
-                        eq "rank", "${cl.rank.toLowerCase()}"
+                        eq "rank", "${cl.rank?.toLowerCase()}"
                         ilike "name", "${cl.name}"
                     }
 
@@ -70,16 +47,71 @@ class BaseController {
                     }
                 }[0]
 
-                Profile relatedProfile = Profile.findByScientificNameAndGuidAndOpusAndArchivedDateIsNull(cl.name, cl.guid, opus)
+                Profile relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(cl.guid, opus)
                 if (!relatedProfile) {
-                    relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(cl.guid, opus)
+                    relatedProfile = Profile.findByScientificNameAndOpusAndArchivedDateIsNull(cl.name, opus)
                 }
                 cl.profileId = relatedProfile?.uuid
                 cl.profileName = relatedProfile?.scientificName
             }
         }
 
+        // if the profile has no specific occurrence query then we just set it to the default for the collection,
+        // which limits the query to the LSID (or name if there is no LSID) and the selected data resources
+        if (!profile.occurrenceQuery) {
+            String query = createOccurrenceQuery(profile)
+            profile.occurrenceQuery = query
+            if (profile.draft) {
+                profile.draft.occurrenceQuery = query
+            }
+        }
+
         profile
+    }
+
+    private String createOccurrenceQuery(Profile profile) {
+        Opus opus = profile.opus
+
+        String result = ""
+
+        if (profile && opus) {
+            String query = ""
+
+            if (profile.guid && profile.guid != "null") {
+                query += "${"lsid:${profile.guid}"}"
+            } else {
+                query += profile.scientificName
+            }
+
+            String occurrenceQuery = query
+
+            if (opus.usePrivateRecordData) {
+                DataResourceConfig config = opus.dataResourceConfig
+                if (config?.privateRecordSources) {
+                    occurrenceQuery = "${query} AND (data_resource_uid:${config.privateRecordSources?.join(" OR data_resource_uid:")})"
+                }
+            } else if (opus.dataResourceConfig) {
+                DataResourceConfig config = opus.dataResourceConfig
+                switch (config.recordResourceOption) {
+                    case DataResourceOption.ALL:
+                        occurrenceQuery = query
+                        break
+                    case DataResourceOption.NONE:
+                        occurrenceQuery = "${query} AND data_resource_uid:${opus.dataResourceUid}"
+                        break
+                    case DataResourceOption.HUBS:
+                        occurrenceQuery = "${query} AND (data_resource_uid:${opus.dataResourceUid} OR data_hub_uid:${config.recordSources?.join(" OR data_hub_uid:")})"
+                        break
+                    case DataResourceOption.RESOURCES:
+                        occurrenceQuery = "${query} AND (data_resource_uid:${opus.dataResourceUid} OR data_resource_uid:${config.recordSources?.join(" OR data_resource_uid:")})"
+                        break
+                }
+            }
+
+            result = "q=${enc(occurrenceQuery)}"
+        }
+
+        result
     }
 
     Opus getOpus() {

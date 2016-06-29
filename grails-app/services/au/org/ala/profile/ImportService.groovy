@@ -60,7 +60,7 @@ class ImportService extends BaseDataAccessService {
 
         AtomicInteger success = new AtomicInteger(0)
         AtomicInteger index = new AtomicInteger(0)
-        int reportInterval = 0.05 * profilesJson.size() // log at 5% intervals
+        int reportInterval = Math.max(0.05 * profilesJson.size(), 5.0) // log at 5% intervals
 
         Map uniqueValues = findAndStoreUniqueValues(opus, profilesJson)
         Map<String, Term> vocab = uniqueValues.vocab

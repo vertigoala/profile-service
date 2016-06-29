@@ -1,14 +1,17 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.SearchOptions
+import org.elasticsearch.search.sort.SortBuilders
+
+import static org.elasticsearch.index.query.MatchQueryBuilder.Operator.AND
+import static org.elasticsearch.index.query.MatchQueryBuilder.Operator.OR
 import au.org.ala.profile.util.ProfileSortOption
 import au.org.ala.profile.util.Utils
 import com.mongodb.BasicDBObject
 import com.mongodb.MapReduceCommand
 import com.mongodb.MapReduceOutput
-import com.sun.xml.internal.ws.util.StringUtils
 import org.elasticsearch.index.query.BoolQueryBuilder
 import org.elasticsearch.index.query.MatchQueryBuilder
-import org.elasticsearch.index.query.MultiMatchQueryBuilder
 import org.gbif.ecat.voc.Rank
 import org.springframework.scheduling.annotation.Async
 
@@ -21,13 +24,14 @@ import org.elasticsearch.index.query.QueryBuilder
 
 import org.grails.plugins.elasticsearch.ElasticSearchService
 
+/**
+ * See http://noamt.github.io/elasticsearch-grails-plugin/docs/index.html for elastic search plugin API doco
+ */
 class SearchService extends BaseDataAccessService {
     static final String UNKNOWN_RANK = "unknown" // used for profiles with no rank/classification
     static final Integer DEFAULT_MAX_CHILDREN_RESULTS = 15
     static final Integer DEFAULT_MAX_OPUS_SEARCH_RESULTS = 25
     static final Integer DEFAULT_MAX_BROAD_SEARCH_RESULTS = 50
-    static final String[] NAME_FIELDS = ["scientificName", "matchedName"]
-    static final String[] ALL_FIELDS = ["attribute.text", "scientificName^4", "matchedName^3"]
 
     AuthService authService
     UserService userService
@@ -35,22 +39,38 @@ class SearchService extends BaseDataAccessService {
     ElasticSearchService elasticSearchService
     NameService nameService
 
-    Map search(List<String> opusIds, String term, int offset, int pageSize, boolean nameOnly = false, boolean includeArchived = false) {
-        String[] accessibleCollections = getAccessibleCollections(opusIds)?.collect { it.uuid } as String[]
+    Map search(List<String> opusIds, String term, int offset, int pageSize, SearchOptions options) {
+        log.debug("Searching for ${term} in collection(s) ${opusIds} with options ${options}")
+
+        List<Opus> opusList = getAccessibleCollections(opusIds)
+        String[] accessibleCollections = opusList?.collect { it.uuid } as String[]
+        List<Vocab> vocabs = Vocab.findAllByUuidInList(opusList*.attributeVocabUuid)
+        String[] summaryTerms = Term.findAllByVocabInListAndSummary(vocabs, true)*.uuid
+        String[] nameTerms = Term.findAllByVocabInListAndContainsName(vocabs, true)*.uuid
 
         Map results = [:]
-        if (term && accessibleCollections) {
+        if (accessibleCollections) {
             Map params = [
                     score: true,
                     from : offset,
                     size : pageSize
             ]
 
-            QueryBuilder query = nameOnly ? buildNameSearch(term, accessibleCollections, includeArchived) : buildTextSearch(term, accessibleCollections, includeArchived)
+            QueryBuilder query
 
-            log.debug(query.toString())
+            if (!term) {
+                query = filteredQuery(matchAllQuery(), buildFilter(accessibleCollections, options.includeArchived))
+                // if no term was provided then assume we are retrieving all records (in pages) sorted by the profile name (aka scientificName)
+                params.sort = SortBuilders.fieldSort("scientificNameLower")
+            } else {
+                query = options.nameOnly ? buildNameSearch(term, accessibleCollections, options) : buildTextSearch(term, accessibleCollections, options)
+                // if there is a term, then we need to use the ES relevance sorting, so we don't need a SortBuilder
+            }
+            log.debug(query)
 
-            def rawResults = elasticSearchService.search(query, null, params)
+            long start = System.currentTimeMillis()
+            def rawResults = elasticSearchService.search(params, query, null)
+            log.debug("${options.nameOnly ? 'name' : 'text'} search for ${term} took ${System.currentTimeMillis() - start}ms and returned ${rawResults.total} results")
 
             results.total = rawResults.total
             results.items = rawResults.searchResults.collect { Profile it ->
@@ -65,17 +85,15 @@ class SearchService extends BaseDataAccessService {
                         opusId        : it.opus.uuid,
                         archivedDate  : it.archivedDate,
                         classification: it.classification ?: [],
-                        score         : rawResults.scores[it.id.toString()],
+                        score         : term ? rawResults.scores[it.id.toString()] : -1,
                         description   : it.attributes ? it.attributes.findResults {
-                            it.title.name.toLowerCase().contains("description") ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
+                            summaryTerms.contains(it.title.uuid) ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
                         } : [],
                         otherNames    : it.attributes ? it.attributes.findResults {
-                            it.title.name.toLowerCase().contains("name") ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
+                            nameTerms.contains(it.title.uuid) ? [title: it.title.name, text: Utils.cleanupText(it.text)] : null
                         } : []
                 ]
             }
-
-            log.debug("Search for ${term} returned ${results.total} hits")
         }
 
         results
@@ -84,63 +102,79 @@ class SearchService extends BaseDataAccessService {
     /**
      * A name search will look for the term(s) in:
      * <ul>
-     *     <li>any of the {@link #NAME_FIELDS} fields
+     *     <li>the scientificName (aka profileName)
+     *     <li>the matchedName.scientificName
+     *     <li>the archivedWithName name (if includeArchived = true)
      *     <li>or any Attribute where the title contains 'name'
      * </ul>
      *
      */
-    private QueryBuilder buildNameSearch(String term, String[] accessibleCollections, boolean includeArchived = false) {
-        // Try to find any other names associated with the provided name - this will help with searching by synonyms
-        Set<String> otherNames = bieService.getOtherNames(term) ?: []
+    private QueryBuilder buildNameSearch(String term, String[] accessibleCollections, SearchOptions options) {
         String alaMatchedName = nameService.matchName(term)?.scientificName
-        if (alaMatchedName && term != alaMatchedName) {
-            otherNames << alaMatchedName
+
+        Set<String> otherNames = [] as HashSet
+        if (options.searchAla) {
+            Set<String> alaPotentialMatches = bieService.searchForPossibleMatches(term) ?: []
+            if (alaMatchedName && term != alaMatchedName) {
+                otherNames.addAll(alaPotentialMatches)
+            }
+            // make sure the provided term is not in the list of alternate names (case insensitive)
+            term = otherNames.find { it?.equalsIgnoreCase(term) } ?: term
+            otherNames.remove(term)
         }
-        String nslMatchedName = nameService.matchNSLName(term)?.scientificName
-        if (nslMatchedName && term != nslMatchedName) {
-            otherNames << nslMatchedName
-        }
-        otherNames.remove(term)
 
         BoolQueryBuilder query = boolQuery()
 
         // rank matches using the provided text higher than matches based on other names from the BIE
-        BoolQueryBuilder providedNameQuery = buildBaseNameSearch(term).boost(3)
-
+        QueryBuilder providedNameQuery = buildBaseNameSearch(term, options).boost(3)
         query.should(providedNameQuery)
 
-        if (otherNames) {
-            otherNames.each {
-                query.should(buildBaseNameSearch(it))
+        if (options.searchNsl) {
+            // use the provided name to search the NSL: the matched term was matched against the ALA, and we don't want
+            // mix matching logic.
+            nameService.searchNSLName(term)?.each { String possibleName, String taxonomicStatus ->
+                query.should(buildBaseNameSearch(possibleName, options))
             }
         }
 
-        filteredQuery(query, buildFilter(accessibleCollections, includeArchived))
-    }
-
-    private static BoolQueryBuilder buildBaseNameSearch(String term, boolean includeArchived = false) {
-        QueryBuilder attributesWithNames = boolQuery()
-                .must(nestedQuery("attributes.title", boolQuery().must(matchQuery("attributes.title.name", "name"))))
-                .must(matchQuery("text", term).operator(MatchQueryBuilder.Operator.AND))
-
-        String[] nameFields = NAME_FIELDS
-        if (includeArchived) {
-            List<String> fieldList = ALL_FIELDS.collect()
-            fieldList << "archivedWithName^4"
-            nameFields = fieldList as String[]
+        if (otherNames) {
+            otherNames.each {
+                query.should(buildBaseNameSearch(it, options))
+            }
         }
 
-        QueryBuilder query = boolQuery()
-                .should(termQuery("scientificName.untouched", StringUtils.capitalize(term)).boost(4)) // rank exact matches on the profile name highest of all
-                .should(multiMatchQuery(term, nameFields).type(MultiMatchQueryBuilder.Type.PHRASE_PREFIX).operator(MatchQueryBuilder.Operator.AND))
-                .should(nestedQuery("attributes", attributesWithNames))
+        filteredQuery(query, buildFilter(accessibleCollections, options.includeArchived))
+    }
 
-        if (includeArchived) {
+    private static QueryBuilder buildBaseNameSearch(String term, SearchOptions options) {
+        term = term.toLowerCase()
+
+        QueryBuilder query = boolQuery()
+                // rank exact matches on the profile name and full name highest of all
+                .should(termQuery("scientificNameLower", term).boost(4))
+                .should(termQuery("fullNameLower", term).boost(4))
+                // exact match on either the scientific or full MATCHED name (profile name might be different)
+                .should(termQuery("matchedNameLower", term))
+                // match any attribute that is considered a 'name' attribute (e.g. common, vernacular, indigenous names etc)
+
+        if (options.includeNameAttributes) {
+            query.should(nestedQuery("attributes", getNameAttributeQuery(term)))
+        }
+
+        if (options.includeArchived) {
             // rank exact matches on the profile name at the time it was archived the same way as we rank the scientificName
-            query.should(termQuery("archivedWithName.untouched", StringUtils.capitalize(term)).boost(4))
+            query.should(termQuery("archivedNameLower", term).boost(4))
         }
 
         query
+    }
+
+    private static QueryBuilder getNameAttributeQuery(String term) {
+        List<Term> nameTerms = Term.findAllByContainsName(true)
+        // a name attribute is one where the attribute title contains the word 'name'
+        boolQuery()
+                .must(nestedQuery("attributes.title", boolQuery().must(termsQuery("attributes.title.uuid", nameTerms*.uuid))))
+                .must(matchQuery("text", term).operator(AND))
     }
 
     private static FilterBuilder buildFilter(String[] accessibleCollections, boolean includeArchived = false) {
@@ -158,31 +192,27 @@ class SearchService extends BaseDataAccessService {
      * A text search will look for the term(s) in any indexed field
      *
      */
-    private static QueryBuilder buildTextSearch(String term, String[] accessibleCollections, boolean includeArchived = false) {
-        QueryBuilder attributesWithNames = boolQuery()
-                .must(nestedQuery("attributes.title", boolQuery().must(matchQuery("attributes.title.name", "name"))))
-                .must(matchQuery("text", term).operator(MatchQueryBuilder.Operator.AND))
-
-        String[] allFields = ALL_FIELDS
-        if (includeArchived) {
-            List<String> fieldList = ALL_FIELDS.collect()
-            fieldList << "archivedWithName^4"
-            allFields = fieldList as String[]
+    private static QueryBuilder buildTextSearch(String term, String[] accessibleCollections, SearchOptions options) {
+        MatchQueryBuilder.Operator operator = AND
+        if (!options.matchAll) {
+            operator = OR
         }
+
+        QueryBuilder attributesWithNames = getNameAttributeQuery(term)
 
         QueryBuilder query = boolQuery()
-        if (includeArchived) {
+        if (options.includeArchived) {
             // rank exact matches on the profile name at the time it was archived the same way as we rank the scientificName
-            query.should(matchQuery("archivedWithName.untouched", StringUtils.capitalize(term)).boost(4))
+            query.should(matchQuery("archivedWithName.untouched", term).boost(4))
         }
-        query.should(matchQuery("scientificName.untouched", StringUtils.capitalize(term)).boost(4))
-        query.should(multiMatchQuery(term, allFields).operator(MatchQueryBuilder.Operator.AND).boost(2))
-        query.should(multiMatchQuery(term, allFields).operator(MatchQueryBuilder.Operator.OR))
-        query.should(nestedQuery("attributes", attributesWithNames).boost(3))
-        query.should(nestedQuery("attributes", boolQuery().must(matchPhrasePrefixQuery("text", term).operator(MatchQueryBuilder.Operator.AND)).boost(2)))
-        query.should(nestedQuery("attributes", boolQuery().must(matchPhrasePrefixQuery("text", term).operator(MatchQueryBuilder.Operator.OR))))
 
-        filteredQuery(query, buildFilter(accessibleCollections, includeArchived))
+        query.should(matchQuery("scientificName", term).boost(4))
+        query.should(nestedQuery("matchedName", boolQuery().must(matchQuery("matchedName.scientificName", term).operator(AND))))
+        query.should(nestedQuery("attributes", attributesWithNames).boost(3)) // score name-related attributes higher
+        query.should(nestedQuery("attributes", boolQuery().must(matchQuery("text", term).operator(operator))))
+        query.should(nestedQuery("attributes", boolQuery().must(matchPhrasePrefixQuery("text", term).operator(operator))))
+
+        filteredQuery(query, buildFilter(accessibleCollections, options.includeArchived))
     }
 
     List<Map> findByScientificName(String scientificName, List<String> opusIds, ProfileSortOption sortBy = ProfileSortOption.getDefault(), boolean useWildcard = true, int max = -1, int startFrom = 0) {
@@ -570,15 +600,17 @@ class SearchService extends BaseDataAccessService {
     }
 
     @Async
-    def reindex() {
-
+    def reindexAll() {
         Status status = Status.list()[0]
         status.searchReindex = true
         save status
 
         long start = System.currentTimeMillis()
-        log.warn("Recreating search index...")
 
+        log.warn("Deleting existing index...")
+        elasticSearchService.unindex(Profile)
+
+        log.warn("Recreating search index...")
         elasticSearchService.index(Profile)
 
         int time = System.currentTimeMillis() - start
@@ -588,5 +620,14 @@ class SearchService extends BaseDataAccessService {
             save status
 
         log.warn("Search re-index complete in ${time} milliseconds")
+    }
+
+    @Async
+    def reindex(Collection<Profile> profiles) {
+        if (profiles) {
+            log.debug("Re-indexing ${profiles.size()} profiles...")
+            elasticSearchService.index(profiles)
+            log.debug("Finished re-indexing ${profiles.size()} profiles")
+        }
     }
 }

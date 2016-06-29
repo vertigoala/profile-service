@@ -1,12 +1,14 @@
 package au.org.ala.profile
 
 import au.org.ala.names.search.HomonymException
+import au.org.ala.ws.service.WebService
+import org.apache.commons.lang3.StringUtils
 
 import static com.xlson.groovycsv.CsvParser.parseCsv
 import static au.org.ala.profile.util.Utils.enc
+import static au.org.ala.profile.util.Utils.isSuccessful
 
 import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
-import au.org.ala.profile.util.Utils
 import au.org.ala.names.model.LinnaeanRankClassification
 import au.org.ala.names.model.NameSearchResult
 import au.org.ala.names.search.ALANameSearcher
@@ -17,6 +19,10 @@ import javax.annotation.PostConstruct
 
 @Transactional
 class NameService extends BaseDataAccessService {
+
+    static final String NSL_APC_PRODUCT = "AOC"
+
+    WebService webService
 
     def grailsApplication
     ALANameSearcher nameSearcher
@@ -52,10 +58,12 @@ class NameService extends BaseDataAccessService {
             } catch (HomonymException e) {
                 match = searchPotentialMatches(name, e.results)
             } catch (Exception e) {
-                log.warn("Name matching exception thrown. No match will be returned.", e)
+                log.warn("Name matching exception thrown when attempting to match ${name}. No match will be returned.", e)
                 match = null
             }
         }
+
+        log.debug("${name} was matched to ${match?.scientificName}")
 
         match
     }
@@ -84,7 +92,8 @@ class NameService extends BaseDataAccessService {
         Map match = [
                 guid          : result.lsid,
                 scientificName: result.getRankClassification().getScientificName(),
-                nameAuthor    : result.getRankClassification().getAuthorship()
+                nameAuthor    : result.getRankClassification().getAuthorship(),
+                rank          : result.rank?.rank
         ]
 
         // Autonym workaround. Autonyms have the author name in the middle, and the name service does not currently
@@ -137,6 +146,7 @@ class NameService extends BaseDataAccessService {
     Map matchNSLName(String name) {
         Map match = [:]
         try {
+            log.debug("GET request to ${grailsApplication.config.nsl.name.match.url.prefix}\"${enc(name)}\"")
             String resp = new URL("${grailsApplication.config.nsl.name.match.url.prefix}\"${enc(name)}\"").text
             def json = new JsonSlurper().parseText(resp)
             if (json.count == 1) {
@@ -156,6 +166,56 @@ class NameService extends BaseDataAccessService {
         }
 
         match
+    }
+
+    /**
+     * Search the NSL for the name and return a map containing all possible versions of the name (the accepted name,
+     * synonyms, etc) with the taxonomic status for each name.
+     *
+     * @param name The name to search for
+     * @return Map containing [alternateName : taxonomicStatus]
+     */
+    Map<String, String> searchNSLName(String name) {
+        Map<String, String> matches = [:]
+
+        String url = "${grailsApplication.config.nsl.search.service.url.prefix}?tree=${NSL_APC_PRODUCT}&q=${enc(StringUtils.capitalize(name))}"
+        Map result = webService.get(url)
+
+        if (result?.resp && isSuccessful(result?.statusCode) && result?.resp?.records) {
+            // The return structure from the NSL search service is (where all entities are optional)
+            // {
+            //     records: {
+            //         synonyms: [
+            //                 …
+            //         ],
+            //         acceptedNames: {
+            //             …,
+            //             synonyms: [
+            //                     …
+            //             ]
+            //         }
+            //     }
+            // }
+            result.resp.records.synonyms?.each { Map synonym ->
+                matches.put(synonym.canonicalName, synonym.taxonomicStatus)
+                if (synonym.acceptedNameUsage) {
+                    matches.put(synonym.acceptedNameUsage, synonym.taxonomicStatus)
+                }
+            }
+
+            result.resp.records.acceptedNames?.each { String nameId, Map nslName ->
+                matches.put(nslName.canonicalName, nslName.taxonomicStatus)
+
+                nslName.synonyms?.each { Map synonym ->
+                    matches.put(synonym.canonicalName, synonym.taxonomicStatus)
+                }
+            }
+        } else {
+            matches = [:]
+            log.error("Failed to query NSL for name matches: ${result.error}")
+        }
+
+        matches
     }
 
     String extractAuthorsFromNameHtml(String nameHtml) {
@@ -340,29 +400,26 @@ class NameService extends BaseDataAccessService {
                               'nom. cons., orth. cons.', 'nom. et typ. cons.', 'orth. cons.', 'typ. cons.', '[default]']
 
         try {
-            URL url = new URL("${grailsApplication.config.nsl.simple.name.export.url}")
+            URL url = new URL("${grailsApplication.config.nsl.name.export.url}")
 
             url.withReader { reader ->
                 def csv = parseCsv(reader)
 
                 csv.each { fields ->
-                    String simpleName = Utils.cleanupText(fields.simple_name_html)
-                    String fullName = Utils.cleanupText(fields.full_name_html)
+                    Map name = [scientificName    : fields.canonicalName,
+                                scientificNameHtml: fields.canonicalNameHTML,
+                                fullName          : fields.scientificName,
+                                fullNameHtml      : fields.scientificNameHTML,
+                                url               : fields.scientificNameID,
+                                nslIdentifier     : fields.scientificNameID.substring(fields.scientificNameID.lastIndexOf("/") + 1),
+                                rank              : fields.taxonRank,
+                                nameAuthor        : fields.scientificNameAuthorship,
+                                nslProtologue     : "${fields.namePublishedIn ?: ''} ${fields.namePublishedInYear}".trim(),
+                                valid             : validStatuses.contains(fields.nomenclaturalStatus),
+                                status            : fields.nomenclaturalStatus]
 
-                    Map name = [scientificName    : simpleName,
-                                scientificNameHtml: fields.simple_name_html,
-                                fullName          : fullName,
-                                fullNameHtml      : fields.full_name_html,
-                                url               : fields.id,
-                                nslIdentifier     : fields.id.substring(fields.id.lastIndexOf("/") + 1),
-                                rank              : fields.rank,
-                                nameAuthor        : fields.authority,
-                                nslProtologue     : fields.proto_citation,
-                                valid             : validStatuses.contains(fields.nom_stat),
-                                status            : fields.nom_stat]
-
-                    result.bySimpleName[simpleName] << name
-                    result.byFullName[fullName] << name
+                    result.bySimpleName[fields.canonicalName] << name
+                    result.byFullName[fields.scientificName] << name
                 }
             }
 

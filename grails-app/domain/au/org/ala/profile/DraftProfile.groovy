@@ -14,20 +14,24 @@ class DraftProfile {
     String nameAuthor
     String fullName
     Name matchedName
+    boolean manuallyMatchedName = false
     String rank
     String nslNameIdentifier
     String nslNomenclatureIdentifier
     String taxonomyTree
     String primaryImage
+    String occurrenceQuery
     Map<String, ImageSettings> imageSettings = [:]
     List<String> specimenIds
     List<Authorship> authorship
     List<Classification> classification
+    boolean manualClassification = false
     List<Link> links
     List<Link> bhlLinks
     List<Attribute> attributes
     List<Publication> publications
     List<Bibliography> bibliography
+    List<Document> documents
     List<LocalImage> stagedImages
     List<LocalImage> privateImages
     List<Attachment> attachments
@@ -36,8 +40,9 @@ class DraftProfile {
     Date dateCreated
     Date draftDate = new Date()
     String createdBy
+    Date lastPublished
 
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'attributes', 'stagedImages', 'privateImages', 'attachments']
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'documents', 'attributes', 'stagedImages', 'privateImages', 'attachments']
 
     static constraints = {
         nameAuthor nullable: true
@@ -51,5 +56,6 @@ class DraftProfile {
         taxonomyTree nullable: true
         createdBy nullable: true
         lastAttributeChange nullable: true
+        occurrenceQuery nullable: true
     }
 }

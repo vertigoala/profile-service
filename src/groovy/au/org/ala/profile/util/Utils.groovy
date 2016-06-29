@@ -1,12 +1,16 @@
 package au.org.ala.profile.util
 
 import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
+import static org.apache.http.HttpStatus.SC_OK
 
 class Utils {
 
     static final double DEFAULT_MAP_LATITUDE = -27
     static final double DEFAULT_MAP_LONGITUDE = 133.6
     static final double DEFAULT_MAP_ZOOM = 3
+    static final double DEFAULT_MAP_MAX_ZOOM = 20
+    static final double DEFAULT_MAP_MAX_AUTO_ZOOM = 15
+    static final String DEFAULT_MAP_POINT_COLOUR = "FF9900"
     static final String DEFAULT_MAP_BASE_LAYER = "https://{s}.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={token}"
     static final String UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -70,5 +74,10 @@ class Utils {
         }
 
         icon
+    }
+
+    /** Returns true for HTTP status codes from 200 to 299 */
+    static  boolean isSuccessful(int statusCode) {
+        return statusCode >= SC_OK && statusCode <= 299
     }
 }
