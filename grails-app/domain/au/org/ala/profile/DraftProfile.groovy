@@ -31,6 +31,7 @@ class DraftProfile {
     List<Attribute> attributes
     List<Publication> publications
     List<Bibliography> bibliography
+    List<Document> documents
     List<LocalImage> stagedImages
     List<LocalImage> privateImages
     List<Attachment> attachments
@@ -41,7 +42,7 @@ class DraftProfile {
     String createdBy
     Date lastPublished
 
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'attributes', 'stagedImages', 'privateImages', 'attachments']
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'documents', 'attributes', 'stagedImages', 'privateImages', 'attachments']
 
     static constraints = {
         nameAuthor nullable: true

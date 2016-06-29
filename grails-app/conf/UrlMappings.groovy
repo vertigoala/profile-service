@@ -63,6 +63,12 @@ class UrlMappings {
         "/opus/$opusId/profile/$profileId/attribute/" controller: "attribute", action: [GET: "index", PUT: "create", POST: "create"]
         "/opus/$opusId/profile/$profileId/attribute/$attributeId" controller: "attribute", action: [GET: "show", PUT: "update", DELETE: "delete", POST: "update"]
 
+
+        "/opus/$opusId/profile/$profileId/document/" controller: "profile", action: [POST:"updateDocument", DELETE: "deleteDocument"]
+        "/opus/$opusId/profile/$profileId/document/list" controller: "profile", action: [GET:"listDocuments"]
+        "/opus/$opusId/profile/$profileId/document/$id?(.$format)?" controller: "profile", action: [POST:"updateDocument", DELETE: "deleteDocument"]
+
+
         "/opus/$opusId/profile/$profileId/links" controller: "profile", action: [POST: "saveLinks"]
 
         "/opus/$opusId/profile/$profileId/bhl" controller: "profile", action: [POST: "saveBHLLinks"]

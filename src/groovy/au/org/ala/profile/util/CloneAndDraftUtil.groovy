@@ -5,6 +5,7 @@ import au.org.ala.profile.Attribute
 import au.org.ala.profile.Authorship
 import au.org.ala.profile.Bibliography
 import au.org.ala.profile.Classification
+import au.org.ala.profile.Document
 import au.org.ala.profile.DraftProfile
 import au.org.ala.profile.Link
 import au.org.ala.profile.LocalImage
@@ -38,6 +39,7 @@ class CloneAndDraftUtil {
         profile.links = profile.draft.links
         profile.bhlLinks = profile.draft.bhlLinks
         profile.bibliography = profile.draft.bibliography
+        profile.documents = profile.draft.documents
         profile.publications = profile.draft.publications
         profile.privateImages = profile.draft.privateImages
         profile.attachments = profile.draft.attachments
@@ -84,6 +86,7 @@ class CloneAndDraftUtil {
         clone.links = profile.links?.collect { cloneLink(it) }
         clone.bhlLinks = profile.bhlLinks?.collect { cloneLink(it) }
         clone.bibliography = profile.bibliography?.collect { cloneBibliography(it) }
+        clone.documents = profile.documents?.collect { cloneDocuments(it) }
         clone.publications = profile.publications?.collect { clonePublication(it) }
         clone.attributes = profile.attributes?.collect { cloneAttribute(it) }
         clone.privateImages = profile.privateImages?.collect { cloneImage(it) }
@@ -130,6 +133,29 @@ class CloneAndDraftUtil {
         }
         clone.text = source.text
         clone.order = source.order
+
+        clone
+    }
+
+    static Document cloneDocuments(Document source, boolean includeIds = true) {
+        Document clone = new Document()
+        if (includeIds) {
+            clone.documentId = source.documentId
+        }
+        clone.attribution = source.attribution
+        clone.embeddedAudio = source.embeddedAudio
+        clone.embeddedVideo = source.embeddedVideo
+        clone.isPrimaryProjectImage = source.isPrimaryProjectImage
+        clone.labels = source.labels
+        clone.licence = source.licence
+        clone.name = source.name
+        clone.parentId = source.parentId
+        clone.primaryAudio = source.primaryAudio
+        clone.primaryVideo = source.primaryVideo
+        clone.role = source.role
+        clone.status = source.status
+        clone.thirdPartyConsentDeclarationMade = source.thirdPartyConsentDeclarationMade
+        clone.thirdPartyConsentDeclarationText = source.thirdPartyConsentDeclarationText
 
         clone
     }

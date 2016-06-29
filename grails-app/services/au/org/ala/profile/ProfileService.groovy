@@ -6,6 +6,7 @@ import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.StorageExtension
 import au.org.ala.web.AuthService
 import org.apache.commons.lang3.StringUtils
+import org.codehaus.groovy.grails.commons.DomainClassArtefactHandler
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.commons.CommonsMultipartFile
@@ -14,6 +15,7 @@ import java.text.SimpleDateFormat
 
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+
 
 @Transactional
 class ProfileService extends BaseDataAccessService {
@@ -602,6 +604,73 @@ class ProfileService extends BaseDataAccessService {
         }
     }
 
+    boolean updateDocument(Profile profile, Map newDocument, String id) {
+        checkArgument profile
+        checkArgument json
+
+        profile = profileOrDraft(profile)
+
+        if(profile.documents) {
+            profile.documents = new ArrayList<Document>()
+        }
+
+        if(id) {
+            Document existingDocument = profile.documents.find {
+                it.id == id
+            }
+
+            updateProperties(existingDocument, newDocument)
+        }
+
+    }
+
+    /**
+     * Updates all properties other than 'id' and converts date strings to BSON dates.
+     *
+     * Note that dates are assumed to be ISO8601 in UTC with no millisecs
+     *
+     * Booleans must be handled explicitly because the JSON string "false" will by truthy if just
+     *  assigned to a boolean property.
+     *
+     * @param o the domain instance
+     * @param props the properties to use
+     */
+    private updateProperties(o, props) {
+        assert grailsApplication
+        def domainDescriptor = grailsApplication.getArtefact(DomainClassArtefactHandler.TYPE,
+                o.getClass().name)
+        props.remove('id')
+        props.remove('api_key')  // don't ever let this be stored in public data
+        props.remove('lastUpdated') // in case we are loading from dumped data
+        props.each { k, v ->
+            log.debug "updating ${k} to ${v}"
+            /*
+             * Checks the domain for properties of type Date and converts them.
+             * Expects dates as strings in the form 'yyyy-MM-ddThh:mm:ssZ'. As indicated by the 'Z' these must be
+             * UTC time. They are converted to java dates by forcing a zero time offset so that local timezone is
+             * not used. All conversions to and from local time are the responsibility of the service consumer.
+             */
+            if (v instanceof String && domainDescriptor.hasProperty(k) && domainDescriptor?.getPropertyByName(k)?.getType() == Date) {
+                v = v ? parse(v) : null
+            }
+            if (v == "false") {
+                v = false
+            }
+            if (v == "null") {
+                v = null
+            }
+            o[k] = v
+        }
+        // always flush the updateDocument so that that any exceptions are caught before the service returns
+        o.save(flush: true, failOnError: true)
+        if (o.hasErrors()) {
+            log.error("has errors:")
+            o.errors.each { log.error it }
+            throw new Exception(o.errors[0] as String);
+        }
+    }
+
+
     boolean saveBHLLinks(String profileId, Map json, boolean deferSave = false) {
         checkArgument profileId
         checkArgument json
@@ -718,7 +787,7 @@ class ProfileService extends BaseDataAccessService {
 
     /**
      * Makes and saves a publication for a profile that has attachments when user clicks
-     * create snapshot version on Profile-Hub.
+     * createDocument snapshot version on Profile-Hub.
      * Takes the profile data, as sent via Profile-Hub as a multipartFile and all attachments for
      * this profile, bundles them up into a zip file and saves them to disk
      * @param profile
@@ -993,5 +1062,205 @@ class ProfileService extends BaseDataAccessService {
         save profile
 
         profile.attachments
+    }
+
+    /**
+     * Converts the domain object into a map of properties, including
+     * dynamic properties.
+     * @param document an Document instance
+     * @param levelOfDetail list of features to include
+     * @return map of properties
+     */
+    def documentToMap(document, levelOfDetail = []) {
+        def mapOfProperties = document instanceof Document ? document.getProperty("dbo").toMap() : document
+        def id = mapOfProperties["_id"].toString()
+        mapOfProperties["id"] = id
+        mapOfProperties.remove("_id")
+        // construct document url based on the current configuration
+        mapOfProperties.url = document.url
+        if (document?.type == Document.DOCUMENT_TYPE_IMAGE) {
+            mapOfProperties.thumbnailUrl = document.thumbnailUrl
+        }
+        mapOfProperties.findAll { k, v -> v != null }
+    }
+
+    /**
+     * Creates a new Document object associated with the supplied file.
+     * @param props the desired properties of the Document.
+     */
+    def createDocument(String profileId, props) {
+
+        checkArgument profileId
+        checkArgument props
+
+        Profile originalProfile = Profile.findByUuid(profileId)
+        checkState originalProfile
+
+        def profile = profileOrDraft(originalProfile)
+
+        if(!profile.documents) {
+            profile.documents = new ArrayList<Document>()
+        }
+
+        def d = new Document(documentId: UUID.randomUUID().toString())
+        props.remove('url')
+        props.remove('thumbnailUrl')
+
+        try {
+            profile.documents << d
+            save originalProfile
+            props.remove 'documentId'
+
+            updateDocumentProperties(d, props)
+            save originalProfile
+            return [status: 'ok', documentId: d.documentId, url: d.url]
+        } catch (Exception e) {
+            // clear session to avoid exception when GORM tries to autoflush the changes
+            e.printStackTrace()
+
+            Document.withSession { session -> session.clear() }
+            def error = "Error creating document for ${props.filename} - ${e.message}"
+            log.error error
+            return [status: 'error', error: error]
+        }
+    }
+
+    /**
+     * Updates a new Document object and optionally it's attached file.
+     * @param props the desired properties of the Document.
+     */
+    def updateDocument(String profileId, Map props, String id) {
+        checkArgument profileId
+        checkArgument props
+
+        Profile originalProfile = Profile.findByUuid(profileId)
+        checkState originalProfile
+
+        def profile = profileOrDraft(originalProfile)
+
+        if(!profile.documents) {
+            profile.documents = new ArrayList<Document>()
+        }
+
+        Document d = profile.documents.find {
+            it.documentId == id
+        }
+
+        if (d) {
+            try {
+                props.remove('url')
+                props.remove('thumbnailUrl')
+                updateDocumentProperties(d, props)
+                save originalProfile
+                return [status: 'ok', documentId: d.documentId, url: d.url]
+            } catch (Exception e) {
+                Profile.withSession { session -> session.clear() }
+                def error = "Error updating document ${id} - ${e.message}"
+                log.error error
+                return [status: 'error', error: error]
+            }
+        } else {
+            def error = "Error updating document - no such id ${id}"
+            log.error error
+            return [status: 'error', error: error]
+        }
+    }
+
+    def deleteDocument(String profileId, String documentId, boolean destroy = false) {
+
+        checkArgument profileId
+        checkArgument documentId
+
+        Profile originalProfile = Profile.findByUuid(profileId)
+        checkState originalProfile
+
+        def profile = profileOrDraft(originalProfile)
+
+        if (!profile.documents) {
+            profile.documents = new ArrayList<Document>()
+        }
+
+        Document document = profile.documents.find {
+            it.documentId == documentId
+        }
+        if (document) {
+            try {
+                profile.documents.remove(document)
+                save originalProfile
+                return [status: 'ok', documentId: document.documentId]
+            } catch (Exception e) {
+                Profile.withSession { session -> session.clear() }
+                def error = "Error deleting document ${documentId} - ${e.message}"
+                log.error error, e
+                return [status: 'error', error: error]
+            }
+        } else {
+            def error = "Error deleting document - no such id ${documentId}"
+            log.error error
+            return [status: 'error', error: error]
+        }
+    }
+
+
+    /**
+     * Updates all properties other than 'id' and converts date strings to BSON dates.
+     *
+     * Note that dates are assumed to be ISO8601 in UTC with no millisecs
+     *
+     * Booleans must be handled explicitly because the JSON string "false" will by truthy if just
+     *  assigned to a boolean property.
+     *
+     * @param o the domain instance
+     * @param props the properties to use
+     */
+    private updateDocumentProperties(o, props) {
+        assert grailsApplication
+        def domainDescriptor = grailsApplication.getArtefact(DomainClassArtefactHandler.TYPE,
+                o.getClass().name)
+        props.remove('id')
+        props.remove('api_key')  // don't ever let this be stored in public data
+        props.remove('lastUpdated') // in case we are loading from dumped data
+        props.each { k, v ->
+            log.debug "updating ${k} to ${v}"
+            /*
+             * Checks the domain for properties of type Date and converts them.
+             * Expects dates as strings in the form 'yyyy-MM-ddThh:mm:ssZ'. As indicated by the 'Z' these must be
+             * UTC time. They are converted to java dates by forcing a zero time offset so that local timezone is
+             * not used. All conversions to and from local time are the responsibility of the service consumer.
+             */
+            if (v instanceof String && domainDescriptor.hasProperty(k) && domainDescriptor?.getPropertyByName(k)?.getType() == Date) {
+                v = v ? parseDate(v) : null
+            }
+            if (v == "false") {
+                v = false
+            }
+            if (v == "null") {
+                v = null
+            }
+            o[k] = v
+        }
+    }
+
+    static dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZ")
+
+    private Date parseDate(String dateStr) {
+        return dateFormat.parse(dateStr.replace("Z", "+0000"))
+    }
+
+    def listDocument(String profileId, boolean editMode = false) {
+
+        checkArgument profileId
+
+        Profile originalProfile =   Profile.findByUuid(profileId)
+        checkState originalProfile
+
+        def profile = editMode ? profileOrDraft(originalProfile) : originalProfile
+
+        List<Document> documents = profile.documents?: new ArrayList<Document>()
+
+        documents = documents.findAll {
+            it.status != Document.DELETED
+        }
+        [documents: documents.collect { documentToMap(it) }, count: documents.size()]
     }
 }
