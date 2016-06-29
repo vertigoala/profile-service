@@ -108,7 +108,9 @@ class ExportService extends BaseDataAccessService {
                         nslNomenclatureId: data.nslNomenclatureIdentifier,
                         attributes       : [],
                         thumbnailUrl     : constructThumbnailUrl(data, opus),
-                        url              : "${grailsApplication.config.profile.hub.base.url}opus/${opus.shortName ?: opus.uuid}/profile/${data.scientificName}".toString()
+                        url              : "${grailsApplication.config.profile.hub.base.url}opus/${opus.shortName ?: opus.uuid}/profile/${data.scientificName}".toString(),
+                        mainVideo        : null,
+                        mainAudio        : null
                 ]
 
                 profile.collection = [
@@ -150,6 +152,34 @@ class ExportService extends BaseDataAccessService {
                                 summary: title.summary
                         ]
                     }
+                }
+
+                profile.documents = data.documents
+
+                def video = profile?.documents.find {
+                    it.status == 'active' && it.role == 'embeddedVideo'
+                }
+                if (video) {
+                    profile.mainVideo = [
+                            id: video.documentId,
+                            name: video.name,
+                            attribution: video.attribution,
+                            license: video.license,
+                            embeddedVideo: video.embeddedVideo
+                    ]
+                }
+
+                def audio = profile?.documents.find {
+                    it.status == 'active' && it.role == 'embeddedAudio'
+                }
+                if (audio) {
+                    profile.mainAudio = [
+                            id: audio.documentId,
+                            name: audio.name,
+                            attribution: audio.attribution,
+                            license: audio.license,
+                            embeddedAudio: audio.embeddedAudio
+                    ]
                 }
 
                 writer << com.mongodb.util.JSON.serialize(profile)
