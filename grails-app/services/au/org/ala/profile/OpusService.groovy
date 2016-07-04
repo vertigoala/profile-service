@@ -267,10 +267,8 @@ class OpusService extends BaseDataAccessService {
             }
         }
 
-        if (json.containsKey("privateCollection") && json.privateCollection.toBoolean() != opus.privateCollection) {
-            opus.privateCollection = json.privateCollection?.toBoolean()
-            // if we are changing from public to private, then all other collections that have been granted access to
-            // use this collection as a Supporting Collection need to have their access revoked.
+        if (json.privateCollection) {
+            opus.privateCollection = json.privateCollection?.toBoolean ?: false
             if (opus.privateCollection) {
                 revokeAllSupportingCollectionAccess(opus)
             }
@@ -402,15 +400,11 @@ class OpusService extends BaseDataAccessService {
             }
 
         }
-        if (json.containsKey("showLinkedOpusAttributes") && json.showLinkedOpusAttributes != opus.showLinkedOpusAttributes) {
-            opus.showLinkedOpusAttributes = json.showLinkedOpusAttributes.toBoolean()
-        }
-        if (json.containsKey("autoApproveShareRequests") && json.autoApproveShareRequests != opus.autoApproveShareRequests) {
-            opus.autoApproveShareRequests = json.autoApproveShareRequests.toBoolean()
-        }
-        if (json.containsKey("allowCopyFromLinkedOpus") && json.allowCopyFromLinkedOpus != opus.allowCopyFromLinkedOpus) {
-            opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus.toBoolean()
-        }
+
+        opus.showLinkedOpusAttributes = json.showLinkedOpusAttributes?.toBoolean() ?: false
+        opus.autoApproveShareRequests = json.autoApproveShareRequests?.toBoolean() ?: true
+        opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus?.toBoolean() ?: false
+
         save opus
     }
 
