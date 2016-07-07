@@ -5,6 +5,7 @@ grails.project.test.reports.dir = "target/test-reports"
 grails.project.work.dir = "target/work"
 grails.project.target.level = 1.6
 grails.project.source.level = 1.6
+grails.reload.enabled = true
 //grails.project.war.file = "target/${appName}-${appVersion}.war"
 //grails.plugin.location.'ala-web-theme' = "../ala-web-theme"
 
@@ -35,6 +36,7 @@ grails.project.dependency.resolution = {
 
     repositories {
         mavenLocal()
+        mavenRepo "http://nexus.ala.org.au/content/repositories/grails-plugins/"
         mavenRepo ("http://nexus.ala.org.au/content/groups/public/") {
             updatePolicy 'always'
         }
@@ -64,6 +66,7 @@ grails.project.dependency.resolution = {
             excludes 'groovy-all' // elasticsearch:0.0.4.6 bundles groovy-all:2.4.3; Grails 2.5.2 uses groovy-all:2.4.4
         }
         runtime ":cors:1.1.6"
+        compile ":asset-pipeline:2.9.1"
         compile ":quartz:1.0.2"
         compile ":mail:1.0.7"
     }

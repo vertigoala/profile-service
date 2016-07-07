@@ -128,6 +128,12 @@ class UrlMappings {
         "/user/details" controller: "userDetails", action: [GET: "getUserDetails"]
 
         "500" view: '/error'
+        "404"(view: "/notFound")
+        "403"(view: "/notAuthorised")
+        "401"(view: "/notAuthorised")
+        "/notAuthorised"(view: "/notAuthorised")
+        "/error"(view: "/error")
+        "/notFound"(view: "/notFound")
 
         "/" view: "/index"
     }
