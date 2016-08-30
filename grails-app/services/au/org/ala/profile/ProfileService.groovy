@@ -5,6 +5,8 @@ import au.org.ala.profile.util.CloneAndDraftUtil
 import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.StorageExtension
 import au.org.ala.web.AuthService
+import groovy.transform.stc.ClosureParams
+import groovy.transform.stc.SimpleType
 import org.apache.commons.lang3.StringUtils
 import org.codehaus.groovy.grails.commons.DomainClassArtefactHandler
 import org.springframework.transaction.annotation.Transactional
@@ -80,6 +82,20 @@ class ProfileService extends BaseDataAccessService {
     }
 
     Profile createProfile(String opusId, Map json) {
+        createProfile(opusId, json, null)
+    }
+
+    /**
+     * Create a profile in a given opus, with a given set of initial fields in the json Map.  The unsaved
+     * profile is then passed to the populateProfile closure to allow the caller the opportunity to make
+     * changes to the new profile before it is saved and autoDraftProfiles is applied.
+     * @param opusId The Opus UUID
+     * @param json The map of initial Profile properties
+     * @param populateProfile A closure that takes a single Profile as the argument and can mutate the profile before saving.
+     * @return The saved profile or null if the profile was not saved correctly.
+     */
+    Profile createProfile(String opusId, Map json,
+                          @ClosureParams(value = SimpleType, options = "au.org.ala.profile.Profile") Closure<?> populateProfile) {
         checkArgument opusId
         checkArgument json
 
@@ -105,6 +121,10 @@ class ProfileService extends BaseDataAccessService {
             profile.manuallyMatchedName = false
         }
 
+        if (populateProfile) {
+            populateProfile(profile)
+        }
+
         boolean success = save profile
 
         if (!success) {
@@ -119,9 +139,7 @@ class ProfileService extends BaseDataAccessService {
     Profile duplicateProfile(String opusId, Profile sourceProfile, Map json) {
         checkArgument sourceProfile
 
-        Profile profile = createProfile(opusId, json)
-
-        if (profile) {
+        createProfile(opusId, json) { profile ->
             // certain things cannot be cloned, such as ids, profile-specific properties like image config and the
             // occurrence query, and attachments
             profile.specimenIds = sourceProfile.specimenIds?.collect()
@@ -139,19 +157,15 @@ class ProfileService extends BaseDataAccessService {
                 it.uuid = UUID.randomUUID().toString()
             }
 
-            sourceProfile.attributes?.each {
+            profile.attributes = sourceProfile.attributes?.collect {
                 Attribute newAttribute = CloneAndDraftUtil.cloneAttribute(it, false)
                 newAttribute.uuid = UUID.randomUUID().toString()
-                profile.addToAttributes(newAttribute)
-            }
-
-            boolean success = save profile
-            if (!success) {
-                profile = null
+                newAttribute
+            }?.toSet()
+            profile.attributes.each {
+                profile.addToAttributes(it)
             }
         }
-
-        profile
     }
 
     private void updateNameDetails(profile, Map matchedName, String providedName, List manualHierarchy) {
