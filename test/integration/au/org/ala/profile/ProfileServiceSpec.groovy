@@ -184,6 +184,37 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         newProfile.attributes[1].uuid != "1" && newProfile.attributes[1].uuid != "2"
     }
 
+    def "duplicateProfile with Opus.autoDraftProfiles puts the attributes in before creating a draft"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title", autoDraftProfiles: true)
+        save opus
+        Profile existingProfile = new Profile(opus: opus, scientificName: "name", specimenIds: ["1", "2"])
+
+        Vocab vocab = new Vocab(name: "vocab1")
+        Term term = new Term(uuid: "1", name: "title")
+        vocab.addToTerms(term)
+        save vocab
+        Attribute attribute1 = new Attribute(uuid: "1", title: term, text: "text")
+        existingProfile.addToAttributes(attribute1)
+        Attribute attribute2 = new Attribute(uuid: "2", title: term, text: "text2")
+        existingProfile.addToAttributes(attribute2)
+
+        save existingProfile
+
+        expect:
+        Profile.count() == 1
+        Attribute.count() == 2
+
+        when:
+        Profile newProfile = service.duplicateProfile(opus.uuid, existingProfile, [scientificName: "test"])
+
+        then:
+        newProfile.attributes.size() == 2
+        newProfile.draft.attributes.size() == 2
+        !newProfile.attributes*.uuid.containsAll(["1", "2"])
+        !newProfile.draft.attributes*.uuid.containsAll(["1", "2"])
+    }
+
     def "delete profile should remove the record"() {
         given:
         Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
