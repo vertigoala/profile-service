@@ -137,9 +137,22 @@ class Profile {
         if (uuid == null) {
             uuid = UUID.randomUUID().toString()
         }
-        if (draft) {
+
+
+        // draft nullness is not enough to know if the profile or the draft has been edited
+        // we need to play with the dirty properties to check for additional conditions
+        // such as when the draft is created, cancelled or published.
+
+        // Draft Cancelled
+        if(!draft && isDirty("draft") && dirtyPropertyNames.size() == 1 ) {
+            // Do nothing, draft will be wiped out and this.lastPublished remains untouched
+        } else if (draft && isDirty("draft") && dirtyPropertyNames.size() == 1) { // Draft Created
+            draft.lastPublished = lastPublished // No changes to the draft have happened yet
+        } else if (!draft && isDirty("draft") && dirtyPropertyNames.size() > 1) { // Draft Published
+            lastPublished = new Date()
+        } else if(draft) { // Draft Updated
             draft.lastPublished = new Date()
-        } else {
+        } else {  // No draft, profile updated on the fly
             lastPublished = new Date()
         }
     }
