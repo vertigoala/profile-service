@@ -1582,7 +1582,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.guid == "ABC"
     }
 
-    def "saving a profile should set the lastPublished field"() {
+    def "saving a profile without draft should set the lastPublished field"() {
         given:
         Date now = new Date()
         Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
@@ -1594,18 +1594,79 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.lastPublished > now
     }
 
+    def "creating a draft profile should set the its lastPublished field to the same date as the profile"() {
+        given:
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+
+        profile.draft = new DraftProfile(uuid: profile.uuid, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+
+        expect:
+        profile.draft.lastPublished == profile.lastPublished
+    }
+
+
     def "updating a draft profile should set the lastPublished field on the draft only"() {
         given:
         Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
         save opus1
         Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
         save profile
+        Date profileOriginalPublishedDate = profile.lastPublished
+
         profile.draft = new DraftProfile(uuid: profile.uuid, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+
+        profile.draft.fullName = "A new name"
         save profile
 
         expect:
         profile.draft.lastPublished > profile.lastPublished
+        profile.lastPublished == profileOriginalPublishedDate
     }
+
+    def "discarding a draft profile should not change the profile lastPublished field"() {
+        given:
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+        Date profileOriginalPublishedDate = profile.lastPublished
+
+        profile.draft = new DraftProfile(uuid: profile.uuid, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+
+        profile.draft = null
+        save profile
+
+        expect:
+        profile.lastPublished == profileOriginalPublishedDate
+    }
+
+
+    def "publishing a draft profile should change the profile lastPublished field"() {
+        given:
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+        Date profileOriginalPublishedDate = profile.lastPublished
+
+        profile.draft = new DraftProfile(uuid: profile.uuid, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+
+        profile.draft = null
+        profile.fullName = "An updated value copied from the draft"
+        save profile
+
+        expect:
+        profile.lastPublished > profileOriginalPublishedDate
+    }
+
+
 
     def "populateTaxonHierarchy should add a fully customised hierarchy as the classification for the profile, in reverse order"() {
         given:
