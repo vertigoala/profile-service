@@ -377,13 +377,13 @@ class ProfileService extends BaseDataAccessService {
         }
     }
 
-    boolean toggleDraftMode(String profileId) {
+    boolean toggleDraftMode(String profileId, boolean publish = false) {
         checkArgument profileId
 
         Profile profile = Profile.findByUuid(profileId)
         checkState profile
 
-        if (profile.draft) {
+        if (profile.draft && publish) {
             // delete files for attachments that were removed during the draft stage
             profile.attachments?.each { attachment ->
                 if (profile.draft.attachments?.find { it.uuid == attachment.uuid } == null) {
