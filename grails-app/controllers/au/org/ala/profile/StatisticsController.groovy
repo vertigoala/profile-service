@@ -47,11 +47,11 @@ class StatisticsController extends BaseController {
                 ])
 
                 int editorCount = opus.authorities.count {
-                    it.role == Role.ROLE_PROFILE_EDITOR
+                    it.role == Role.ROLE_PROFILE_EDITOR  || it.role == Role.ROLE_PROFILE_EDITOR_PLUS
                 }
                 statistics.add([
                         id     : 'editorCount',
-                        name   : 'Collection editors',
+                        name   : 'Collection editors and editors plus',
                         value  : editorCount,
                         tooltip: "Number of people who can edit profiles in this collection"
                 ])

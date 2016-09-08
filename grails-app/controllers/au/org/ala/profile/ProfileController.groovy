@@ -391,7 +391,8 @@ class ProfileController extends BaseController {
             if (!profile) {
                 notFound()
             } else {
-                profileService.toggleDraftMode(profile.uuid)
+                boolean publish = params.publish == "true"
+                profileService.toggleDraftMode(profile.uuid, publish)
 
                 render([success: true] as JSON)
             }

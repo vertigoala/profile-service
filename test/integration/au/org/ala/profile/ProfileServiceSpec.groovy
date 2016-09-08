@@ -1411,7 +1411,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         Profile.count == 1
 
         when:
-        service.toggleDraftMode(profile.uuid)
+        service.toggleDraftMode(profile.uuid, true)
 
         then:
         Profile.count == 1
@@ -1448,7 +1448,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         Profile.list()[0].attributes.size() == 2
 
         when:
-        service.toggleDraftMode(profile.uuid)
+        service.toggleDraftMode(profile.uuid, true)
 
         then:
         Attribute.count == 1
@@ -1463,7 +1463,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         save profile
 
         when:
-        service.toggleDraftMode(profile.uuid)
+        service.toggleDraftMode(profile.uuid, true)
 
         then:
         1 * service.attachmentService.deleteAttachment(opus.uuid, profile.uuid, "1234", _)
