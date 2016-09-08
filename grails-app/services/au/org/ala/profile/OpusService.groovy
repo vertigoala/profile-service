@@ -268,7 +268,7 @@ class OpusService extends BaseDataAccessService {
         }
 
         if (json.privateCollection) {
-            opus.privateCollection = json.privateCollection?.toBoolean ?: false
+            opus.privateCollection = json.privateCollection?.toBoolean() ?: false
             if (opus.privateCollection) {
                 revokeAllSupportingCollectionAccess(opus)
             }

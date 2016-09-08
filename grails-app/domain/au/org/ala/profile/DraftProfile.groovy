@@ -42,7 +42,9 @@ class DraftProfile {
     String createdBy
     Date lastPublished
 
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'documents', 'attributes', 'stagedImages', 'privateImages', 'attachments']
+    // Omitting imageSettings prevented mongo from storing the embedded Map properly, however the Integration Tests
+    // didn't fail because of that.
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'documents', 'attributes', 'stagedImages', 'imageSettings', 'privateImages', 'attachments']
 
     static constraints = {
         nameAuthor nullable: true

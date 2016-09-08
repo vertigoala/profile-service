@@ -372,6 +372,47 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.imageSettings == [:]
     }
 
+    // IT added for completeness but keep in mind that the test was passing even if the DraftProfile.imageSettings was not configured as embedded in the domain class
+    def "Draft saveImages should change the imageSettings only if the incoming data has the imageSettings attribute and the value is different"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Profile profile
+
+        when: "the incoming value is different"
+        profile = new Profile(opus: opus, scientificName: "sciName",  draft:  new DraftProfile(uuid: "asd", opus: opus, scientificName: "sciName",imageSettings: [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE), image3: new ImageSettings(imageDisplayOption: EXCLUDE)]))
+        save profile
+        service.saveImages(profile, [imageSettings: [[imageId: "image4", displayOption: EXCLUDE.name()], [imageId: "image5", displayOption: EXCLUDE.name()], [imageId: "image6", displayOption: EXCLUDE.name()]]])
+
+        then: "the imageSettings should be replaced"
+        profile.draft.imageSettings == [image4: new ImageSettings(imageDisplayOption: EXCLUDE), image5: new ImageSettings(imageDisplayOption: EXCLUDE), image6: new ImageSettings(imageDisplayOption: EXCLUDE)]
+
+        when: "the incoming data does not have the attribute"
+        profile = new Profile(opus: opus, scientificName: "sciName", draft:  new DraftProfile(uuid: "asd", opus: opus, scientificName: "sciName", imageSettings: [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE), image3: new ImageSettings(imageDisplayOption: EXCLUDE)]))
+        save profile
+        service.saveImages(profile, [a: "bla"])
+
+        then: "there should be no change"
+        profile.draft.imageSettings == [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE), image3: new ImageSettings(imageDisplayOption: EXCLUDE)]
+
+        when: "the incoming attribute is empty"
+        profile = new Profile(opus: opus, scientificName: "sciName", draft:  new DraftProfile(uuid: "asd", opus: opus, scientificName: "sciName", imageSettings: [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE), image3: new ImageSettings(imageDisplayOption: EXCLUDE)]))
+        save profile
+        service.saveImages(profile, [imageSettings: []])
+
+        then: "all existing image options should be removed"
+        profile.draft.imageSettings == [:]
+
+        when: "the incoming attribute is null"
+        profile = new Profile(opus: opus, scientificName: "sciName", draft:  new DraftProfile(uuid: "asd", opus: opus, scientificName: "sciName", imageSettings: [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE), image3: new ImageSettings(imageDisplayOption: EXCLUDE)]))
+        save profile
+        service.saveImages(profile, [imageSettings: null])
+
+        then: "all existing image options should be removed"
+        profile.draft.imageSettings == [:]
+    }
+
+
     def "saveSpecimens should change the specimens only if the incoming data has the specimenIds attribute and the value is different"() {
         given:
         Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
