@@ -143,19 +143,8 @@ class CloneAndDraftUtil {
             clone.documentId = source.documentId
         }
         clone.attribution = source.attribution
-        clone.embeddedAudio = source.embeddedAudio
-        clone.embeddedVideo = source.embeddedVideo
-        clone.isPrimaryProjectImage = source.isPrimaryProjectImage
-        clone.labels = source.labels
         clone.licence = source.licence
         clone.name = source.name
-        clone.parentId = source.parentId
-        clone.primaryAudio = source.primaryAudio
-        clone.primaryVideo = source.primaryVideo
-        clone.role = source.role
-        clone.status = source.status
-        clone.thirdPartyConsentDeclarationMade = source.thirdPartyConsentDeclarationMade
-        clone.thirdPartyConsentDeclarationText = source.thirdPartyConsentDeclarationText
 
         clone
     }

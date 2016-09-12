@@ -35,6 +35,8 @@ class ProfileMarshaller {
                     links                    : profile.links,
                     bhl                      : profile.bhlLinks,
                     primaryImage             : profile.primaryImage,
+                    primaryAudio             : profile.primaryAudio,
+                    primaryVideo             : profile.primaryVideo,
                     imageSettings            : profile.imageSettings?.collect { k, v -> [imageId: k, caption: v?.caption, displayOption: v?.imageDisplayOption?.toString()] } ?: [],
                     stagedImages             : profile.stagedImages ?: [],
                     privateImages            : profile.privateImages ?: [],
@@ -47,7 +49,7 @@ class ProfileMarshaller {
                         [uuid: it.uuid, text: it.text, plainText: Utils.cleanupText(it.text), order: it.order]
                     }?.sort { it.order },
                     documents             : profile.documents?.collect {
-                        [documentId: it.documentId, name: it.name, attribution: it.attribution, licence: it.licence, embeddedContent:  (it.role == "embeddedVideo") ? it.embeddedVideo : it.embeddedAudio ]
+                        [documentId: it.documentId, name: it.name, attribution: it.attribution, licence: it.licence, url: it.url, type: it.type ]
                     },
                     publications             : profile.publications?.sort { left, right -> right.publicationDate <=> left.publicationDate },
                     lastAttributeChange      : profile.lastAttributeChange,
