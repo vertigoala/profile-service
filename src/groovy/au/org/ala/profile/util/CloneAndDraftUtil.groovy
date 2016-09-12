@@ -145,6 +145,8 @@ class CloneAndDraftUtil {
         clone.attribution = source.attribution
         clone.licence = source.licence
         clone.name = source.name
+        clone.url = source.url
+        clone.type = source.type
 
         clone
     }
