@@ -1,5 +1,7 @@
 package au.org.ala.profile
 
+import spock.lang.Unroll
+
 import static au.org.ala.profile.util.ImageOption.*
 import au.org.ala.web.AuthService
 import org.springframework.web.multipart.MultipartFile
@@ -1807,6 +1809,50 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.classification[2].name == "parent"
         profile.classification[2].guid == "1234"
         profile.classification[3].name == "profile"
+    }
+
+    @Unroll
+    def "setPrimaryMultimedia should update the correct profile with the correct UUID"() {
+        given:
+        Opus opus = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus
+        Profile profile = new Profile(opus: opus)
+        if (draft) {
+            profile.draft = new DraftProfile(primaryAudio: startAudio, primaryVideo: startVideo)
+        } else {
+            profile.primaryAudio = startAudio
+            profile.primaryVideo = startVideo
+        }
+        profile.save()
+
+        def json = [:]
+        if (newVideo) {
+            json.primaryVideo = startVideo
+        }
+        if (newAudio) {
+            json.primaryAudio = startAudio
+        }
+
+        when:
+        service.setPrimaryMultimedia(profile, json)
+
+        then:
+        if (draft) {
+            profile.draft.primaryAudio == newAudio
+            profile.draft.primaryVideo == newVideo
+            profile.primaryAudio == null
+            profile.primaryVideo == null
+        } else {
+            profile.primaryAudio == newAudio
+            profile.primaryVideo == newVideo
+        }
+
+        where:
+        startAudio || startVideo || newAudio || newVideo || draft
+        null | null | 'abc' | 'def' | false
+        'def' | 'abc' | null | null | false
+        null | null | 'abc' | 'def' | true
+        'def' | 'abc' | null | null | true
     }
 }
 

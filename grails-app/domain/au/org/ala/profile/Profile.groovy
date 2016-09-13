@@ -53,6 +53,8 @@ class Profile {
     String taxonomyTree
     String primaryImage
     Map<String, ImageSettings> imageSettings = [:]
+    String primaryVideo
+    String primaryAudio
     boolean showLinkedOpusAttributes = false // Even if set to true, this needs Opus.showLinkedOpusAttributes to also be true
     List<String> specimenIds
     List<Authorship> authorship
@@ -105,6 +107,8 @@ class Profile {
         fullName nullable: true
         guid nullable: true
         primaryImage nullable: true
+        primaryVideo nullable: true
+        primaryAudio nullable: true
         specimenIds nullable: true
         classification nullable: true
         nslNameIdentifier nullable: true

@@ -620,7 +620,7 @@ class ProfileService extends BaseDataAccessService {
 
     boolean updateDocument(Profile profile, Map newDocument, String id) {
         checkArgument profile
-        checkArgument json
+        checkArgument newDocument
 
         profile = profileOrDraft(profile)
 
@@ -630,7 +630,7 @@ class ProfileService extends BaseDataAccessService {
 
         if(id) {
             Document existingDocument = profile.documents.find {
-                it.id == id
+                it.documentId == id
             }
 
             updateProperties(existingDocument, newDocument)
@@ -1092,9 +1092,6 @@ class ProfileService extends BaseDataAccessService {
         mapOfProperties.remove("_id")
         // construct document url based on the current configuration
         mapOfProperties.url = document.url
-        if (document?.type == Document.DOCUMENT_TYPE_IMAGE) {
-            mapOfProperties.thumbnailUrl = document.thumbnailUrl
-        }
         mapOfProperties.findAll { k, v -> v != null }
     }
 
@@ -1102,13 +1099,9 @@ class ProfileService extends BaseDataAccessService {
      * Creates a new Document object associated with the supplied file.
      * @param props the desired properties of the Document.
      */
-    def createDocument(String profileId, props) {
+    def createDocument(Profile originalProfile, props) {
 
-        checkArgument profileId
-        checkArgument props
-
-        Profile originalProfile = Profile.findByUuid(profileId)
-        checkState originalProfile
+        checkArgument originalProfile
 
         def profile = profileOrDraft(originalProfile)
 
@@ -1117,8 +1110,6 @@ class ProfileService extends BaseDataAccessService {
         }
 
         def d = new Document(documentId: UUID.randomUUID().toString())
-        props.remove('url')
-        props.remove('thumbnailUrl')
 
         try {
             profile.documents << d
@@ -1134,47 +1125,6 @@ class ProfileService extends BaseDataAccessService {
 
             Document.withSession { session -> session.clear() }
             def error = "Error creating document for ${props.filename} - ${e.message}"
-            log.error error
-            return [status: 'error', error: error]
-        }
-    }
-
-    /**
-     * Updates a new Document object and optionally it's attached file.
-     * @param props the desired properties of the Document.
-     */
-    def updateDocument(String profileId, Map props, String id) {
-        checkArgument profileId
-        checkArgument props
-
-        Profile originalProfile = Profile.findByUuid(profileId)
-        checkState originalProfile
-
-        def profile = profileOrDraft(originalProfile)
-
-        if(!profile.documents) {
-            profile.documents = new ArrayList<Document>()
-        }
-
-        Document d = profile.documents.find {
-            it.documentId == id
-        }
-
-        if (d) {
-            try {
-                props.remove('url')
-                props.remove('thumbnailUrl')
-                updateDocumentProperties(d, props)
-                save originalProfile
-                return [status: 'ok', documentId: d.documentId, url: d.url]
-            } catch (Exception e) {
-                Profile.withSession { session -> session.clear() }
-                def error = "Error updating document ${id} - ${e.message}"
-                log.error error
-                return [status: 'error', error: error]
-            }
-        } else {
-            def error = "Error updating document - no such id ${id}"
             log.error error
             return [status: 'error', error: error]
         }
@@ -1261,20 +1211,28 @@ class ProfileService extends BaseDataAccessService {
         return dateFormat.parse(dateStr.replace("Z", "+0000"))
     }
 
-    def listDocument(String profileId, boolean editMode = false) {
+    def listDocument(Profile originalProfile, boolean editMode = false) {
 
-        checkArgument profileId
-
-        Profile originalProfile =   Profile.findByUuid(profileId)
-        checkState originalProfile
+        checkArgument originalProfile
 
         def profile = editMode ? profileOrDraft(originalProfile) : originalProfile
 
-        List<Document> documents = profile.documents?: new ArrayList<Document>()
+        List<Document> documents = profile.documents ?: new ArrayList<Document>()
 
-        documents = documents.findAll {
-            it.status != Document.DELETED
-        }
         [documents: documents.collect { documentToMap(it) }, count: documents.size()]
+    }
+
+    def setPrimaryMultimedia(Profile originalProfile, json) {
+
+        checkArgument originalProfile
+
+        def profile = profileOrDraft(originalProfile)
+
+        profile.primaryAudio = json?.primaryAudio ?: null
+        profile.primaryVideo = json?.primaryVideo ?: null
+
+        originalProfile.save(true)
+
+        return !originalProfile.hasErrors()
     }
 }

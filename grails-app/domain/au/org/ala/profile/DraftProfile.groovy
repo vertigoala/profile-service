@@ -20,6 +20,8 @@ class DraftProfile {
     String nslNomenclatureIdentifier
     String taxonomyTree
     String primaryImage
+    String primaryVideo
+    String primaryAudio
     String occurrenceQuery
     Map<String, ImageSettings> imageSettings = [:]
     List<String> specimenIds
@@ -50,6 +52,8 @@ class DraftProfile {
         nameAuthor nullable: true
         guid nullable: true
         primaryImage nullable: true
+        primaryVideo nullable: true
+        primaryAudio nullable: true
         nslNameIdentifier nullable: true
         nslNomenclatureIdentifier nullable: true
         rank nullable: true
