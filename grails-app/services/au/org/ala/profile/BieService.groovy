@@ -59,7 +59,7 @@ class BieService {
         Set otherNames = [] as HashSet
 
         try {
-            String url = "${grailsApplication.config.bie.base.url}/species/${Utils.enc(name)}"
+            String url = "${grailsApplication.config.bie.base.url}/ws/species/${Utils.enc(name)}"
             log.debug("GET request to ${url}")
             String resp = new URL(url).text
 
