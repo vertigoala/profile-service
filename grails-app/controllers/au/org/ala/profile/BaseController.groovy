@@ -2,6 +2,7 @@ package au.org.ala.profile
 
 import au.org.ala.profile.util.DataResourceOption
 import au.org.ala.ws.controller.BasicWSController
+import com.google.common.base.Stopwatch
 
 import static au.org.ala.profile.util.Utils.isUuid
 import static au.org.ala.profile.util.Utils.enc
@@ -11,13 +12,19 @@ class BaseController extends BasicWSController {
     ProfileService profileService
 
     Profile getProfile() {
+        Stopwatch sw = new Stopwatch().start()
+
         Profile profile
 
         if (isUuid(params.profileId)) {
             profile = Profile.findByUuid(params.profileId)
+            log.debug("getProfile() - Get profile by UUID ${params.profileId}: ${sw.elapsedMillis()}ms")
+            sw.reset().start()
         } else {
             Opus opus = getOpus()
             profile = Profile.findByOpusAndScientificNameIlike(opus, params.profileId)
+            log.debug("getProfile() - Get profile by opus ${opus.uuid} and sci name ${params.profileId}: ${sw.elapsedMillis()}ms")
+            sw.reset().start()
 
             // names can be changed, so if there is no profile with the name, check for a draft with that name, but only if the 'latest' flag is true
             if (!profile && params.latest?.toBoolean()) {
@@ -26,6 +33,9 @@ class BaseController extends BasicWSController {
                     ilike "draft.scientificName", params.profileId
                 }
                 profile = matches.isEmpty() ? null : matches.first()
+
+                log.debug("getProfile() - Get profile by with changed name: ${sw.elapsedMillis()}ms")
+                sw.reset().start()
             }
         }
 
@@ -54,6 +64,9 @@ class BaseController extends BasicWSController {
                 cl.profileId = relatedProfile?.uuid
                 cl.profileName = relatedProfile?.scientificName
             }
+
+            log.debug("getProfile() - Get classification childCounts, profile ids and profileNames: ${sw.elapsedMillis()}ms")
+            sw.reset().start()
         }
 
         // if the profile has no specific occurrence query then we just set it to the default for the collection,
@@ -64,6 +77,8 @@ class BaseController extends BasicWSController {
             if (profile.draft) {
                 profile.draft.occurrenceQuery = query
             }
+            log.debug("getProfile() - createOccurenceQuery: ${sw.elapsedMillis()}ms")
+            sw.reset().start()
         }
 
         profile
@@ -115,11 +130,14 @@ class BaseController extends BasicWSController {
     }
 
     Opus getOpus() {
+        Stopwatch sw = new Stopwatch().start()
         Opus opus
         if (isUuid(params.opusId)) {
             opus = Opus.findByUuid(params.opusId)
+            log.debug("getOpus() - Get opus by UUID ${params.opusId}: ${sw.elapsedMillis()}ms")
         } else {
             opus = Opus.findByShortName(params.opusId.toLowerCase())
+            log.debug("getOpus() - Get opus by short name ${params.opusId}: ${sw.elapsedMillis()}ms")
         }
         opus
     }
