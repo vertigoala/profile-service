@@ -39,7 +39,7 @@ class BaseController extends BasicWSController {
             }
         }
 
-        if (profile && profile.classification) {
+        if (profile && profile.classification && params.boolean('countChildren', false)) {
             def classifications = profile.draft && params.latest == "true" ? profile.draft.classification : profile.classification
             classifications.each { cl ->
                 cl.childCount = Profile.withCriteria {
