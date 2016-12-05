@@ -135,6 +135,7 @@ class Profile {
         guid index: true
         rank index: true
         uuid index: true
+        opus index: true
     }
 
     def beforeValidate() {

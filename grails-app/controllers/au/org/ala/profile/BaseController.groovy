@@ -26,7 +26,8 @@ class BaseController extends BasicWSController {
             log.debug("getProfile() - Get profile by opus ${opus.uuid} and sci name ${params.profileId}: $sw")
             sw.reset().start()
 
-            // names can be changed, so if there is no profile with the name, check for a draft with that name, but only if the 'latest' flag is true
+            // names can be changed, so if there is no profile with the name, check for a draft with that name,
+            // but only if the 'latest' flag is true
             if (!profile && params.latest?.toBoolean()) {
                 List matches = Profile.withCriteria {
                     eq "opus", opus
@@ -37,36 +38,6 @@ class BaseController extends BasicWSController {
                 log.debug("getProfile() - Get profile by with changed name: $sw")
                 sw.reset().start()
             }
-        }
-
-        if (profile && profile.classification && params.boolean('countChildren', false)) {
-            def classifications = profile.draft && params.latest == "true" ? profile.draft.classification : profile.classification
-            classifications.each { cl ->
-                cl.childCount = Profile.withCriteria {
-                    eq "opus", profile.opus
-                    isNull "archivedDate"
-                    ne "uuid", profile.uuid
-
-                    "classification" {
-                        eq "rank", "${cl.rank?.toLowerCase()}"
-                        ilike "name", "${cl.name}"
-                    }
-
-                    projections {
-                        count()
-                    }
-                }[0]
-
-                Profile relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(cl.guid, opus)
-                if (!relatedProfile) {
-                    relatedProfile = Profile.findByScientificNameAndOpusAndArchivedDateIsNull(cl.name, opus)
-                }
-                cl.profileId = relatedProfile?.uuid
-                cl.profileName = relatedProfile?.scientificName
-            }
-
-            log.debug("getProfile() - Get classification childCounts, profile ids and profileNames: $sw")
-            sw.reset().start()
         }
 
         // if the profile has no specific occurrence query then we just set it to the default for the collection,

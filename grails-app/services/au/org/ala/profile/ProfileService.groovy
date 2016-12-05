@@ -5,6 +5,7 @@ import au.org.ala.profile.util.CloneAndDraftUtil
 import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.StorageExtension
 import au.org.ala.web.AuthService
+import com.google.common.base.Stopwatch
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
 import org.apache.commons.lang3.StringUtils
@@ -29,6 +30,58 @@ class ProfileService extends BaseDataAccessService {
     DoiService doiService
     AttachmentService attachmentService
     def grailsApplication
+
+    Profile decorateProfile(Profile profile, boolean latest, boolean countChildren, int countChildrenLimit = -1) {
+        Stopwatch sw = new Stopwatch().start()
+
+        if (profile.classification) {
+            def classifications = profile.draft && latest ? profile.draft.classification : profile.classification
+            classifications.each { cl ->
+//                Stopwatch sw2 = new Stopwatch().start()
+                // only count children if requested to
+                if (countChildren) {
+                    def profiles = Profile.withCriteria {
+                        eq "opus", profile.opus
+                        isNull "archivedDate"
+                        ne "uuid", profile.uuid
+
+                        "classification" {
+                            eq "rank", "${cl.rank?.toLowerCase()}"
+                            ilike "name", "${cl.name}"
+                        }
+
+                        if (countChildrenLimit > 0) {
+                            maxResults(countChildrenLimit)
+                        } else {
+                            projections {
+                                count()
+                            }
+                        }
+                    }
+                    cl.childCount = countChildrenLimit > 0 ? profiles.size() : profiles[0]
+                }
+
+//                log.debug("getProfile() - Get classification childCounts (limit $countChildrenLimit): $sw2")
+//                sw2.reset().start()
+
+                Profile relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(cl.guid, profile.opus)
+                if (!relatedProfile) {
+                    relatedProfile = Profile.findByScientificNameAndOpusAndArchivedDateIsNull(cl.name, profile.opus)
+                }
+                cl.profileId = relatedProfile?.uuid
+                cl.profileName = relatedProfile?.scientificName
+
+//                log.debug("getProfile() - Get classification profile ids and profileNames: $sw2")
+//                sw2.reset().start()
+            }
+
+            log.debug("decorateProfile() - Get classification childCounts ($countChildren, limit $countChildrenLimit) profile ids and profileNames: $sw")
+            sw.reset().start()
+
+        }
+
+        profile
+    }
 
     Map checkName(String opusId, String name) {
         Map result = [providedName: name, providedNameDuplicates: [], matchedName: [:], matchedNameDuplicates: []]

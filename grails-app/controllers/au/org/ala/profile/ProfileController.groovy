@@ -420,7 +420,14 @@ class ProfileController extends BaseController {
         Profile profile = getProfile()
 
         if (profile) {
-            if (profile && profile.draft && params.latest == "true") {
+            final fullClassification = params.boolean('fullClassification', false)
+            final latest = params.boolean("latest", false)
+            if (fullClassification) {
+                final limit = params.int('countChildrenLimit', -1)
+                profileService.decorateProfile(profile, latest, true, limit)
+            }
+
+            if (profile && profile.draft && latest) {
                 Opus opus = profile.opus
                 profile = new Profile(profile.draft.properties)
                 profile.attributes?.each { it.profile = profile }

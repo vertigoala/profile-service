@@ -49,6 +49,7 @@ grails.project.dependency.resolution = {
             excludes 'lucene-queries', 'lucene-analyzers', 'lucene-core', 'lucene-analyzers-common', 'lucene-queryparser', 'lucene-sandbox', 'slf4j-log4j12'
         }
         compile "com.xlson.groovycsv:groovycsv:1.0"
+        compile "com.google.guava:guava:14.0.1"
         compile ("com.google.apis:google-api-services-analytics:v3-rev116-1.20.0") {
             excludes 'guava-jdk5'
         }
