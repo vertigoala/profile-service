@@ -31,6 +31,7 @@ class Attribute implements Comparable<Attribute> {
     static belongsTo = [profile: Profile]
 
     static constraints = {
+        text nullable: true
         original nullable: true
         source nullable: true
     }
@@ -44,6 +45,9 @@ class Attribute implements Comparable<Attribute> {
         if (uuid == null) {
             //mint an UUID
             uuid = UUID.randomUUID().toString()
+        }
+        if (text == null) {
+            text = ''
         }
     }
 
