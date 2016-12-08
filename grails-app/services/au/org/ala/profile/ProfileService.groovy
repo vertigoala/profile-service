@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.names.search.HomonymException
 import au.org.ala.profile.util.Utils
 import au.org.ala.profile.util.CloneAndDraftUtil
 import au.org.ala.profile.util.ImageOption
@@ -98,22 +99,34 @@ class ProfileService extends BaseDataAccessService {
         }
 
         // 2. attempt to match the name
-        Map matchedName = nameService.matchName(name)
-        if (matchedName) {
-            result.matchedName = [scientificName: matchedName.scientificName, fullName: matchedName.fullName, nameAuthor: matchedName.author, guid: matchedName.guid, rank: matchedName.rank]
+        try {
+            Map matchedName = nameService.matchName(name)
+            if (matchedName) {
+                result.matchedName = [scientificName: matchedName.scientificName, fullName: matchedName.fullName, nameAuthor: matchedName.author, guid: matchedName.guid, rank: matchedName.rank]
 
-            List matchedScientificNameDuplicates = findByName(result.matchedName.scientificName, opus)
-            if (matchedScientificNameDuplicates) {
-                result.matchedNameDuplicates = matchedScientificNameDuplicates.collect {
-                    [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor, rank: it.rank]
+                List matchedScientificNameDuplicates = findByName(result.matchedName.scientificName, opus)
+                if (matchedScientificNameDuplicates) {
+                    result.matchedNameDuplicates = matchedScientificNameDuplicates.collect {
+                        [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor, rank: it.rank]
+                    }
+                }
+                List matchedFullNameDuplicates = findByName(result.matchedName.fullName, opus)
+                if (matchedFullNameDuplicates) {
+                    result.matchedNameDuplicates = matchedFullNameDuplicates.collect {
+                        [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor, rank: it.rank]
+                    }
                 }
             }
-            List matchedFullNameDuplicates = findByName(result.matchedName.fullName, opus)
-            if (matchedFullNameDuplicates) {
-                result.matchedNameDuplicates = matchedFullNameDuplicates.collect {
-                    [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor, rank: it.rank]
+        } catch (HomonymException he) {
+            result.matchedNameDuplicates = he.results.findResults {
+                if (it.rank) {
+                    def sciName = it.rankClassification.scientificName
+                    def author = it.rankClassification.authorship
+                    [profileId: it.id, scientificName: sciName, fullName: "${sciName} ${author}", nameAuthor: author, rank: it.rank?.rank, kingdom: it.rankClassification.kingdom]
                 }
             }
+        } catch (Exception e) {
+            log.warn e.message, e
         }
 
         result
