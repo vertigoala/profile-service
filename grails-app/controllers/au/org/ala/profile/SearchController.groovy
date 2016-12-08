@@ -60,11 +60,12 @@ class SearchController extends BaseController {
         } else {
             List<String> opusIds = params.opusId?.split(",") ?: []
 
-            boolean countChildren = params.countChildren ? params.countChildren.equalsIgnoreCase("true") : false
-            int max = params.max ? params.max as int : -1
-            int startFrom = params.offset ? params.offset as int : 0
+            boolean countChildren = params.boolean('countChildren', false)
+            int max = params.int('max', -1)
+            int startFrom = params.int('offset', 0)
+            boolean immediateChildrenOnly = params.boolean('immediateChildrenOnly', false)
             ProfileSortOption sortBy = ProfileSortOption.byName(params.sortBy) ?: ProfileSortOption.getDefault()
-            List<Map> profiles = searchService.findByClassificationNameAndRank(params.taxon, params.scientificName, opusIds, sortBy, max, startFrom)
+            List<Map> profiles = searchService.findByClassificationNameAndRank(params.taxon, params.scientificName, opusIds, sortBy, max, startFrom, immediateChildrenOnly)
 
             response.setContentType("application/json")
             render profiles.collect { profile ->
@@ -92,6 +93,20 @@ class SearchController extends BaseController {
                         }[0] : -1
                 ]
             } as JSON
+        }
+    }
+
+    def totalByClassificationNameAndRank() {
+        if (!params.taxon || !params.scientificName) {
+            badRequest "taxon (e.g. phylum, genus, species, etc) and scientificName are a required parameters. You can also optionally supply opusId (comma-separated list of opus ids), max (max records to return), offset (0 based index to start from), recursive (whether to get all subordinate taxa (true) or only the next rank (false) - default is true)."
+        } else {
+            List<String> opusIds = params.opusId?.split(",") ?: []
+
+            boolean immediateChildrenOnly = params.boolean('immediateChildrenOnly', false)
+            int total = searchService.totalDescendantsByClassificationAndRank(params.taxon, params.scientificName, opusIds, immediateChildrenOnly)
+
+            def result = [total: total]
+            respond result
         }
     }
 

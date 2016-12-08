@@ -423,8 +423,7 @@ class ProfileController extends BaseController {
             final fullClassification = params.boolean('fullClassification', false)
             final latest = params.boolean("latest", false)
             if (fullClassification) {
-                final limit = params.int('countChildrenLimit', -1)
-                profileService.decorateProfile(profile, latest, true, limit)
+                profileService.decorateProfile(profile, latest, true)
             }
 
             if (profile && profile.draft && latest) {

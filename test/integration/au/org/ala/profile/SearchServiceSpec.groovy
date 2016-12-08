@@ -756,6 +756,114 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result[2].scientificName == "c"
     }
 
+    def "findByClassificationNameAndRank should only provide immediate children when asked"() {
+        given:
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
+        Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
+        Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3")
+
+        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, rank: "phylum", classification: [new Classification(rank: "kingdom", name: "plantae"), new Classification(rank: "phylum", name: "name1")])
+        Profile profile2 = save new Profile(scientificName: "name2", opus: opus2, rank: "class", classification: [new Classification(rank: "kingdom", name: "plantae"), new Classification(rank: "phylum", name: "name1"), new Classification(rank: "class", name: "name2")])
+        Profile profile3 = save new Profile(scientificName: "name3", opus: opus3, rank: "class", classification: [new Classification(rank: "kingdom", name: "plantae"), new Classification(rank: "class", name: "name3")])
+
+        when:
+        List result = service.findByClassificationNameAndRank("kingdom", "plantae", null, ProfileSortOption.default, -1, 0, true)
+
+        then:
+        result.size() == 2
+        result.find { it.scientificName == profile1.scientificName } != null
+        result.find { it.scientificName == profile2.scientificName } == null
+        result.find { it.scientificName == profile3.scientificName } != null
+    }
+
+    def "totalByClassificationNameAndRank should exclude archived profiles"() {
+        given:
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
+        Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
+        Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3")
+
+        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile2 = save new Profile(scientificName: "name2", opus: opus2, archivedDate: new Date(), rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile profile3 = save new Profile(scientificName: "name3", opus: opus3, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+
+        when:
+        int result = service.totalDescendantsByClassificationAndRank("kingdom", "plantae", null)
+
+        then:
+        result == 2
+    }
+
+    def "totalByClassificationNameAndRank should only provide immediate children when asked"() {
+        given:
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
+        Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
+        Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr3", title: "title3")
+
+        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, rank: "phylum", classification: [new Classification(rank: "kingdom", name: "plantae"), new Classification(rank: "phylum", name: "name1")])
+        Profile profile2 = save new Profile(scientificName: "name2", opus: opus2, rank: "class", classification: [new Classification(rank: "kingdom", name: "plantae"), new Classification(rank: "phylum", name: "name1"), new Classification(rank: "class", name: "name2")])
+        Profile profile3 = save new Profile(scientificName: "name3", opus: opus3, rank: "class", classification: [new Classification(rank: "kingdom", name: "plantae"), new Classification(rank: "class", name: "name3")])
+
+        when:
+        int result = service.totalDescendantsByClassificationAndRank("kingdom", "plantae", null, true)
+
+        then:
+        result == 2
+    }
+
+    def "hasDescendantsByClassificationAndRank should return true when there is at least one child"() {
+        given:
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
+
+        Profile profile1 = save new Profile(scientificName: "class1", opus: opus1, rank: "class", classification: [new Classification(rank: "kingdom", name: "plantae"), new Classification(rank: "phylum", name: "name1"), new Classification(rank: 'class', name: 'class1')])
+
+        when:
+        boolean result = service.hasDescendantsByClassificationAndRank("kingdom", "plantae", opus1, false)
+
+        then:
+        result == true
+    }
+
+    def "hasDescendantsByClassificationAndRank should return true when there is at least one immediate child"() {
+        given:
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
+
+        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, rank: "phylum", classification: [new Classification(rank: "kingdom", name: "plantae"), new Classification(rank: "phylum", name: "name1")])
+
+        when:
+        boolean result = service.hasDescendantsByClassificationAndRank("kingdom", "plantae", opus1, true)
+
+        then:
+        result == true
+    }
+
+    def "hasDescendantsByClassificationAndRank should exclude archived profiles"() {
+        given:
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
+
+        Profile profile1 = save new Profile(scientificName: "name1", opus: opus1, rank: "phylum", archivedDate: new Date(), classification: [new Classification(rank: "kingdom", name: "plantae"), new Classification(rank: "phylum", name: "name1")])
+        Profile profile2 = save new Profile(scientificName: "name2", opus: opus1, rank: "class", archivedDate: new Date(), classification: [new Classification(rank: "kingdom", name: "plantae"), new Classification(rank: "phylum", name: "name1"), new Classification(rank: "class", name: "name2")])
+        Profile profile3 = save new Profile(scientificName: "name3", opus: opus1, rank: "class", archivedDate: new Date(), classification: [new Classification(rank: "kingdom", name: "plantae"), new Classification(rank: "class", name: "name3")])
+
+        when:
+        boolean result = service.hasDescendantsByClassificationAndRank("kingdom", "plantae", opus1, false)
+
+        then:
+        result == false
+    }
+
+    def "hasDescendantsByClassificationAndRank should obey immediate children"() {
+        given:
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
+
+        Profile profile1 = save new Profile(scientificName: "name2", opus: opus1, rank: "class", archivedDate: new Date(), classification: [new Classification(rank: "kingdom", name: "plantae"), new Classification(rank: "phylum", name: "name1"), new Classification(rank: "class", name: "name2")])
+
+        when:
+        boolean result = service.hasDescendantsByClassificationAndRank("kingdom", "plantae", opus1, true)
+
+        then:
+        result == false
+    }
+
     def "getRanks should fail if no opus id is provided"() {
         when:
         service.getRanks(null)

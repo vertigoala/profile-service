@@ -295,56 +295,30 @@ class SearchService extends BaseDataAccessService {
      * @param sortBy Sort option
      * @param max Maximum number of results to return
      * @param startFrom The 0-based offset to start the results from (for paging)
+     * @param immediateChildrenOnly True if only children who list the rank:sciName as a direct parent should be returned.
      * @return List of descendant taxa of the specified Rank/ScientificName
      */
-    List<Map> findByClassificationNameAndRank(String rank, String scientificName, List<String> opusIds, ProfileSortOption sortBy = ProfileSortOption.getDefault(), int max = -1, int startFrom = 0) {
-        checkArgument rank
-        checkArgument scientificName
-
-        scientificName = Utils.sanitizeRegex(scientificName)
+    List<Map> findByClassificationNameAndRank(String rank, String scientificName, List<String> opusIds, ProfileSortOption sortBy = ProfileSortOption.getDefault(), int max = -1, int startFrom = 0, boolean immediateChildrenOnly = false) {
 
         List<Opus> opusList = opusIds?.findResults { Opus.findByUuidOrShortName(it, it) }
         Map<Long, Opus> opusMap = opusList?.collectEntries { [(it.id): it] }
+
+        def pipeline = commonClassificationAndRankAggregationElements(rank, scientificName, opusList, immediateChildrenOnly)
 
         if (max == -1) {
             max = opusList ? DEFAULT_MAX_OPUS_SEARCH_RESULTS : DEFAULT_MAX_BROAD_SEARCH_RESULTS
         }
 
-        Map matchCriteria = [archivedDate: null]
-        matchCriteria << ["scientificName": [$regex: /^(?!(${scientificName})$)/, $options: "i"]] // case insensitive NOT condition
-
-        if (opusList) {
-            matchCriteria << [opus: [$in: opusList*.id]]
-        }
-
-        if (UNKNOWN_RANK.equalsIgnoreCase(rank)) {
-            matchCriteria << [rank: null]
-            matchCriteria << [classification: null]
-        } else {
-            // using regex to perform a case-insensitive match on the 'rank' and 'name' attributes of any element in the
-            // Classification list
-            matchCriteria << [classification: [$elemMatch: [
-                    'rank': rank.toLowerCase(),
-                    'name': [$regex: /^${scientificName}/, $options: "i"]]
-            ]]
-        }
-
-        // Create a projection containing the commonly used Profile attributes, and calculated fields 'unknownRank'
-        // and 'rankOrder' as required for taxonomic sorting
-        Map projection = constructProfileSearchProjection()
-
         Map sort = constructSortCriteria(sortBy)
 
         // Using a MongoDB Aggregation instead of a GORM Criteria query so we can take advantage of the ability to
         // calculate derived properties in the projection, and sort based on the contents of an array
-        def aggregation = Profile.collection.aggregate([
-                [$match: matchCriteria],
-                [$project: projection],
+        def aggregation = Profile.collection.aggregate(pipeline + [
                 [$sort: sort],
                 [$skip: startFrom], [$limit: max]
         ])
 
-        int order = 0;
+        int order = 0
         aggregation.results().collect {
             Opus opus = opusMap ? opusMap[it.opus] : Opus.get(it.opus)
 
@@ -357,6 +331,98 @@ class SearchService extends BaseDataAccessService {
                     taxonomicOrder: order++
             ]
         }
+    }
+
+    /**
+     * Count all descendants of the specified taxon, NOT including the taxon itself. For example, rank = genus and
+     * scientificName = Acacia should count all Acacia species/subspecies/varieties/etc, but should NOT count Acacia
+     * itself.
+     *
+     * @param rank The rank of the taxon to find the descendants of
+     * @param scientificName The name of the taxon to find the descendants of
+     * @param opusIds List of opusIds to limit the search to. If null or empty, all collections will be searched
+     * @param immediateChildrenOnly True if only children who list the rank:sciName as a direct parent should be returned.
+     * @return List of descendant taxa of the specified Rank/ScientificName
+     */
+    int totalDescendantsByClassificationAndRank(String rank, String scientificName, List<String> opusIds, boolean immediateChildrenOnly = false) {
+        List<Opus> opusList = opusIds?.findResults { Opus.findByUuidOrShortName(it, it) }
+        countDescendantsByClassificationAndRank(rank, scientificName, opusList, immediateChildrenOnly)
+    }
+
+    // renamed version of above because erasure
+    int countDescendantsByClassificationAndRank(String rank, String scientificName, List<Opus> opusList, boolean immediateChildrenOnly = false) {
+
+        def pipeline = commonClassificationAndRankAggregationElements(rank, scientificName, opusList, immediateChildrenOnly)
+
+        def countResult = Profile.collection.aggregate(pipeline + [
+                [$group: ['_id': null, count: [ $sum: 1 ]]]
+        ])
+        def results = countResult.results()
+
+        return results ? results[0]?.count ?: 0 : 0
+    }
+
+    boolean hasDescendantsByClassificationAndRank(String rank, String scientificName, Opus opus, boolean immediateOnly) {
+        def pipeline = commonClassificationAndRankAggregationElements(rank, scientificName, [opus], immediateOnly)
+
+        def aggregation = Profile.collection.aggregate(pipeline + [
+                [$skip: 0], [$limit: 1]
+        ])
+
+        return (aggregation.results()?.size() ?: 0) > 0
+    }
+
+    private List<Map> commonClassificationAndRankAggregationElements(String rank, String scientificName, List<Opus> opusList, boolean immediateChildrenOnly) {
+        checkArgument rank
+        checkArgument scientificName
+
+        scientificName = Utils.sanitizeRegex(scientificName)
+
+        // Do a filter first before projection so that the projection
+        // isn't run on all documents.
+        Map preMatchCriteria = [archivedDate: null]
+        preMatchCriteria << ["scientificName": [$regex: /^(?!(${scientificName})$)/, $options: "i"]] // case insensitive NOT condition
+
+        if (opusList) {
+            preMatchCriteria << [opus: [$in: opusList*.id]]
+        }
+
+        // Create a projection containing the commonly used Profile attributes, and calculated fields 'unknownRank'
+        // and 'rankOrder' as required for taxonomic sorting
+        Map projection = constructProfileSearchProjection()
+        // add parent rank to the projection
+        projection << [ parent: ['$arrayElemAt': ['$classification', -2] ] ]
+
+        // Add an optional post projection match to allow filtering on the mapped documents.
+        Map postMatchCriteria = [:]
+
+        if (UNKNOWN_RANK.equalsIgnoreCase(rank)) {
+            preMatchCriteria << [rank: null]
+            preMatchCriteria << [classification: null]
+        } else if (immediateChildrenOnly) {
+            postMatchCriteria << [
+                    'parent.rank': [ '$eq': rank.toLowerCase()],
+                    'parent.name': [ '$regex': /^${scientificName}$/, $options: 'i']
+            ]
+        } else {
+            // using regex to perform a case-insensitive match on the 'rank' and 'name' attributes of any element in the
+            // Classification list
+            preMatchCriteria << [
+                    classification: [
+                            $elemMatch: [
+                                    'rank': rank.toLowerCase(),
+                                    'name': [$regex: /^${scientificName}/, $options: "i"]
+                            ]
+                    ]
+            ]
+        }
+
+        final result = [
+                [$match: preMatchCriteria],
+                [$project: projection]
+
+        ]
+        return result + ( postMatchCriteria ? [[$match: postMatchCriteria]] : [] )
     }
 
     List getImmediateChildren(Opus opus, String topRank, String topName, String filter = null, int max = -1, int startFrom = 0) {
@@ -595,6 +661,7 @@ class SearchService extends BaseDataAccessService {
         projection << [fullName: 1]
         projection << [nameAuthor: 1]
         projection << [opus: 1]
+        projection << [archivedDate: 1]
 
         projection
     }
