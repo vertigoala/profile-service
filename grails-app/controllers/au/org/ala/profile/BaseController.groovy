@@ -18,12 +18,12 @@ class BaseController extends BasicWSController {
 
         if (isUuid(params.profileId)) {
             profile = Profile.findByUuid(params.profileId)
-            log.debug("getProfile() - Get profile by UUID ${params.profileId}: $sw")
+            log.trace("getProfile() - Get profile by UUID ${params.profileId}: $sw")
             sw.reset().start()
         } else {
             Opus opus = getOpus()
             profile = Profile.findByOpusAndScientificNameIlike(opus, params.profileId)
-            log.debug("getProfile() - Get profile by opus ${opus.uuid} and sci name ${params.profileId}: $sw")
+            log.trace("getProfile() - Get profile by opus ${opus.uuid} and sci name ${params.profileId}: $sw")
             sw.reset().start()
 
             // names can be changed, so if there is no profile with the name, check for a draft with that name,
@@ -35,7 +35,7 @@ class BaseController extends BasicWSController {
                 }
                 profile = matches.isEmpty() ? null : matches.first()
 
-                log.debug("getProfile() - Get profile by with changed name: $sw")
+                log.trace("getProfile() - Get profile by with changed name: $sw")
                 sw.reset().start()
             }
         }
@@ -48,7 +48,7 @@ class BaseController extends BasicWSController {
             if (profile.draft) {
                 profile.draft.occurrenceQuery = query
             }
-            log.debug("getProfile() - createOccurenceQuery: $sw")
+            log.trace("getProfile() - createOccurenceQuery: $sw")
             sw.reset().start()
         }
 
@@ -105,10 +105,10 @@ class BaseController extends BasicWSController {
         Opus opus
         if (isUuid(params.opusId)) {
             opus = Opus.findByUuid(params.opusId)
-            log.debug("getOpus() - Get opus by UUID ${params.opusId}: $sw")
+            log.trace("getOpus() - Get opus by UUID ${params.opusId}: $sw")
         } else {
             opus = Opus.findByShortName(params.opusId.toLowerCase())
-            log.debug("getOpus() - Get opus by short name ${params.opusId}: $sw")
+            log.trace("getOpus() - Get opus by short name ${params.opusId}: $sw")
         }
         opus
     }
