@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.ImageOption
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.bson.types.ObjectId
@@ -106,7 +107,9 @@ class Profile {
         nameAuthor nullable: true
         fullName nullable: true
         guid nullable: true
-        primaryImage nullable: true
+        primaryImage nullable: true, validator: { val, obj ->
+            !val || (obj?.imageSettings[val]?.imageDisplayOption ?: ImageOption.INCLUDE) == ImageOption.INCLUDE
+        }
         primaryVideo nullable: true
         primaryAudio nullable: true
         specimenIds nullable: true

@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.ImageOption
 import spock.lang.Unroll
 
 import static au.org.ala.profile.util.ImageOption.*
@@ -77,6 +78,18 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.authorship.size() == 1
         profile.authorship[0].category.name == "Author"
         profile.authorship[0].text == "Fred Bloggs"
+    }
+
+    def "createProfile should fail if the primary image is excluded"() {
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+
+        when:
+        String image = UUID.randomUUID().toString()
+        Profile profile = service.createProfile(opus.uuid, [scientificName: "sciName", primaryImage: image, imageSettings: [(image): new ImageSettings(imageDisplayOption: ImageOption.EXCLUDE, caption: '')]])
+
+        then:
+        profile == null
     }
 
     def "createProfile should NOT automatically put the profile in draft mode if the Opus.autoDraftProfiles flag = false"() {
@@ -412,6 +425,22 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
 
         then: "all existing image options should be removed"
         profile.draft.imageSettings == [:]
+    }
+
+    def "saveImages should fail if the primary image is excluded"() {
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        String image = UUID.randomUUID().toString()
+        Profile profile = service.createProfile(opus.uuid, [scientificName: "sciName", primaryImage: image, imageSettings: [(image): new ImageSettings(imageDisplayOption: INCLUDE, caption: '')]])
+
+        when:
+        def result = service.saveImages(profile, [imageSettings: [[imageId: image, displayOption: EXCLUDE.name(), caption: 'caption']]])
+
+        then:
+        result == false
+        Profile.withNewSession { s ->
+            Profile.findByOpusAndScientificName(opus, 'sciName')?.imageSettings?.get(image)?.imageDisplayOption == INCLUDE
+        }
     }
 
 
