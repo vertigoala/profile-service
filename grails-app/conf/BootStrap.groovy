@@ -50,7 +50,7 @@ class BootStrap {
             log.info "Adding listener for datastore: ${d}"
             ctx.addApplicationListener new AuditListener(d, auditService)
             ctx.addApplicationListener new LastUpdateListener(d, authService)
-            ctx.addApplicationListener(ValueConverterListener.of(d, SanitizedHtml, String, sanitizerPolicy.&sanitize))
+            ctx.addApplicationListener(ValueConverterListener.of(d, SanitizedHtml, String, sanitizerPolicy.&sanitizeField))
         }
     }
 

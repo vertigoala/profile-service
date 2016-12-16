@@ -2,9 +2,12 @@ package au.org.ala.profile.sanitizer
 
 import com.google.common.base.Predicate
 import org.owasp.html.HtmlPolicyBuilder
+import org.owasp.html.PolicyFactory
 
 import java.util.regex.Pattern
 
+import static au.org.ala.profile.sanitizer.SanitizerPolicyConstants.DEFAULT
+import static au.org.ala.profile.sanitizer.SanitizerPolicyConstants.SINGLE_LINE
 import static org.owasp.html.Sanitizers.BLOCKS
 import static org.owasp.html.Sanitizers.FORMATTING
 import static org.owasp.html.Sanitizers.IMAGES
@@ -46,13 +49,28 @@ class SanitizerPolicy {
 
     final sanitizer = FORMATTING.and(STYLES).and(LINKS).and(BLOCKS).and(IMAGES).and(TABLES).and(FONT_ATTRIBUTES).and(CSS)
 
+    final singleLine = FORMATTING
+
+    final Map<String, PolicyFactory> policies = [
+            (SINGLE_LINE): singleLine,
+            (DEFAULT)    : sanitizer
+    ]
+
     /**
      * Sanitizes some HTML according to the policy defined in this class.
      * @param html
      * @return
      */
+    String sanitizeField(SanitizedHtml annotation, String html) {
+        sanitize(html, policies[annotation.value()] ?: sanitizer)
+    }
+
+    static String sanitize(String html, PolicyFactory policyFactory) {
+        return html ? policyFactory.sanitize(html) : html
+    }
+
     String sanitize(String html) {
-        return html ? sanitizer.sanitize(html) : html
+        sanitize(html, sanitizer)
     }
 
     private static Predicate<String> matchesEither(
