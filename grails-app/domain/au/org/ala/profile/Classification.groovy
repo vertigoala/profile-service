@@ -17,6 +17,8 @@ class Classification {
     @Transient
     Integer childCount
     @Transient
+    boolean hasChildren = false
+    @Transient
     String profileId
     @Transient
     String profileName

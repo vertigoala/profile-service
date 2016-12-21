@@ -1,7 +1,9 @@
 package au.org.ala.profile
 
 import au.org.ala.names.search.HomonymException
+import au.org.ala.names.search.SearchResultException
 import au.org.ala.ws.service.WebService
+import grails.converters.JSON
 import org.apache.commons.lang3.StringUtils
 
 import static com.xlson.groovycsv.CsvParser.parseCsv
@@ -32,17 +34,20 @@ class NameService extends BaseDataAccessService {
         nameSearcher = new ALANameSearcher("${grailsApplication.config.name.index.location}")
     }
 
-    Map matchName(String name, Map<String, String> classification = [:], String manuallyMatchedGuid = null) {
+    Map matchName(String name, Map<String, String> classification = [:], String manuallyMatchedGuid = null) throws SearchResultException {
         LinnaeanRankClassification rankClassification = new LinnaeanRankClassification()
         rankClassification.setScientificName(name)
+        classification.kingdom = "Plantae"
         populateClassification(classification, rankClassification)
 
         Map match
         NameSearchResult result
+
         if (manuallyMatchedGuid) {
             result = nameSearcher.searchForRecordByLsid(manuallyMatchedGuid)
         } else {
-            result = nameSearcher.searchForAcceptedRecordDefaultHandling(rankClassification, true, true)
+            result = nameSearcher.searchForAcceptedRecordDefaultHandling(rankClassification, true, false)
+            log.debug "nameSearch result = ${result}"
         }
 
         if (result) {
@@ -53,10 +58,15 @@ class NameService extends BaseDataAccessService {
 
             try {
                 List<NameSearchResult> matches = nameSearcher.searchForRecords(name, null, rankClassification, 100, true, true)
-
-                match = searchPotentialMatches(name, matches)
+                match = searchPotentialMatches(name, matches) // internal method
             } catch (HomonymException e) {
-                match = searchPotentialMatches(name, e.results)
+                log.info "HomonymException = ${e.results as JSON}"
+                match = searchPotentialMatches(name, e.results) // internal method
+
+                // if we can't determine exact match then throw exception up the stack
+                if (!match) {
+                    throw e
+                }
             } catch (Exception e) {
                 log.warn("Name matching exception thrown when attempting to match ${name}. No match will be returned.", e)
                 match = null

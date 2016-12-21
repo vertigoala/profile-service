@@ -48,6 +48,7 @@ class UrlMappings {
         "/profile/search" controller: "search", action: "search"
         "/profile/search/scientificName" controller: "search", action: "findByScientificName"
         "/profile/search/taxon/name" controller: "search", action: "findByClassificationNameAndRank"
+        "/profile/search/taxon/name/total" controller: "search", action: "totalByClassificationNameAndRank"
         "/profile/search/taxon/level" controller: "search", action: "groupByRank"
         "/profile/search/taxon/levels" controller: "search", action: "getRanks"
         "/profile/search/children" controller: "search", action: "getImmediateChildren"
@@ -67,6 +68,7 @@ class UrlMappings {
         "/opus/$opusId/profile/$profileId/document/" controller: "profile", action: [POST:"updateDocument", DELETE: "deleteDocument"]
         "/opus/$opusId/profile/$profileId/document/list" controller: "profile", action: [GET:"listDocuments"]
         "/opus/$opusId/profile/$profileId/document/$id?(.$format)?" controller: "profile", action: [POST:"updateDocument", DELETE: "deleteDocument"]
+        "/opus/$opusId/profile/$profileId/primaryMultimedia" controller: "profile", action: [POST: "setPrimaryMultimedia"]
 
 
         "/opus/$opusId/profile/$profileId/links" controller: "profile", action: [POST: "saveLinks"]
@@ -128,6 +130,12 @@ class UrlMappings {
         "/user/details" controller: "userDetails", action: [GET: "getUserDetails"]
 
         "500" view: '/error'
+        "404"(view: "/notFound")
+        "403"(view: "/notAuthorised")
+        "401"(view: "/notAuthorised")
+        "/notAuthorised"(view: "/notAuthorised")
+        "/error"(view: "/error")
+        "/notFound"(view: "/notFound")
 
         "/" view: "/index"
     }

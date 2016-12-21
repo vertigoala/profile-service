@@ -25,7 +25,7 @@ class BootStrap {
 
         createDefaultTags()
 
-        addLastPublishedOnProfiles()
+        fixMultimedia()
     }
     def destroy = {
     }
@@ -50,28 +50,51 @@ class BootStrap {
             log.info "Adding listener for datastore: ${d}"
             ctx.addApplicationListener new AuditListener(d, auditService)
             ctx.addApplicationListener new LastUpdateListener(d, authService)
-            ctx.addApplicationListener(ValueConverterListener.of(d, SanitizedHtml, String, sanitizerPolicy.&sanitize))
+            ctx.addApplicationListener(ValueConverterListener.of(d, SanitizedHtml, String, sanitizerPolicy.&sanitizeField))
         }
     }
 
-    // TODO Remove this once all lastPublished fields are added
-    def addLastPublishedOnProfiles() {
-        log.info("Updating lastPublished field on profiles")
-        // Bypass GORM to set the last updated field directly
-        DBCollection myColl = mongo.getDB(grailsApplication.config.grails.mongo.databaseName).getCollection("profile")
-        BasicDBList list = new BasicDBList()
-        list.add(new BasicDBObject('lastPublished', new BasicDBObject('$exists', false)))
-        list.add(new BasicDBObject('lastPublished', new BasicDBObject('$type', 10))) // $type: 10 is null
-        BasicDBObject condition = new BasicDBObject('$or', list)
 
-        //Find all profiles missing a lastPublished and set it to the lastUpdated
-        final cursor = myColl.find(condition)
-        final count = cursor.size()
-        cursor.each { DBObject profile ->
-            profile.lastPublished = profile.lastUpdated
-            myColl.save(profile)
+    // TODO Remove this when unnecessary
+    def fixMultimedia() {
+        if ((grailsApplication.config.multimedia.fix.enabled ?: '')?.toBoolean()) {
+            log.info("Fixing multimedia")
+            try {
+                DBCollection myColl = mongo.getDB(grailsApplication.config.grails.mongo.databaseName).getCollection("profile")
+                def q = new BasicDBObject('documents', new BasicDBObject('$exists', true));
+                final cursor = myColl.find(q)
+                // final count = cursor.size()
+                cursor.each { DBObject profile ->
+                    def changed = false
+                    profile.documents.each { DBObject doc ->
+                        if (!doc.url) {
+                            def embed = doc.embeddedVideo ?: doc.embeddedAudio
+                            def isVideo = doc.embeddedVideo != null
+                            def matches = (embed =~ /src="(.*?)"/)
+                            try {
+                                def url = matches[0][1]
+                                // This works for YouTube but not SoundCloud but at the time for writing there were only YouTube URLs in dev and none in prod.
+                                doc.url = url
+
+                                if (isVideo) {
+                                    doc.type = 'video'
+                                } else {
+                                    doc.type = 'audio'
+                                }
+                                log.info("Updating ${profile.scientificName} ${doc.documentId} from ${embed} to url ${doc.url} as type ${doc.type}")
+                                changed = true
+                            } catch (e) {
+                                log.error("Couldn't find a url in $embed in ${doc.documentId} in ${profile.guid}", e)
+                            }
+                        }
+                    }
+                    if (changed) {
+                        myColl.save(profile)
+                    }
+                }
+            } catch (e) {
+                log.error("Some sort of error happened fixing the multimedia", e)
+            }
         }
-        log.info("Updated $count profiles")
     }
-
 }

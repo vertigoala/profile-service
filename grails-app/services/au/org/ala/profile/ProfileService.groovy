@@ -1,10 +1,14 @@
 package au.org.ala.profile
 
+import au.org.ala.names.search.HomonymException
 import au.org.ala.profile.util.Utils
 import au.org.ala.profile.util.CloneAndDraftUtil
 import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.StorageExtension
 import au.org.ala.web.AuthService
+import com.google.common.base.Stopwatch
+import groovy.transform.stc.ClosureParams
+import groovy.transform.stc.SimpleType
 import org.apache.commons.lang3.StringUtils
 import org.codehaus.groovy.grails.commons.DomainClassArtefactHandler
 import org.springframework.transaction.annotation.Transactional
@@ -26,7 +30,36 @@ class ProfileService extends BaseDataAccessService {
     BieService bieService
     DoiService doiService
     AttachmentService attachmentService
+    SearchService searchService
     def grailsApplication
+
+    Profile decorateProfile(Profile profile, boolean latest, boolean checkForChildren) {
+        Stopwatch sw = new Stopwatch().start()
+
+        if (profile.classification) {
+            def classifications = profile.draft && latest ? profile.draft.classification : profile.classification
+            classifications.each { cl ->
+                // only count children if requested to
+                if (checkForChildren) {
+                    cl.hasChildren = searchService.hasDescendantsByClassificationAndRank(cl.rank?.toLowerCase(), cl.name, profile.opus, true)
+                }
+
+                Profile relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(cl.guid, profile.opus)
+                if (!relatedProfile) {
+                    relatedProfile = Profile.findByScientificNameAndOpusAndArchivedDateIsNull(cl.name, profile.opus)
+                }
+                cl.profileId = relatedProfile?.uuid
+                cl.profileName = relatedProfile?.scientificName
+
+            }
+
+            log.debug("decorateProfile() - Get classification childCounts (Check for children $checkForChildren) profile ids and profileNames: $sw")
+            sw.reset().start()
+
+        }
+
+        profile
+    }
 
     Map checkName(String opusId, String name) {
         Map result = [providedName: name, providedNameDuplicates: [], matchedName: [:], matchedNameDuplicates: []]
@@ -43,22 +76,34 @@ class ProfileService extends BaseDataAccessService {
         }
 
         // 2. attempt to match the name
-        Map matchedName = nameService.matchName(name)
-        if (matchedName) {
-            result.matchedName = [scientificName: matchedName.scientificName, fullName: matchedName.fullName, nameAuthor: matchedName.author, guid: matchedName.guid, rank: matchedName.rank]
+        try {
+            Map matchedName = nameService.matchName(name)
+            if (matchedName) {
+                result.matchedName = [scientificName: matchedName.scientificName, fullName: matchedName.fullName, nameAuthor: matchedName.author, guid: matchedName.guid, rank: matchedName.rank]
 
-            List matchedScientificNameDuplicates = findByName(result.matchedName.scientificName, opus)
-            if (matchedScientificNameDuplicates) {
-                result.matchedNameDuplicates = matchedScientificNameDuplicates.collect {
-                    [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor, rank: it.rank]
+                List matchedScientificNameDuplicates = findByName(result.matchedName.scientificName, opus)
+                if (matchedScientificNameDuplicates) {
+                    result.matchedNameDuplicates = matchedScientificNameDuplicates.collect {
+                        [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor, rank: it.rank]
+                    }
+                }
+                List matchedFullNameDuplicates = findByName(result.matchedName.fullName, opus)
+                if (matchedFullNameDuplicates) {
+                    result.matchedNameDuplicates = matchedFullNameDuplicates.collect {
+                        [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor, rank: it.rank]
+                    }
                 }
             }
-            List matchedFullNameDuplicates = findByName(result.matchedName.fullName, opus)
-            if (matchedFullNameDuplicates) {
-                result.matchedNameDuplicates = matchedFullNameDuplicates.collect {
-                    [profileId: it.uuid, scientificName: it.scientificName, fullName: it.fullName, nameAuthor: it.nameAuthor, rank: it.rank]
+        } catch (HomonymException he) {
+            result.matchedNameDuplicates = he.results.findResults {
+                if (it.rank) {
+                    def sciName = it.rankClassification.scientificName
+                    def author = it.rankClassification.authorship
+                    [profileId: it.id, scientificName: sciName, fullName: "${sciName} ${author}", nameAuthor: author, rank: it.rank?.rank, kingdom: it.rankClassification.kingdom]
                 }
             }
+        } catch (Exception e) {
+            log.warn e.message, e
         }
 
         result
@@ -80,6 +125,20 @@ class ProfileService extends BaseDataAccessService {
     }
 
     Profile createProfile(String opusId, Map json) {
+        createProfile(opusId, json, null)
+    }
+
+    /**
+     * Create a profile in a given opus, with a given set of initial fields in the json Map.  The unsaved
+     * profile is then passed to the populateProfile closure to allow the caller the opportunity to make
+     * changes to the new profile before it is saved and autoDraftProfiles is applied.
+     * @param opusId The Opus UUID
+     * @param json The map of initial Profile properties
+     * @param populateProfile A closure that takes a single Profile as the argument and can mutate the profile before saving.
+     * @return The saved profile or null if the profile was not saved correctly.
+     */
+    Profile createProfile(String opusId, Map json,
+                          @ClosureParams(value = SimpleType, options = "au.org.ala.profile.Profile") Closure<?> populateProfile) {
         checkArgument opusId
         checkArgument json
 
@@ -105,6 +164,10 @@ class ProfileService extends BaseDataAccessService {
             profile.manuallyMatchedName = false
         }
 
+        if (populateProfile) {
+            populateProfile(profile)
+        }
+
         boolean success = save profile
 
         if (!success) {
@@ -119,9 +182,7 @@ class ProfileService extends BaseDataAccessService {
     Profile duplicateProfile(String opusId, Profile sourceProfile, Map json) {
         checkArgument sourceProfile
 
-        Profile profile = createProfile(opusId, json)
-
-        if (profile) {
+        createProfile(opusId, json) { profile ->
             // certain things cannot be cloned, such as ids, profile-specific properties like image config and the
             // occurrence query, and attachments
             profile.specimenIds = sourceProfile.specimenIds?.collect()
@@ -139,19 +200,15 @@ class ProfileService extends BaseDataAccessService {
                 it.uuid = UUID.randomUUID().toString()
             }
 
-            sourceProfile.attributes?.each {
+            profile.attributes = sourceProfile.attributes?.collect {
                 Attribute newAttribute = CloneAndDraftUtil.cloneAttribute(it, false)
                 newAttribute.uuid = UUID.randomUUID().toString()
-                profile.addToAttributes(newAttribute)
-            }
-
-            boolean success = save profile
-            if (!success) {
-                profile = null
+                newAttribute
+            }?.toSet()
+            profile.attributes.each {
+                profile.addToAttributes(it)
             }
         }
-
-        profile
     }
 
     private void updateNameDetails(profile, Map matchedName, String providedName, List manualHierarchy) {
@@ -363,13 +420,13 @@ class ProfileService extends BaseDataAccessService {
         }
     }
 
-    boolean toggleDraftMode(String profileId) {
+    boolean toggleDraftMode(String profileId, boolean publish = false) {
         checkArgument profileId
 
         Profile profile = Profile.findByUuid(profileId)
         checkState profile
 
-        if (profile.draft) {
+        if (profile.draft && publish) {
             // delete files for attachments that were removed during the draft stage
             profile.attachments?.each { attachment ->
                 if (profile.draft.attachments?.find { it.uuid == attachment.uuid } == null) {
@@ -606,7 +663,7 @@ class ProfileService extends BaseDataAccessService {
 
     boolean updateDocument(Profile profile, Map newDocument, String id) {
         checkArgument profile
-        checkArgument json
+        checkArgument newDocument
 
         profile = profileOrDraft(profile)
 
@@ -616,7 +673,7 @@ class ProfileService extends BaseDataAccessService {
 
         if(id) {
             Document existingDocument = profile.documents.find {
-                it.id == id
+                it.documentId == id
             }
 
             updateProperties(existingDocument, newDocument)
@@ -1078,9 +1135,6 @@ class ProfileService extends BaseDataAccessService {
         mapOfProperties.remove("_id")
         // construct document url based on the current configuration
         mapOfProperties.url = document.url
-        if (document?.type == Document.DOCUMENT_TYPE_IMAGE) {
-            mapOfProperties.thumbnailUrl = document.thumbnailUrl
-        }
         mapOfProperties.findAll { k, v -> v != null }
     }
 
@@ -1088,13 +1142,9 @@ class ProfileService extends BaseDataAccessService {
      * Creates a new Document object associated with the supplied file.
      * @param props the desired properties of the Document.
      */
-    def createDocument(String profileId, props) {
+    def createDocument(Profile originalProfile, props) {
 
-        checkArgument profileId
-        checkArgument props
-
-        Profile originalProfile = Profile.findByUuid(profileId)
-        checkState originalProfile
+        checkArgument originalProfile
 
         def profile = profileOrDraft(originalProfile)
 
@@ -1103,8 +1153,6 @@ class ProfileService extends BaseDataAccessService {
         }
 
         def d = new Document(documentId: UUID.randomUUID().toString())
-        props.remove('url')
-        props.remove('thumbnailUrl')
 
         try {
             profile.documents << d
@@ -1120,47 +1168,6 @@ class ProfileService extends BaseDataAccessService {
 
             Document.withSession { session -> session.clear() }
             def error = "Error creating document for ${props.filename} - ${e.message}"
-            log.error error
-            return [status: 'error', error: error]
-        }
-    }
-
-    /**
-     * Updates a new Document object and optionally it's attached file.
-     * @param props the desired properties of the Document.
-     */
-    def updateDocument(String profileId, Map props, String id) {
-        checkArgument profileId
-        checkArgument props
-
-        Profile originalProfile = Profile.findByUuid(profileId)
-        checkState originalProfile
-
-        def profile = profileOrDraft(originalProfile)
-
-        if(!profile.documents) {
-            profile.documents = new ArrayList<Document>()
-        }
-
-        Document d = profile.documents.find {
-            it.documentId == id
-        }
-
-        if (d) {
-            try {
-                props.remove('url')
-                props.remove('thumbnailUrl')
-                updateDocumentProperties(d, props)
-                save originalProfile
-                return [status: 'ok', documentId: d.documentId, url: d.url]
-            } catch (Exception e) {
-                Profile.withSession { session -> session.clear() }
-                def error = "Error updating document ${id} - ${e.message}"
-                log.error error
-                return [status: 'error', error: error]
-            }
-        } else {
-            def error = "Error updating document - no such id ${id}"
             log.error error
             return [status: 'error', error: error]
         }
@@ -1247,20 +1254,28 @@ class ProfileService extends BaseDataAccessService {
         return dateFormat.parse(dateStr.replace("Z", "+0000"))
     }
 
-    def listDocument(String profileId, boolean editMode = false) {
+    def listDocument(Profile originalProfile, boolean editMode = false) {
 
-        checkArgument profileId
-
-        Profile originalProfile =   Profile.findByUuid(profileId)
-        checkState originalProfile
+        checkArgument originalProfile
 
         def profile = editMode ? profileOrDraft(originalProfile) : originalProfile
 
-        List<Document> documents = profile.documents?: new ArrayList<Document>()
+        List<Document> documents = profile.documents ?: new ArrayList<Document>()
 
-        documents = documents.findAll {
-            it.status != Document.DELETED
-        }
         [documents: documents.collect { documentToMap(it) }, count: documents.size()]
+    }
+
+    def setPrimaryMultimedia(Profile originalProfile, json) {
+
+        checkArgument originalProfile
+
+        def profile = profileOrDraft(originalProfile)
+
+        profile.primaryAudio = json?.primaryAudio ?: null
+        profile.primaryVideo = json?.primaryVideo ?: null
+
+        originalProfile.save(true)
+
+        return !originalProfile.hasErrors()
     }
 }

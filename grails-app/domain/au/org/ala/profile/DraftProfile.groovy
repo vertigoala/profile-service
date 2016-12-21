@@ -20,6 +20,8 @@ class DraftProfile {
     String nslNomenclatureIdentifier
     String taxonomyTree
     String primaryImage
+    String primaryVideo
+    String primaryAudio
     String occurrenceQuery
     Map<String, ImageSettings> imageSettings = [:]
     List<String> specimenIds
@@ -42,12 +44,16 @@ class DraftProfile {
     String createdBy
     Date lastPublished
 
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'documents', 'attributes', 'stagedImages', 'privateImages', 'attachments']
+    // Omitting imageSettings prevented mongo from storing the embedded Map properly, however the Integration Tests
+    // didn't fail because of that.
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'documents', 'attributes', 'stagedImages', 'imageSettings', 'privateImages', 'attachments']
 
     static constraints = {
         nameAuthor nullable: true
         guid nullable: true
         primaryImage nullable: true
+        primaryVideo nullable: true
+        primaryAudio nullable: true
         nslNameIdentifier nullable: true
         nslNomenclatureIdentifier nullable: true
         rank nullable: true

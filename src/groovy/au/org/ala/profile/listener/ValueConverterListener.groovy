@@ -3,6 +3,7 @@ package au.org.ala.profile.listener
 import groovy.transform.CompileStatic
 import groovy.transform.TypeChecked
 import groovy.transform.stc.ClosureParams
+import groovy.transform.stc.FromString
 import groovy.transform.stc.ThirdParam
 import groovy.util.logging.Commons
 import org.grails.datastore.mapping.core.Datastore
@@ -22,14 +23,15 @@ import java.lang.reflect.Field
  * At this stage only non generic types are supported (eg String) trying to use it on anything fancier
  * will result in undefined behaviour.
  *
+ * @param <A> The type of annotation to look for fields with
  * @param <T> The type of the field to be converted
  */
 @CompileStatic
 @TypeChecked
 @Commons
-class ValueConverterListener<T> extends AbstractPersistenceEventListener {
+class ValueConverterListener<A extends Annotation, T> extends AbstractPersistenceEventListener {
 
-    final Class<? extends Annotation> annotationType
+    final Class<A> annotationType
     final Class<T> converterType
     final Closure<T> converter
 
@@ -41,7 +43,7 @@ class ValueConverterListener<T> extends AbstractPersistenceEventListener {
      * @param converterType Simple reification of the converter functions return type
      * @param converter The function that does the conversion
      */
-    ValueConverterListener(Datastore datastore, Class<? extends Annotation> annotationType, Class<T> converterType, @ClosureParams(ThirdParam.FirstGenericType) Closure<T> converter) {
+    ValueConverterListener(Datastore datastore, Class<A> annotationType, Class<T> converterType, @ClosureParams(value = FromString, options = ["A, T"]) Closure<T> converter) {
         super(datastore)
         this.annotationType = annotationType
         this.converter = converter.memoizeAtMost(1000)
@@ -54,8 +56,8 @@ class ValueConverterListener<T> extends AbstractPersistenceEventListener {
      * @see ValueConverterListener<T>#constructor(Datastore, Class<? extends Annotation>, Class<T>, Closure<T>)
      * @return a new ValueConverterListener
      */
-    static <U> ValueConverterListener<U> of(Datastore datastore, Class<? extends Annotation> annotationType, Class<U> converterType, @ClosureParams(ThirdParam.FirstGenericType) Closure<U> converter) {
-        return new ValueConverterListener<U>(datastore, annotationType, converterType, converter)
+    static <B extends Annotation, U> ValueConverterListener<B, U> of(Datastore datastore, Class<B> annotationType, Class<U> converterType, @ClosureParams(value = FromString, options = ["B, U"]) Closure<U> converter) {
+        return new ValueConverterListener<B, U>(datastore, annotationType, converterType, converter)
     }
 
     @Override
@@ -89,8 +91,8 @@ class ValueConverterListener<T> extends AbstractPersistenceEventListener {
      * Pseudo Either type
      */
     private static class ConvertResult {
-        boolean converted = true;
-        Object newVal = null;
+        boolean converted = true
+        Object newVal = null
         static ConvertResult success(Object obj) { new ConvertResult(newVal: obj) }
         static ConvertResult failed = new ConvertResult(converted: false)
     }
@@ -99,7 +101,7 @@ class ValueConverterListener<T> extends AbstractPersistenceEventListener {
         Class<?> type = field.getType()
         if (converterType == type) {
             T value = (T) obj[field.name]
-            T newValue = converter(value)
+            T newValue = converter(field.getAnnotation(annotationType), value)
             return ConvertResult.success(newValue)
         } else {
             log.debug("${obj.class}.${field.name} is a $type, not a ${converterType}")

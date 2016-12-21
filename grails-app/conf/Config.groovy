@@ -174,6 +174,8 @@ log4j = {
             'grails.app.taglib.org.grails.plugin.resource',
             'grails.app.resourceMappers.org.grails.plugin.resource'
 
+    info    'au.org.ala.ws.security'
+
     debug   "grails.app",
 //            "org.grails.plugins.elasticsearch",
             "au.org.ala"

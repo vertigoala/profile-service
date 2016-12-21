@@ -69,7 +69,7 @@ class SearchControllerSpec extends BaseIntegrationSpec {
         controller.findByClassificationNameAndRank()
 
         then:
-        1 * searchService.findByClassificationNameAndRank("taxon", "sciName", [], ProfileSortOption.getDefault(), -1, 0)
+        1 * searchService.findByClassificationNameAndRank("taxon", "sciName", [], ProfileSortOption.getDefault(), -1, 0, false)
     }
 
     def "findByClassificationNameAndRank should use the provided values for the opus list, wildcard, max and offset parameters"() {
@@ -80,10 +80,11 @@ class SearchControllerSpec extends BaseIntegrationSpec {
         controller.params.max = 666
         controller.params.scientificName = "sciName"
         controller.params.taxon = "taxon"
+        controller.params.immediateChildrenOnly = 'true'
         controller.findByClassificationNameAndRank()
 
         then:
-        1 * searchService.findByClassificationNameAndRank("taxon", "sciName", ["one", "two"], ProfileSortOption.getDefault(), 666, 10)
+        1 * searchService.findByClassificationNameAndRank("taxon", "sciName", ["one", "two"], ProfileSortOption.getDefault(), 666, 10, true)
     }
 
     def "getRanks should return a 400 BAD REQUEST if no opus id was provided"() {

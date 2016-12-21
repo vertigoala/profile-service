@@ -156,30 +156,32 @@ class ExportService extends BaseDataAccessService {
 
                 profile.documents = data.documents
 
-                def video = profile?.documents.find {
-                    it.status == 'active' && it.role == 'embeddedVideo'
-                }
-                if (video) {
-                    profile.mainVideo = [
-                            id: video.documentId,
-                            name: video.name,
-                            attribution: video.attribution,
-                            license: video.license,
-                            embeddedVideo: video.embeddedVideo
-                    ]
+                if (data.primaryVideo) {
+                    def pv = data.primaryVideo
+                    def video = data.documents?.find { it.documentId == pv }
+                    if (video) {
+                        profile.mainVideo = [
+                                id: video.documentId,
+                                name: video.name,
+                                attribution: video.attribution,
+                                license: video.license,
+                                url: video.url
+                        ]
+                    }
                 }
 
-                def audio = profile?.documents.find {
-                    it.status == 'active' && it.role == 'embeddedAudio'
-                }
-                if (audio) {
-                    profile.mainAudio = [
-                            id: audio.documentId,
-                            name: audio.name,
-                            attribution: audio.attribution,
-                            license: audio.license,
-                            embeddedAudio: audio.embeddedAudio
-                    ]
+                if (data.primaryAudio) {
+                    def pa = data.primaryAudio
+                    def audio = data.documents?.find { it.documentId == pa }
+                    if (audio) {
+                        profile.mainAudio = [
+                                id: audio.documentId,
+                                name: audio.name,
+                                attribution: audio.attribution,
+                                license: audio.license,
+                                url: audio.url
+                        ]
+                    }
                 }
 
                 writer << com.mongodb.util.JSON.serialize(profile)

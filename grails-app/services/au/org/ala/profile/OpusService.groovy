@@ -51,17 +51,11 @@ class OpusService extends BaseDataAccessService {
     Opus updateOpus(opusId, json) {
         Opus opus = Opus.findByUuid(opusId)
 
-        if (json.title && json.title != opus.title) {
-            opus.title = json.title
-        }
-        if (json.containsKey("shortName") && json.shortName != opus.shortName) {
-            opus.shortName = json.shortName ? json.shortName.toLowerCase() : null
-        }
-        if (json.containsKey("description") && json.description != opus.description) {
-            opus.description = json.description ? json.description : null
-        }
+        opus.title = json.title ? json.title : null
+        opus.shortName = json.shortName ? json.shortName.toLowerCase() : null
+        opus.description = json.description ? json.description : null
 
-        if (json.containsKey("approvedLists") && json.approvedLists != opus.approvedLists) {
+        if (json.approvedLists) {
             if (opus.approvedLists) {
                 opus.approvedLists.clear()
             } else {
@@ -69,7 +63,8 @@ class OpusService extends BaseDataAccessService {
             }
             opus.approvedLists.addAll(json.approvedLists)
         }
-        if (json.containsKey("featureLists") && json.featureLists != opus.featureLists) {
+
+        if (json.featureLists) {
             if (opus.featureLists) {
                 opus.featureLists.clear()
             } else {
@@ -77,20 +72,17 @@ class OpusService extends BaseDataAccessService {
             }
             opus.featureLists.addAll(json.featureLists)
         }
-        if (json.containsKey("featureListSectionName") && json.featureListSectionName != opus.featureListSectionName) {
-            opus.featureListSectionName = json.featureListSectionName
-        }
-        
-        if (json.containsKey("dataResourceConfig")) {
+        opus.featureListSectionName = json.featureListSectionName ? json.featureListSectionName : null;
+
+        if (json.dataResourceConfig) {
             if (!opus.dataResourceConfig) {
                 opus.dataResourceConfig = new DataResourceConfig()
             }
 
-            if (json.dataResourceConfig.containsKey("recordResourceOption") && json.dataResourceConfig.recordResourceOption != opus.dataResourceConfig.recordResourceOption) {
-                opus.dataResourceConfig.recordResourceOption = json.dataResourceConfig.recordResourceOption.toUpperCase() as DataResourceOption
-            }
-            
-            if (json.dataResourceConfig.containsKey("recordSources") && json.dataResourceConfig.recordSources != opus.dataResourceConfig.recordSources) {
+            opus.dataResourceConfig.recordResourceOption = json.dataResourceConfig.recordResourceOption ?
+                    json.dataResourceConfig.recordResourceOption as DataResourceOption : DataResourceOption.NONE
+
+            if (json.dataResourceConfig.recordSources) {
                 if (opus.dataResourceConfig.recordSources) {
                     opus.dataResourceConfig.recordSources.clear()
                 } else {
@@ -99,7 +91,7 @@ class OpusService extends BaseDataAccessService {
                 opus.dataResourceConfig.recordSources.addAll(json.dataResourceConfig.recordSources)
             }
 
-            if (json.dataResourceConfig.containsKey("privateRecordSources") && json.dataResourceConfig.privateRecordSources != opus.dataResourceConfig.privateRecordSources) {
+            if (json.dataResourceConfig.privateRecordSources) {
                 if (opus.dataResourceConfig.privateRecordSources) {
                     opus.dataResourceConfig.privateRecordSources.clear()
                 } else {
@@ -108,11 +100,10 @@ class OpusService extends BaseDataAccessService {
                 opus.dataResourceConfig.privateRecordSources.addAll(json.dataResourceConfig.privateRecordSources)
             }
 
-            if (json.dataResourceConfig.containsKey("imageResourceOption") && json.dataResourceConfig.imageResourceOption != opus.dataResourceConfig.imageResourceOption) {
-                opus.dataResourceConfig.imageResourceOption = json.dataResourceConfig.imageResourceOption.toUpperCase() as DataResourceOption
-            }
+            opus.dataResourceConfig.imageResourceOption = json.dataResourceConfig.imageResourceOption ?
+                    json.dataResourceConfig.imageResourceOption as DataResourceOption : DataResourceOption.NONE
 
-            if (json.dataResourceConfig.containsKey("imageSources") && json.dataResourceConfig.imageSources != opus.dataResourceConfig.imageSources) {
+            if (json.dataResourceConfig.imageSources) {
                 if (opus.dataResourceConfig.imageSources) {
                     opus.dataResourceConfig.imageSources.clear()
                 } else {
@@ -121,155 +112,88 @@ class OpusService extends BaseDataAccessService {
                 opus.dataResourceConfig.imageSources.addAll(json.dataResourceConfig.imageSources)
             }
         }
-        
-        if (json.copyrightText != opus.copyrightText) {
-            opus.copyrightText = json.copyrightText
-        }
-        if (json.footerText != opus.footerText) {
-            opus.footerText = json.footerText
-        }
+
+        opus.copyrightText = json.copyrightText ? json.copyrightText : null
+        opus.footerText = json.footerText ? json.footerText : null
         if (json.contact) {
-            if (json.contact.email != opus.email) {
-                opus.email = json.contact.email
-            }
-            if (json.contact.facebook != opus.facebook) {
-                opus.facebook = json.contact.facebook
-            }
-            if (json.contact.twitter != opus.twitter) {
-                opus.twitter = json.contact.twitter
-            }
+            opus.email = json.contact.email ? json.contact.email : null
+            opus.facebook = json.contact.facebook ? json.contact.facebook : null
+            opus.twitter = json.contact.twitter ? json.contact.twitter : null
         }
-        if (json.containsKey("brandingConfig")) {
+
+        if (json.brandingConfig) {
             if (!opus.brandingConfig) {
                 opus.brandingConfig = new BrandingConfig()
             }
-
-            if (json.brandingConfig.containsKey("logoUrl") && json.brandingConfig.logoUrl != opus.brandingConfig.logoUrl) {
-                opus.brandingConfig.logoUrl = json.brandingConfig.logoUrl
-            }
-            if (json.brandingConfig.containsKey("thumbnailUrl") && json.brandingConfig.thumbnailUrl != opus.brandingConfig.thumbnailUrl) {
-                opus.brandingConfig.thumbnailUrl = json.brandingConfig.thumbnailUrl
-            }
-            if (json.brandingConfig.containsKey("opusBannerHeight") && json.brandingConfig.opusBannerHeight != opus.brandingConfig.opusBannerHeight) {
-                opus.brandingConfig.opusBannerHeight = json.brandingConfig.opusBannerHeight
-            }
-            if (json.brandingConfig.containsKey("opusBannerUrl") && json.brandingConfig.opusBannerUrl != opus.brandingConfig.opusBannerUrl) {
-                opus.brandingConfig.opusBannerUrl = json.brandingConfig.opusBannerUrl
-            }
-            if (json.brandingConfig.containsKey("profileBannerHeight") && json.brandingConfig.profileBannerHeight != opus.brandingConfig.profileBannerHeight) {
-                opus.brandingConfig.profileBannerHeight = json.brandingConfig.profileBannerHeight
-            }
-            if (json.brandingConfig.containsKey("profileBannerUrl") && json.brandingConfig.profileBannerUrl != opus.brandingConfig.profileBannerUrl) {
-                opus.brandingConfig.profileBannerUrl = json.brandingConfig.profileBannerUrl
-            }
-            if (json.brandingConfig.containsKey("colourTheme") && json.brandingConfig.colourTheme != opus.brandingConfig.colourTheme) {
-                opus.brandingConfig.colourTheme = json.brandingConfig.colourTheme
-            }
+            opus.brandingConfig.logoUrl = json.brandingConfig.logoUrl ? json.brandingConfig.logoUrl : null
+            opus.brandingConfig.thumbnailUrl = json.brandingConfig.thumbnailUrl ?
+                    json.brandingConfig.thumbnailUrl : null
+            opus.brandingConfig.opusBannerHeight = json.brandingConfig.opusBannerHeight ?
+                    json.brandingConfig.opusBannerHeight : BrandingConfig.DEFAULT_OPUS_BANNER_HEIGHT_PX
+            opus.brandingConfig.opusBannerUrl = json.brandingConfig.opusBannerUrl ?
+                    json.brandingConfig.opusBannerUrl : null
+            opus.brandingConfig.profileBannerHeight = json.brandingConfig.profileBannerHeight ?
+                    json.brandingConfig.profileBannerHeight : BrandingConfig.DEFAULT_PROFILE_BANNER_HEIGHT_PX
+            opus.brandingConfig.profileBannerUrl = json.brandingConfig.profileBannerUrl ?
+                    json.brandingConfig.profileBannerUrl : null
+            opus.brandingConfig.colourTheme = json.brandingConfig.colourTheme ? json.brandingConfig.colourTheme : null
         }
-        if (json.containsKey("profileLayoutConfig")) {
+
+        if (json.profileLayoutConfig) {
             if (!opus.profileLayoutConfig) {
                 opus.profileLayoutConfig = new ProfileLayoutConfig()
             }
-
-            if (json.profileLayoutConfig.containsKey("layout") && json.profileLayoutConfig.layout != opus.profileLayoutConfig.layout) {
-                opus.profileLayoutConfig.layout = json.profileLayoutConfig.layout
-            }
+            opus.profileLayoutConfig.layout = json.profileLayoutConfig.layout ? json.profileLayoutConfig.layout : null
         }
-        if (json.containsKey("mapConfig")) {
+
+        if (json.mapConfig) {
             if (!opus.mapConfig) {
                 opus.mapConfig = new MapConfig()
             }
-            if (json.mapConfig.mapAttribution && json.mapConfig.mapAttribution != opus.mapConfig.mapAttribution) {
-                opus.mapConfig.mapAttribution = json.mapConfig.mapAttribution
-            }
-            if (json.mapConfig.mapPointColour && json.mapConfig.mapPointColour != opus.mapConfig.mapPointColour) {
-                opus.mapConfig.mapPointColour = json.mapConfig.mapPointColour;
-            }
-            if (json.mapConfig.mapDefaultLatitude && json.mapConfig.mapDefaultLatitude != opus.mapConfig.mapDefaultLatitude) {
-                opus.mapConfig.mapDefaultLatitude = json.mapConfig.mapDefaultLatitude as Float
-            }
-            if (json.mapConfig.mapDefaultLongitude && json.mapConfig.mapDefaultLongitude != opus.mapConfig.mapDefaultLongitude) {
-                opus.mapConfig.mapDefaultLongitude = json.mapConfig.mapDefaultLongitude as Float
-            }
-            if (json.mapConfig.mapZoom && json.mapConfig.mapZoom != opus.mapConfig.mapZoom) {
-                opus.mapConfig.mapZoom = json.mapConfig.mapZoom as int
-            }
-            if (json.mapConfig.maxZoom && json.mapConfig.maxZoom != opus.mapConfig.maxZoom) {
-                opus.mapConfig.maxZoom = json.mapConfig.maxZoom as int
-            }
-            if (json.mapConfig.maxAutoZoom && json.mapConfig.maxAutoZoom != opus.mapConfig.maxAutoZoom) {
-                opus.mapConfig.maxAutoZoom = json.mapConfig.maxAutoZoom as int
-            }
-            if (json.mapConfig.autoZoom != null && json.mapConfig.autoZoom != opus.mapConfig.autoZoom) {
-                opus.mapConfig.autoZoom = json.mapConfig.autoZoom?.toBoolean() ?: false
-            }
-            if (json.mapConfig.allowSnapshots != null && json.mapConfig.allowSnapshots != opus.mapConfig.allowSnapshots) {
-                opus.mapConfig.allowSnapshots = json.mapConfig.allowSnapshots?.toBoolean() ?: false
-            }
-            if (json.mapConfig.mapBaseLayer && json.mapConfig.mapBaseLayer != opus.mapConfig.mapBaseLayer) {
-                opus.mapConfig.mapBaseLayer = json.mapConfig.mapBaseLayer
-            }
-            if (json.mapConfig.biocacheUrl && json.mapConfig.biocacheUrl != opus.mapConfig.biocacheUrl) {
-                opus.mapConfig.biocacheUrl = json.mapConfig.biocacheUrl
-            }
-            if (json.mapConfig.biocacheName && json.mapConfig.biocacheName != opus.mapConfig.biocacheName) {
-                opus.mapConfig.biocacheName = json.mapConfig.biocacheName
-            }
+            opus.mapConfig.mapAttribution = json.mapConfig.mapAttribution ? json.mapConfig.mapAttribution : null
+            opus.mapConfig.mapPointColour = json.mapConfig.mapPointColour ?
+                    json.mapConfig.mapPointColour : Utils.DEFAULT_MAP_POINT_COLOUR;
+            opus.mapConfig.mapDefaultLatitude = json.mapConfig.mapDefaultLatitude ?
+                    json.mapConfig.mapDefaultLatitude as Float : Utils.DEFAULT_MAP_LATITUDE
+            opus.mapConfig.mapDefaultLongitude = json.mapConfig.mapDefaultLongitude ?
+                    json.mapConfig.mapDefaultLongitude as Float : Utils.DEFAULT_MAP_LONGITUDE
+            opus.mapConfig.mapZoom = json.mapConfig.mapZoom ? json.mapConfig.mapZoom as int : Utils.DEFAULT_MAP_ZOOM
+            opus.mapConfig.maxZoom = json.mapConfig.maxZoom ? json.mapConfig.maxZoom as int : Utils.DEFAULT_MAP_MAX_ZOOM
+            opus.mapConfig.maxAutoZoom = json.mapConfig.maxAutoZoom ?
+                    json.mapConfig.maxAutoZoom as int : Utils.DEFAULT_MAP_MAX_AUTO_ZOOM
+            opus.mapConfig.autoZoom = json.mapConfig.autoZoom?.toBoolean() ?: false
+            opus.mapConfig.allowSnapshots = json.mapConfig.allowSnapshots?.toBoolean() ?: false
+            opus.mapConfig.mapBaseLayer = json.mapConfig.mapBaseLayer ?
+                    json.mapConfig.mapBaseLayer : Utils.DEFAULT_MAP_BASE_LAYER
+            opus.mapConfig.biocacheUrl = json.mapConfig.biocacheUrl ? json.mapConfig.biocacheUrl : null
+            opus.mapConfig.biocacheName = json.mapConfig.biocacheName ? json.mapConfig.biocacheName : null
         }
-        if (json.containsKey("approvedImageOption")) {
-            ImageOption option = ImageOption.valueOf(json.approvedImageOption.toUpperCase())
-            if (option != opus.approvedImageOption) {
-                opus.approvedImageOption = option
-            }
+
+        opus.approvedImageOption = json.approvedImageOption ?
+                json.approvedImageOption as ImageOption : ImageOption.INCLUDE
+
+        opus.keybaseProjectId = json.keybaseProjectId ? json.keybaseProjectId : null
+        opus.keybaseKeyId = json.keybaseKeyId ? json.keybaseKeyId : null
+        opus.enablePhyloUpload = json.enablePhyloUpload?.toBoolean() ?: false
+        opus.enableOccurrenceUpload = json.enableOccurrenceUpload?.toBoolean() ?: false
+        opus.enableTaxaUpload = json.enableTaxaUpload?.toBoolean() ?: false
+        opus.enableKeyUpload = json.enableKeyUpload?.toBoolean() ?: false
+        opus.showLinkedOpusAttributes = json.showLinkedOpusAttributes?.toBoolean() ?: false
+        opus.keepImagesPrivate = json.keepImagesPrivate?.toBoolean() ?: false
+        opus.usePrivateRecordData = json.usePrivateRecordData?.toBoolean() ?: false
+
+        opus.privateCollection = json.privateCollection?.toBoolean() ?: false
+        // if we are changing from public to private, then all other collections that have been granted access to
+        // use this collection as a Supporting Collection need to have their access revoked.
+        if (opus.privateCollection) {
+            revokeAllSupportingCollectionAccess(opus)
         }
-        if (json.containsKey("keybaseProjectId") && json.keybaseProjectId != opus.keybaseProjectId) {
-            opus.keybaseProjectId = json.keybaseProjectId
-        }
-        if (json.containsKey("keybaseKeyId") && json.keybaseKeyId != opus.keybaseKeyId) {
-            opus.keybaseKeyId = json.keybaseKeyId
-        }
-        if (json.has("enablePhyloUpload") && json.enablePhyloUpload != opus.enablePhyloUpload) {
-            opus.enablePhyloUpload = json.enablePhyloUpload?.toBoolean()
-        }
-        if (json.has("enableOccurrenceUpload") && json.enableOccurrenceUpload != opus.enableOccurrenceUpload) {
-            opus.enableOccurrenceUpload = json.enableOccurrenceUpload?.toBoolean()
-        }
-        if (json.has("enableTaxaUpload") && json.enableTaxaUpload != opus.enableTaxaUpload) {
-            opus.enableTaxaUpload = json.enableTaxaUpload?.toBoolean()
-        }
-        if (json.has("enableKeyUpload") && json.enableKeyUpload != opus.enableKeyUpload) {
-            opus.enableKeyUpload = json.enableKeyUpload?.toBoolean()
-        }
-        if (json.has("showLinkedOpusAttributes") && json.showLinkedOpusAttributes != opus.showLinkedOpusAttributes) {
-            opus.showLinkedOpusAttributes = json.showLinkedOpusAttributes?.toBoolean()
-        }
-        if (json.has("keepImagesPrivate") && json.keepImagesPrivate != opus.keepImagesPrivate) {
-            opus.keepImagesPrivate = json.keepImagesPrivate?.toBoolean()
-        }
-        if (json.has("usePrivateRecordData") && json.usePrivateRecordData != opus.usePrivateRecordData) {
-            opus.usePrivateRecordData = json.usePrivateRecordData?.toBoolean()
-        }
-        if (json.has("privateCollection") && json.privateCollection != opus.privateCollection) {
-            opus.privateCollection = json.privateCollection?.toBoolean()
-            // if we are changing from public to private, then all other collections that have been granted access to
-            // use this collection as a Supporting Collection need to have their access revoked.
-            if (opus.privateCollection) {
-                revokeAllSupportingCollectionAccess(opus)
-            }
-        }
-        if (json.has("allowCopyFromLinkedOpus") && json.allowCopyFromLinkedOpus != opus.allowCopyFromLinkedOpus) {
-            opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus?.toBoolean()
-        }
-        if (json.has("allowFineGrainedAttribution") && json.allowFineGrainedAttribution != opus.allowFineGrainedAttribution) {
-            opus.allowFineGrainedAttribution = json.allowFineGrainedAttribution?.toBoolean()
-        }
-        if (json.has("autoApproveShareRequests") && json.autoApproveShareRequests != opus.autoApproveShareRequests) {
-            opus.autoApproveShareRequests = json.autoApproveShareRequests.toBoolean()
-        }
-        if (json.containsKey("autoDraftProfiles") && json.autoDraftProfiles.toBoolean() != opus.autoDraftProfiles) {
-            opus.autoDraftProfiles = json.autoDraftProfiles.toBoolean()
-        }
-        if (json.containsKey("tags")) {
+
+        opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus?.toBoolean() ?: false
+        opus.allowFineGrainedAttribution = json.allowFineGrainedAttribution?.toBoolean() ?: true
+        opus.autoApproveShareRequests = json.autoApproveShareRequests?.toBoolean() ?: true
+        opus.autoDraftProfiles = json.autoDraftProfiles?.toBoolean() ?: false
+        if (json.tags) {
             opus.tags = []
             json.tags.each {
                 opus.tags << Tag.findByUuid(it.uuid)
@@ -343,10 +267,8 @@ class OpusService extends BaseDataAccessService {
             }
         }
 
-        if (json.containsKey("privateCollection") && json.privateCollection.toBoolean() != opus.privateCollection) {
-            opus.privateCollection = json.privateCollection?.toBoolean()
-            // if we are changing from public to private, then all other collections that have been granted access to
-            // use this collection as a Supporting Collection need to have their access revoked.
+        if (json.privateCollection) {
+            opus.privateCollection = json.privateCollection?.toBoolean() ?: false
             if (opus.privateCollection) {
                 revokeAllSupportingCollectionAccess(opus)
             }
@@ -478,15 +400,11 @@ class OpusService extends BaseDataAccessService {
             }
 
         }
-        if (json.containsKey("showLinkedOpusAttributes") && json.showLinkedOpusAttributes != opus.showLinkedOpusAttributes) {
-            opus.showLinkedOpusAttributes = json.showLinkedOpusAttributes.toBoolean()
-        }
-        if (json.containsKey("autoApproveShareRequests") && json.autoApproveShareRequests != opus.autoApproveShareRequests) {
-            opus.autoApproveShareRequests = json.autoApproveShareRequests.toBoolean()
-        }
-        if (json.containsKey("allowCopyFromLinkedOpus") && json.allowCopyFromLinkedOpus != opus.allowCopyFromLinkedOpus) {
-            opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus.toBoolean()
-        }
+
+        opus.showLinkedOpusAttributes = json.showLinkedOpusAttributes?.toBoolean() ?: false
+        opus.autoApproveShareRequests = json.autoApproveShareRequests?.toBoolean() ?: true
+        opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus?.toBoolean() ?: false
+
         save opus
     }
 

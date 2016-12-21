@@ -2,6 +2,7 @@ package au.org.ala.profile
 
 import au.org.ala.profile.util.DataResourceOption
 import au.org.ala.ws.controller.BasicWSController
+import com.google.common.base.Stopwatch
 
 import static au.org.ala.profile.util.Utils.isUuid
 import static au.org.ala.profile.util.Utils.enc
@@ -11,48 +12,31 @@ class BaseController extends BasicWSController {
     ProfileService profileService
 
     Profile getProfile() {
+        Stopwatch sw = new Stopwatch().start()
+
         Profile profile
 
         if (isUuid(params.profileId)) {
             profile = Profile.findByUuid(params.profileId)
+            log.trace("getProfile() - Get profile by UUID ${params.profileId}: $sw")
+            sw.reset().start()
         } else {
             Opus opus = getOpus()
             profile = Profile.findByOpusAndScientificNameIlike(opus, params.profileId)
+            log.trace("getProfile() - Get profile by opus ${opus.uuid} and sci name ${params.profileId}: $sw")
+            sw.reset().start()
 
-            // names can be changed, so if there is no profile with the name, check for a draft with that name, but only if the 'latest' flag is true
+            // names can be changed, so if there is no profile with the name, check for a draft with that name,
+            // but only if the 'latest' flag is true
             if (!profile && params.latest?.toBoolean()) {
                 List matches = Profile.withCriteria {
                     eq "opus", opus
                     ilike "draft.scientificName", params.profileId
                 }
                 profile = matches.isEmpty() ? null : matches.first()
-            }
-        }
 
-        if (profile && profile.classification) {
-            def classifications = profile.draft && params.latest == "true" ? profile.draft.classification : profile.classification
-            classifications.each { cl ->
-                cl.childCount = Profile.withCriteria {
-                    eq "opus", profile.opus
-                    isNull "archivedDate"
-                    ne "uuid", profile.uuid
-
-                    "classification" {
-                        eq "rank", "${cl.rank?.toLowerCase()}"
-                        ilike "name", "${cl.name}"
-                    }
-
-                    projections {
-                        count()
-                    }
-                }[0]
-
-                Profile relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(cl.guid, opus)
-                if (!relatedProfile) {
-                    relatedProfile = Profile.findByScientificNameAndOpusAndArchivedDateIsNull(cl.name, opus)
-                }
-                cl.profileId = relatedProfile?.uuid
-                cl.profileName = relatedProfile?.scientificName
+                log.trace("getProfile() - Get profile by with changed name: $sw")
+                sw.reset().start()
             }
         }
 
@@ -64,6 +48,8 @@ class BaseController extends BasicWSController {
             if (profile.draft) {
                 profile.draft.occurrenceQuery = query
             }
+            log.trace("getProfile() - createOccurenceQuery: $sw")
+            sw.reset().start()
         }
 
         profile
@@ -115,11 +101,14 @@ class BaseController extends BasicWSController {
     }
 
     Opus getOpus() {
+        Stopwatch sw = new Stopwatch().start()
         Opus opus
         if (isUuid(params.opusId)) {
             opus = Opus.findByUuid(params.opusId)
+            log.trace("getOpus() - Get opus by UUID ${params.opusId}: $sw")
         } else {
             opus = Opus.findByShortName(params.opusId.toLowerCase())
+            log.trace("getOpus() - Get opus by short name ${params.opusId}: $sw")
         }
         opus
     }

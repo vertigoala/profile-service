@@ -26,5 +26,27 @@ eventConfigureTomcat = { Tomcat tomcat ->
 
 
         println "### Ending enabling AJP connector"
+
+
+        println "### Enabling customised HTTP connector with unlimited POST size"
+
+        // FOAImport.groovy sample data will endup in a massive call to profile-services which will exceed the
+        // maximun post size unless we remove such restriction in this connector.
+
+        // Looks like grails default connector is configured/created after this eventConfigureTomcat event so it was
+        // not possible to tap into it hence the need to create an additional one
+        def httpConnector = new Connector("org.apache.coyote.http11.Http11Protocol")
+        httpConnector.port = 8008
+        httpConnector.maxPostSize = 0 // Unlimited
+        httpConnector.setProperty('redirectPort', '8443')
+        httpConnector.setProperty('protocol', 'HTTP/1.1')
+        httpConnector.setProperty("maxPostSize", "0") // Unlimited
+        tomcat.service.addConnector httpConnector
+
+        println httpConnector.toString()
+
+        println "### Ending enabling customised HTTP connector"
+
+
     }
 }

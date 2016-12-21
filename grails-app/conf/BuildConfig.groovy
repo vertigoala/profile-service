@@ -5,6 +5,7 @@ grails.project.test.reports.dir = "target/test-reports"
 grails.project.work.dir = "target/work"
 grails.project.target.level = 1.6
 grails.project.source.level = 1.6
+grails.reload.enabled = true
 //grails.project.war.file = "target/${appName}-${appVersion}.war"
 //grails.plugin.location.'ala-web-theme' = "../ala-web-theme"
 
@@ -35,6 +36,7 @@ grails.project.dependency.resolution = {
 
     repositories {
         mavenLocal()
+        mavenRepo "http://nexus.ala.org.au/content/repositories/grails-plugins/"
         mavenRepo ("http://nexus.ala.org.au/content/groups/public/") {
             updatePolicy 'always'
         }
@@ -43,12 +45,15 @@ grails.project.dependency.resolution = {
     dependencies {
         // specify dependencies here under either 'build', 'compile', 'runtime', 'test' or 'provided' scopes e.g.
         test 'org.grails:grails-datastore-test-support:1.0.1-grails-2.4'
-        runtime ('au.org.ala:ala-name-matching:2.3.3-SNAPSHOT') {
+        runtime ('au.org.ala:ala-name-matching:2.4.1-SNAPSHOT') {
             excludes 'lucene-queries', 'lucene-analyzers', 'lucene-core', 'lucene-analyzers-common', 'lucene-queryparser', 'lucene-sandbox', 'slf4j-log4j12'
         }
         compile "com.xlson.groovycsv:groovycsv:1.0"
-        compile "com.google.apis:google-api-services-analytics:v3-rev116-1.20.0"
-        compile 'com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer:20160203.1-ALA'
+        compile "com.google.guava:guava:14.0.1"
+        compile ("com.google.apis:google-api-services-analytics:v3-rev116-1.20.0") {
+            excludes 'guava-jdk5'
+        }
+        compile 'com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer:20160827.1'
         compile "com.itextpdf:itextpdf:5.5.1"
         compile "org.imgscalr:imgscalr-lib:4.2"
     }
@@ -64,6 +69,7 @@ grails.project.dependency.resolution = {
             excludes 'groovy-all' // elasticsearch:0.0.4.6 bundles groovy-all:2.4.3; Grails 2.5.2 uses groovy-all:2.4.4
         }
         runtime ":cors:1.1.6"
+        compile ":asset-pipeline:2.9.1"
         compile ":quartz:1.0.2"
         compile ":mail:1.0.7"
     }

@@ -18,7 +18,8 @@ class OpusController extends BaseController {
     AttachmentService attachmentService
 
     def index() {
-        render Opus.findAll() as JSON
+        def opuses = Opus.findAll()
+        respond opuses
     }
 
     def show() {

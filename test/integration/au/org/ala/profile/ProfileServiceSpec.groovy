@@ -1,5 +1,8 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.ImageOption
+import spock.lang.Unroll
+
 import static au.org.ala.profile.util.ImageOption.*
 import au.org.ala.web.AuthService
 import org.springframework.web.multipart.MultipartFile
@@ -75,6 +78,18 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.authorship.size() == 1
         profile.authorship[0].category.name == "Author"
         profile.authorship[0].text == "Fred Bloggs"
+    }
+
+    def "createProfile should fail if the primary image is excluded"() {
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+
+        when:
+        String image = UUID.randomUUID().toString()
+        Profile profile = service.createProfile(opus.uuid, [scientificName: "sciName", primaryImage: image, imageSettings: [(image): new ImageSettings(imageDisplayOption: ImageOption.EXCLUDE, caption: '')]])
+
+        then:
+        profile == null
     }
 
     def "createProfile should NOT automatically put the profile in draft mode if the Opus.autoDraftProfiles flag = false"() {
@@ -182,6 +197,37 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         !newProfile.attributes.is(existingProfile.attributes)
         newProfile.attributes[0].uuid != "1" && newProfile.attributes[0].uuid != "2"
         newProfile.attributes[1].uuid != "1" && newProfile.attributes[1].uuid != "2"
+    }
+
+    def "duplicateProfile with Opus.autoDraftProfiles puts the attributes in before creating a draft"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title", autoDraftProfiles: true)
+        save opus
+        Profile existingProfile = new Profile(opus: opus, scientificName: "name", specimenIds: ["1", "2"])
+
+        Vocab vocab = new Vocab(name: "vocab1")
+        Term term = new Term(uuid: "1", name: "title")
+        vocab.addToTerms(term)
+        save vocab
+        Attribute attribute1 = new Attribute(uuid: "1", title: term, text: "text")
+        existingProfile.addToAttributes(attribute1)
+        Attribute attribute2 = new Attribute(uuid: "2", title: term, text: "text2")
+        existingProfile.addToAttributes(attribute2)
+
+        save existingProfile
+
+        expect:
+        Profile.count() == 1
+        Attribute.count() == 2
+
+        when:
+        Profile newProfile = service.duplicateProfile(opus.uuid, existingProfile, [scientificName: "test"])
+
+        then:
+        newProfile.attributes.size() == 2
+        newProfile.draft.attributes.size() == 2
+        !newProfile.attributes*.uuid.containsAll(["1", "2"])
+        !newProfile.draft.attributes*.uuid.containsAll(["1", "2"])
     }
 
     def "delete profile should remove the record"() {
@@ -340,6 +386,63 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         then: "all existing image options should be removed"
         profile.imageSettings == [:]
     }
+
+    // IT added for completeness but keep in mind that the test was passing even if the DraftProfile.imageSettings was not configured as embedded in the domain class
+    def "Draft saveImages should change the imageSettings only if the incoming data has the imageSettings attribute and the value is different"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Profile profile
+
+        when: "the incoming value is different"
+        profile = new Profile(opus: opus, scientificName: "sciName",  draft:  new DraftProfile(uuid: "asd", opus: opus, scientificName: "sciName",imageSettings: [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE), image3: new ImageSettings(imageDisplayOption: EXCLUDE)]))
+        save profile
+        service.saveImages(profile, [imageSettings: [[imageId: "image4", displayOption: EXCLUDE.name()], [imageId: "image5", displayOption: EXCLUDE.name()], [imageId: "image6", displayOption: EXCLUDE.name()]]])
+
+        then: "the imageSettings should be replaced"
+        profile.draft.imageSettings == [image4: new ImageSettings(imageDisplayOption: EXCLUDE), image5: new ImageSettings(imageDisplayOption: EXCLUDE), image6: new ImageSettings(imageDisplayOption: EXCLUDE)]
+
+        when: "the incoming data does not have the attribute"
+        profile = new Profile(opus: opus, scientificName: "sciName", draft:  new DraftProfile(uuid: "asd", opus: opus, scientificName: "sciName", imageSettings: [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE), image3: new ImageSettings(imageDisplayOption: EXCLUDE)]))
+        save profile
+        service.saveImages(profile, [a: "bla"])
+
+        then: "there should be no change"
+        profile.draft.imageSettings == [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE), image3: new ImageSettings(imageDisplayOption: EXCLUDE)]
+
+        when: "the incoming attribute is empty"
+        profile = new Profile(opus: opus, scientificName: "sciName", draft:  new DraftProfile(uuid: "asd", opus: opus, scientificName: "sciName", imageSettings: [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE), image3: new ImageSettings(imageDisplayOption: EXCLUDE)]))
+        save profile
+        service.saveImages(profile, [imageSettings: []])
+
+        then: "all existing image options should be removed"
+        profile.draft.imageSettings == [:]
+
+        when: "the incoming attribute is null"
+        profile = new Profile(opus: opus, scientificName: "sciName", draft:  new DraftProfile(uuid: "asd", opus: opus, scientificName: "sciName", imageSettings: [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE), image3: new ImageSettings(imageDisplayOption: EXCLUDE)]))
+        save profile
+        service.saveImages(profile, [imageSettings: null])
+
+        then: "all existing image options should be removed"
+        profile.draft.imageSettings == [:]
+    }
+
+    def "saveImages should fail if the primary image is excluded"() {
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        String image = UUID.randomUUID().toString()
+        Profile profile = service.createProfile(opus.uuid, [scientificName: "sciName", primaryImage: image, imageSettings: [(image): new ImageSettings(imageDisplayOption: INCLUDE, caption: '')]])
+
+        when:
+        def result = service.saveImages(profile, [imageSettings: [[imageId: image, displayOption: EXCLUDE.name(), caption: 'caption']]])
+
+        then:
+        result == false
+        Profile.withNewSession { s ->
+            Profile.findByOpusAndScientificName(opus, 'sciName')?.imageSettings?.get(image)?.imageDisplayOption == INCLUDE
+        }
+    }
+
 
     def "saveSpecimens should change the specimens only if the incoming data has the specimenIds attribute and the value is different"() {
         given:
@@ -1339,7 +1442,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         Profile.count == 1
 
         when:
-        service.toggleDraftMode(profile.uuid)
+        service.toggleDraftMode(profile.uuid, true)
 
         then:
         Profile.count == 1
@@ -1376,7 +1479,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         Profile.list()[0].attributes.size() == 2
 
         when:
-        service.toggleDraftMode(profile.uuid)
+        service.toggleDraftMode(profile.uuid, true)
 
         then:
         Attribute.count == 1
@@ -1391,7 +1494,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         save profile
 
         when:
-        service.toggleDraftMode(profile.uuid)
+        service.toggleDraftMode(profile.uuid, true)
 
         then:
         1 * service.attachmentService.deleteAttachment(opus.uuid, profile.uuid, "1234", _)
@@ -1551,7 +1654,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.guid == "ABC"
     }
 
-    def "saving a profile should set the lastPublished field"() {
+    def "saving a profile without draft should set the lastPublished field"() {
         given:
         Date now = new Date()
         Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
@@ -1563,18 +1666,79 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.lastPublished > now
     }
 
+    def "creating a draft profile should set the its lastPublished field to the same date as the profile"() {
+        given:
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+
+        profile.draft = new DraftProfile(uuid: profile.uuid, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+
+        expect:
+        profile.draft.lastPublished == profile.lastPublished
+    }
+
+
     def "updating a draft profile should set the lastPublished field on the draft only"() {
         given:
         Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
         save opus1
         Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
         save profile
+        Date profileOriginalPublishedDate = profile.lastPublished
+
         profile.draft = new DraftProfile(uuid: profile.uuid, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+
+        profile.draft.fullName = "A new name"
         save profile
 
         expect:
         profile.draft.lastPublished > profile.lastPublished
+        profile.lastPublished == profileOriginalPublishedDate
     }
+
+    def "discarding a draft profile should not change the profile lastPublished field"() {
+        given:
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+        Date profileOriginalPublishedDate = profile.lastPublished
+
+        profile.draft = new DraftProfile(uuid: profile.uuid, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+
+        profile.draft = null
+        save profile
+
+        expect:
+        profile.lastPublished == profileOriginalPublishedDate
+    }
+
+
+    def "publishing a draft profile should change the profile lastPublished field"() {
+        given:
+        Opus opus1 = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus1
+        Profile profile = new Profile(opus: opus1, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+        Date profileOriginalPublishedDate = profile.lastPublished
+
+        profile.draft = new DraftProfile(uuid: profile.uuid, scientificName: "profile1", attachments: [new Attachment(uuid: "1234", title: "oldTitle", description: "oldDesc")])
+        save profile
+
+        profile.draft = null
+        profile.fullName = "An updated value copied from the draft"
+        save profile
+
+        expect:
+        profile.lastPublished > profileOriginalPublishedDate
+    }
+
+
 
     def "populateTaxonHierarchy should add a fully customised hierarchy as the classification for the profile, in reverse order"() {
         given:
@@ -1674,6 +1838,50 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.classification[2].name == "parent"
         profile.classification[2].guid == "1234"
         profile.classification[3].name == "profile"
+    }
+
+    @Unroll
+    def "setPrimaryMultimedia should update the correct profile with the correct UUID"() {
+        given:
+        Opus opus = new Opus(title: "opus1", dataResourceUid: "123", glossary: new Glossary())
+        save opus
+        Profile profile = new Profile(opus: opus)
+        if (draft) {
+            profile.draft = new DraftProfile(primaryAudio: startAudio, primaryVideo: startVideo)
+        } else {
+            profile.primaryAudio = startAudio
+            profile.primaryVideo = startVideo
+        }
+        profile.save()
+
+        def json = [:]
+        if (newVideo) {
+            json.primaryVideo = startVideo
+        }
+        if (newAudio) {
+            json.primaryAudio = startAudio
+        }
+
+        when:
+        service.setPrimaryMultimedia(profile, json)
+
+        then:
+        if (draft) {
+            profile.draft.primaryAudio == newAudio
+            profile.draft.primaryVideo == newVideo
+            profile.primaryAudio == null
+            profile.primaryVideo == null
+        } else {
+            profile.primaryAudio == newAudio
+            profile.primaryVideo == newVideo
+        }
+
+        where:
+        startAudio || startVideo || newAudio || newVideo || draft
+        null | null | 'abc' | 'def' | false
+        'def' | 'abc' | null | null | false
+        null | null | 'abc' | 'def' | true
+        'def' | 'abc' | null | null | true
     }
 }
 

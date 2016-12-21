@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.ImageOption
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.bson.types.ObjectId
@@ -53,6 +54,8 @@ class Profile {
     String taxonomyTree
     String primaryImage
     Map<String, ImageSettings> imageSettings = [:]
+    String primaryVideo
+    String primaryAudio
     boolean showLinkedOpusAttributes = false // Even if set to true, this needs Opus.showLinkedOpusAttributes to also be true
     List<String> specimenIds
     List<Authorship> authorship
@@ -104,7 +107,11 @@ class Profile {
         nameAuthor nullable: true
         fullName nullable: true
         guid nullable: true
-        primaryImage nullable: true
+        primaryImage nullable: true, validator: { val, obj ->
+            !val || (obj?.imageSettings[val]?.imageDisplayOption ?: ImageOption.INCLUDE) == ImageOption.INCLUDE
+        }
+        primaryVideo nullable: true
+        primaryAudio nullable: true
         specimenIds nullable: true
         classification nullable: true
         nslNameIdentifier nullable: true
@@ -131,16 +138,31 @@ class Profile {
         guid index: true
         rank index: true
         uuid index: true
+        opus index: true
     }
 
     def beforeValidate() {
         if (uuid == null) {
             uuid = UUID.randomUUID().toString()
         }
-        if (draft) {
+
+
+        // draft nullness is not enough to know if the profile or the draft has been edited
+        // we need to play with the dirty properties to check for additional conditions
+        // such as when the draft is created, cancelled or published.
+
+        if(isDirty("draft") && dirtyPropertyNames.size() == 1 ) {
+            if (draft) { // Draft Created
+                draft.lastPublished = lastPublished // No changes to the draft have happened yet
+            }
+            // else => Draft cancelled
+            // Do nothing, draft will be wiped out and this.lastPublished remains untouched
+        } else if(draft) { // Draft Updated
             draft.lastPublished = new Date()
         } else {
             lastPublished = new Date()
+            // For completeness below is the condition for a Draft published but we only need to update this.lastPublished hence no more code required.
+            // !draft && isDirty("draft") && dirtyPropertyNames.size() > 1
         }
     }
 }

@@ -391,7 +391,8 @@ class ProfileController extends BaseController {
             if (!profile) {
                 notFound()
             } else {
-                profileService.toggleDraftMode(profile.uuid)
+                boolean publish = params.publish == "true"
+                profileService.toggleDraftMode(profile.uuid, publish)
 
                 render([success: true] as JSON)
             }
@@ -419,7 +420,13 @@ class ProfileController extends BaseController {
         Profile profile = getProfile()
 
         if (profile) {
-            if (profile && profile.draft && params.latest == "true") {
+            final fullClassification = params.boolean('fullClassification', false)
+            final latest = params.boolean("latest", false)
+            if (fullClassification) {
+                profileService.decorateProfile(profile, latest, true)
+            }
+
+            if (profile && profile.draft && latest) {
                 Opus opus = profile.opus
                 profile = new Profile(profile.draft.properties)
                 profile.attributes?.each { it.profile = profile }
@@ -511,7 +518,7 @@ class ProfileController extends BaseController {
         if (!profile) {
             notFound()
         } else {
-            def result = profileService.listDocument(profile.uuid, editMode)
+            def result = profileService.listDocument(profile, editMode)
             render result as JSON
         }
     }
@@ -563,10 +570,10 @@ class ProfileController extends BaseController {
         } else {
 
             if (id) {
-                result = profileService.updateDocument(profile.uuid, props, id)
+                result = profileService.updateDocument(profile, props, id)
                 message = [message: 'updated', documentId: result.documentId, url: result.url]
             } else {
-                result = profileService.createDocument(profile.uuid, props)
+                result = profileService.createDocument(profile, props)
                 message = [message: 'created', documentId: result.documentId, url: result.url]
             }
 
@@ -577,6 +584,28 @@ class ProfileController extends BaseController {
                 //Document.withSession { session -> session.clear() }
                 log.error result.error
                 render status: 400, text: result.error
+            }
+        }
+    }
+
+    def setPrimaryMultimedia(String id) {
+        log.debug("Updating ID ${id}")
+
+        def props = request.JSON
+
+        Profile profile = getProfile()
+
+        if (!profile) {
+            notFound()
+        } else {
+
+            def result = profileService.setPrimaryMultimedia(profile, props)
+
+            if (result) {
+                response.sendError(204)
+            } else {
+                log.error "Couldn't update $profile primary multimedia with $props"
+                response.sendError(500)
             }
         }
     }
