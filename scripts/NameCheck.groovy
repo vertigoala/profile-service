@@ -10,11 +10,14 @@ import au.org.ala.names.search.ALANameSearcher
 import au.org.ala.names.search.HomonymException
 import au.org.ala.names.search.ParentSynonymChildException
 import groovy.json.JsonSlurper
+import org.apache.commons.httpclient.util.URIUtil
+import org.apache.http.client.utils.URIBuilder
 
 import java.util.concurrent.atomic.AtomicInteger
 
 import static com.xlson.groovycsv.CsvParser.parseCsv
 import static groovyx.gpars.GParsPool.withPool
+import static org.apache.commons.httpclient.util.URIUtil.encodeWithinQuery
 import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
 
 class NameMatch {
@@ -231,8 +234,9 @@ class NameMatch {
     static Map matchNSLName(String name) {
         Map match = [:]
         try {
-            String resp = new URL("https://biodiversity.org.au/nsl/services/api/name/acceptable-name.json?name=\"${URLEncoder.encode(name, "utf-8")}\"").text
-            def json = new JsonSlurper().parseText(resp)
+            new URIBuilder('').addParameter('','')
+            String url = "https://biodiversity.org.au/nsl/services/api/name/acceptable-name.json?name=${encodeWithinQuery(name, "utf-8")}"
+            def json = new JsonSlurper().parse(url.toURL(), 'UTF-8')
             println "NSL Match: ${json}\n"
             if (json.count == 1) {
                 match.scientificName = json.names[0].simpleName

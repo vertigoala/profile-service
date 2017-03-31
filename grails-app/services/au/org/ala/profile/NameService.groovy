@@ -4,6 +4,7 @@ import au.org.ala.names.search.HomonymException
 import au.org.ala.names.search.SearchResultException
 import au.org.ala.ws.service.WebService
 import grails.converters.JSON
+import org.apache.commons.httpclient.util.URIUtil
 import org.apache.commons.lang3.StringUtils
 
 import static com.xlson.groovycsv.CsvParser.parseCsv
@@ -18,6 +19,8 @@ import groovy.json.JsonSlurper
 import org.springframework.transaction.annotation.Transactional
 
 import javax.annotation.PostConstruct
+
+import static org.apache.commons.httpclient.util.URIUtil.encodeWithinQuery
 
 @Transactional
 class NameService extends BaseDataAccessService {
@@ -156,9 +159,9 @@ class NameService extends BaseDataAccessService {
     Map matchNSLName(String name) {
         Map match = [:]
         try {
-            log.debug("GET request to ${grailsApplication.config.nsl.name.match.url.prefix}\"${enc(name)}\"")
-            String resp = new URL("${grailsApplication.config.nsl.name.match.url.prefix}\"${enc(name)}\"").text
-            def json = new JsonSlurper().parseText(resp)
+            String url = grailsApplication.config.nsl.name.match.url.prefix + encodeWithinQuery(name, 'UTF-8')
+            log.debug("GET request to $url")
+            def json = new JsonSlurper().parse(url.toURL(), 'UTF-8')
             if (json.count == 1) {
                 match.scientificName = json.names[0].simpleName
                 match.scientificNameHtml = json.names[0].simpleNameHtml
