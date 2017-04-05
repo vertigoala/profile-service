@@ -1278,4 +1278,17 @@ class ProfileService extends BaseDataAccessService {
 
         return !originalProfile.hasErrors()
     }
+
+    def setStatus(Profile originalProfile, json) {
+        checkArgument originalProfile
+        checkArgument json?.status
+        def profile = profileOrDraft(originalProfile)
+
+        profile.profileStatus = json?.status
+
+        save profile
+//        originalProfile.save(true)
+
+        return !originalProfile.hasErrors()
+    }
 }

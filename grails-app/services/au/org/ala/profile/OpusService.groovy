@@ -639,4 +639,9 @@ class OpusService extends BaseDataAccessService {
 
         opus.attachments
     }
+
+    void updateAdditionalStatuses(Opus opus, List<String> additionalStatuses) {
+        opus.additionalStatuses = additionalStatuses
+        save opus
+    }
 }

@@ -73,6 +73,8 @@ class Opus {
     @Transient
     int profileCount
 
+    List<String> additionalStatuses = ['In Review', 'Complete']
+
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, tags: Tag]
     static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig', 'profileLayoutConfig', 'dataResourceConfig']
 

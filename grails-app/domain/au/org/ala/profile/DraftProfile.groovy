@@ -23,6 +23,7 @@ class DraftProfile {
     String primaryVideo
     String primaryAudio
     String occurrenceQuery
+    String profileStatus = Profile.STATUS_PARTIAL
     Map<String, ImageSettings> imageSettings = [:]
     List<String> specimenIds
     List<Authorship> authorship
@@ -63,5 +64,6 @@ class DraftProfile {
         createdBy nullable: true
         lastAttributeChange nullable: true
         occurrenceQuery nullable: true
+        profileStatus nullable: true
     }
 }

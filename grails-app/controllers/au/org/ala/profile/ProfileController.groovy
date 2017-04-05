@@ -609,4 +609,21 @@ class ProfileController extends BaseController {
             }
         }
     }
+
+    def setStatus() {
+        def props = request.JSON
+        Profile profile = this.profile
+        if (!profile) {
+            notFound()
+        } else {
+            def result = profileService.setStatus(profile, props)
+
+            if (result) {
+                response.sendError( 204 )
+            } else {
+                log.error "Couldn't update $profile status with $props"
+                response.sendError(500)
+            }
+        }
+    }
 }

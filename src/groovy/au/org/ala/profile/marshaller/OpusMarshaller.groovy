@@ -64,7 +64,8 @@ class OpusMarshaller {
                     accessToken                : opus.accessToken,
                     tags                       : opus.tags?.collect {
                         [uuid: it.uuid, colour: it.colour, name: it.name, abbrev: it.abbrev]
-                    } ?: []
+                    } ?: [],
+                    additionalStatuses         : opus.additionalStatuses ?: []
             ]
         }
     }

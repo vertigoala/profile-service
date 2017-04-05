@@ -412,4 +412,19 @@ class OpusController extends BaseController {
     def getTags() {
         render([tags: Tag.list()] as JSON)
     }
+
+    def updateAdditionalStatuses() {
+        if (!params.opusId) {
+            badRequest "opusId is required"
+        } else {
+            Opus opus = getOpus()
+
+            if (!opus) {
+                notFound()
+            } else {
+                opusService.updateAdditionalStatuses(opus, request.JSON.addtionalStatuses)
+                render([success: true] as JSON)
+            }
+        }
+    }
 }

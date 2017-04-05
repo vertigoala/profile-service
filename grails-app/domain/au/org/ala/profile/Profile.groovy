@@ -13,6 +13,12 @@ class Profile {
 
     private static final String NOT_ANALYZED_INDEX = "not_analyzed"
 
+    final static STATUS_EMPTY = 'Empty'
+    final static STATUS_PARTIAL = 'Partial'
+    final static STATUS_LEGACY = 'Legacy'
+//    static STATUS_COMPLETE = 'complete'
+//    static STATUS_IN_REVIEW = 'in_review'
+
     static searchable = {
         only = ["uuid", "guid", "scientificName", "fullName", "matchedName", "rank", "primaryImage", "opus",
                 "attributes", "lastUpdated", "archivedDate", "archivedWithName", "scientificNameLower",
@@ -45,6 +51,8 @@ class Profile {
     String nslNomenclatureIdentifier
     String nslProtologue
     String occurrenceQuery
+
+    String profileStatus = STATUS_PARTIAL
 
     @Transient
     boolean privateMode = false
@@ -129,6 +137,7 @@ class Profile {
         archivedBy nullable: true
         archivedWithName nullable: true
         occurrenceQuery nullable: true
+        profileStatus nullable: true
         lastPublished nullable: true
     }
 
@@ -139,6 +148,7 @@ class Profile {
         rank index: true
         uuid index: true
         opus index: true
+        profileStatus defaultValue: STATUS_PARTIAL
     }
 
     def beforeValidate() {

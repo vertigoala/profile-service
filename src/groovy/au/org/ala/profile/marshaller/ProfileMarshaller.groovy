@@ -63,7 +63,8 @@ class ProfileMarshaller {
                     archivedWithName         : profile.archivedWithName,
                     showLinkedOpusAttributes : profile.showLinkedOpusAttributes,
                     lastPublished            : profile.lastPublished,
-                    occurrenceQuery          : profile.occurrenceQuery
+                    occurrenceQuery          : profile.occurrenceQuery,
+                    profileStatus            : profile.profileStatus
             ]
         }
     }

@@ -1,3 +1,4 @@
+import au.org.ala.profile.Profile
 import au.org.ala.profile.Tag
 import au.org.ala.profile.listener.AuditListener
 import au.org.ala.profile.listener.LastUpdateListener
@@ -26,6 +27,8 @@ class BootStrap {
         createDefaultTags()
 
         fixMultimedia()
+
+        addStatusToProfiles()
     }
     def destroy = {
     }
@@ -96,5 +99,25 @@ class BootStrap {
                 log.error("Some sort of error happened fixing the multimedia", e)
             }
         }
+    }
+
+    // TODO Remove this once all profiles have a status set
+    def addStatusToProfiles() {
+        log.info("Updating lastUpdated field on comments")
+        // Bypass GORM to set the last updated field directly
+        DBCollection myColl = mongo.getDB(grailsApplication.config.grails.mongo.databaseName).getCollection("profile")
+        BasicDBList list = new BasicDBList()
+        list.add(new BasicDBObject('profileStatus', new BasicDBObject('$exists', false)))
+        list.add(new BasicDBObject('profileStatus', new BasicDBObject('$type', 10))) // $type: 10 is null
+        BasicDBObject condition = new BasicDBObject('$or', list)
+
+        //Find all docs missing a lastUpdated and set it to the dateCreated
+        final cursor = myColl.find(condition)
+        final count = cursor.size()
+        cursor.each { DBObject profile ->
+            profile.profileStatus = Profile.STATUS_PARTIAL
+            myColl.save(profile)
+        }
+        log.info("Updated $count profiles")
     }
 }
