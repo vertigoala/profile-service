@@ -105,7 +105,7 @@ class ImportService extends BaseDataAccessService {
                             log.info("Profile already exists in this opus for scientific name ${scientificName}")
                             results.errors << "'${it.scientificName}' already exists (provided as ${it.scientificName}, matched as ${fullName})"
                         } else {
-                            profile = new Profile(scientificName: scientificName, nameAuthor: nameAuthor, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: [], bibliography: []);
+                            profile = new Profile(scientificName: scientificName, nameAuthor: nameAuthor, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: [], bibliography: [], profileStatus: Profile.STATUS_LEGACY);
                             profile.fullName = fullName
 
                             if (matchedName) {
