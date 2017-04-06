@@ -110,7 +110,12 @@ class SearchService extends BaseDataAccessService {
      *
      */
     private QueryBuilder buildNameSearch(String term, String[] accessibleCollections, SearchOptions options) {
-        String alaMatchedName = nameService.matchName(term)?.scientificName
+        String alaMatchedName = null;
+        try {
+            alaMatchedName = nameService.matchName(term)?.scientificName
+        } catch (Exception e) {
+            log.error("Exception occurred while calling NameService.matchName" + e)
+        }
 
         Set<String> otherNames = [] as HashSet
         if (options.searchAla) {
