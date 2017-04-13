@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.names.search.SearchResultException
 import au.org.ala.profile.util.SearchOptions
 import org.elasticsearch.search.sort.SortBuilders
 
@@ -110,7 +111,12 @@ class SearchService extends BaseDataAccessService {
      *
      */
     private QueryBuilder buildNameSearch(String term, String[] accessibleCollections, SearchOptions options) {
-        String alaMatchedName = nameService.matchName(term)?.scientificName
+        String alaMatchedName = null;
+        try {
+            alaMatchedName = nameService.matchName(term)?.scientificName
+        } catch (SearchResultException e) {
+            log.debug("NameService.matchName return SearchResultException for " + term)
+        }
 
         Set<String> otherNames = [] as HashSet
         if (options.searchAla) {
