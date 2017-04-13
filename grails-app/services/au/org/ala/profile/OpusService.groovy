@@ -125,7 +125,18 @@ class OpusService extends BaseDataAccessService {
             if (!opus.brandingConfig) {
                 opus.brandingConfig = new BrandingConfig()
             }
-            opus.brandingConfig.logoUrl = json.brandingConfig.logoUrl ? json.brandingConfig.logoUrl : null
+
+            if (opus.brandingConfig.logos) {
+                opus.brandingConfig.logos.clear()
+            } else {
+                opus.brandingConfig.logos = []
+            }
+
+            json.brandingConfig.logos?.each{ logo ->
+                Logo newLogo = new Logo(hyperlink: logo.hyperlink, logoUrl: logo.logoUrl)
+                opus.brandingConfig.logos.push(newLogo)
+            }
+
             opus.brandingConfig.thumbnailUrl = json.brandingConfig.thumbnailUrl ?
                     json.brandingConfig.thumbnailUrl : null
             opus.brandingConfig.opusBannerHeight = json.brandingConfig.opusBannerHeight ?

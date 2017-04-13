@@ -13,7 +13,7 @@ class BrandingConfig {
     String profileBannerUrl // banner image for profile pages
     int profileBannerHeight = DEFAULT_PROFILE_BANNER_HEIGHT_PX
 
-    String logoUrl
+    List<Logo> logos = []
     String thumbnailUrl
 
     String colourTheme
@@ -21,7 +21,6 @@ class BrandingConfig {
     static constraints = {
         opusBannerUrl nullable: true
         profileBannerUrl nullable: true
-        logoUrl nullable: true
         thumbnailUrl nullable: true
         colourTheme nullable: true
     }
@@ -30,4 +29,6 @@ class BrandingConfig {
         opusBannerHeight defaultValue: DEFAULT_OPUS_BANNER_HEIGHT_PX
         profileBannerHeight defaultValue: DEFAULT_PROFILE_BANNER_HEIGHT_PX
     }
+
+    static embedded = ["logos"]
 }
