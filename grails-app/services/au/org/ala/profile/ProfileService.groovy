@@ -125,7 +125,11 @@ class ProfileService extends BaseDataAccessService {
     }
 
     Profile createProfile(String opusId, Map json) {
-        createProfile(opusId, json, null)
+        createProfile(opusId, json) { profile ->
+            if (!profile.profileStatus) {
+                profile.profileStatus = Profile.STATUS_PARTIAL
+            }
+        }
     }
 
     /**
@@ -1286,8 +1290,7 @@ class ProfileService extends BaseDataAccessService {
 
         profile.profileStatus = json?.status
 
-        save profile
-//        originalProfile.save(true)
+        save originalProfile
 
         return !originalProfile.hasErrors()
     }
