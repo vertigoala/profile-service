@@ -275,8 +275,14 @@ class SearchService extends BaseDataAccessService {
                     [$skip: startFrom], [$limit: max]
             ])
 
+            def aggregrateResult = aggregation.results()
+
+            if (autoCompleteScientificName) {
+                aggregrateResult = aggregrateResult.unique {it.scientificName}
+            }
+
             int order = 0;
-            results = aggregation.results().collect {
+            results = aggregrateResult.collect {
                 Opus opus = opusMap ? opusMap[it.opus] : Opus.get(it.opus)
 
                 [
