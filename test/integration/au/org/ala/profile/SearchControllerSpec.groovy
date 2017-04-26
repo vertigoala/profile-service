@@ -28,7 +28,7 @@ class SearchControllerSpec extends BaseIntegrationSpec {
         controller.findByScientificName()
 
         then:
-        1 * searchService.findByScientificName("sciName", [], ProfileSortOption.getDefault(), false, -1, 0)
+        1 * searchService.findByScientificName("sciName", [], ProfileSortOption.getDefault(), false, -1, 0, false)
     }
 
     def "findByScientificName should use the provided values for the opus list, wildcard, max and offset parameters"() {
@@ -39,10 +39,11 @@ class SearchControllerSpec extends BaseIntegrationSpec {
         controller.params.max = 666
         controller.params.scientificName = "sciName"
         controller.params.sortBy = "name"
+        controller.params.autoCompleteScientificName = "true"
         controller.findByScientificName()
 
         then:
-        1 * searchService.findByScientificName("sciName", ["one", "two"], ProfileSortOption.NAME, true, 666, 10)
+        1 * searchService.findByScientificName("sciName", ["one", "two"], ProfileSortOption.NAME, true, 666, 10, true)
     }
 
     def "findByClassificationNameAndRank should return 400 BAD REQUEST if no scientificName or taxon are provided"() {
