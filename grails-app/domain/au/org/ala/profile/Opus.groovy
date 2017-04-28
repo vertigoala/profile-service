@@ -2,7 +2,6 @@ package au.org.ala.profile
 
 import au.org.ala.profile.sanitizer.SanitizedHtml
 import au.org.ala.profile.util.ImageOption
-import au.org.ala.profile.util.Utils
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
@@ -35,6 +34,7 @@ class Opus {
     ProfileLayoutConfig profileLayoutConfig
     MapConfig mapConfig
     DataResourceConfig dataResourceConfig
+    OpusLayoutConfig opusLayoutConfig
 
     String attributeVocabUuid
     String authorshipVocabUuid
@@ -76,7 +76,7 @@ class Opus {
     List<String> additionalStatuses = ['In Review', 'Complete']
 
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, tags: Tag]
-    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig', 'profileLayoutConfig', 'dataResourceConfig']
+    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig', 'profileLayoutConfig', 'dataResourceConfig', 'opusLayoutConfig']
 
     static constraints = {
         shortName nullable: true
@@ -85,6 +85,7 @@ class Opus {
         profileLayoutConfig nullable: true
         mapConfig nullable: true
         dataResourceConfig nullable: true
+        opusLayoutConfig nullable: true
         attributeVocabUuid nullable: true
         authorshipVocabUuid nullable: true
         enablePhyloUpload nullable: true
