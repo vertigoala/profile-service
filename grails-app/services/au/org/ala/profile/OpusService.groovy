@@ -150,6 +150,31 @@ class OpusService extends BaseDataAccessService {
             opus.brandingConfig.colourTheme = json.brandingConfig.colourTheme ? json.brandingConfig.colourTheme : null
         }
 
+        if (json.opusLayoutConfig) {
+            if (!opus.opusLayoutConfig) {
+                opus.opusLayoutConfig = new OpusLayoutConfig()
+            }
+
+            if (opus.opusLayoutConfig.images) {
+                opus.opusLayoutConfig.images.clear()
+            } else {
+                opus.opusLayoutConfig.images = []
+            }
+
+            json.opusLayoutConfig.images?.each{ image ->
+                Image imageLink = new Image(imageUrl: image.imageUrl, credit: image.credit)
+                opus.opusLayoutConfig.images.push(imageLink)
+            }
+
+            opus.opusLayoutConfig.updatesSection = json.opusLayoutConfig.updatesSection as String
+            opus.opusLayoutConfig.explanatoryText = json.opusLayoutConfig.explanatoryText as String
+            opus.opusLayoutConfig.duration = json.opusLayoutConfig.duration ?: opus.opusLayoutConfig.duration
+            opus.opusLayoutConfig.helpTextSearch = json.opusLayoutConfig.helpTextSearch ?: null
+            opus.opusLayoutConfig.helpTextIdentify = json.opusLayoutConfig.helpTextIdentify ?: null
+            opus.opusLayoutConfig.helpTextBrowse = json.opusLayoutConfig.helpTextBrowse ?: null
+            opus.opusLayoutConfig.helpTextDocuments = json.opusLayoutConfig.helpTextDocuments ?: null
+        }
+
         if (json.profileLayoutConfig) {
             if (!opus.profileLayoutConfig) {
                 opus.profileLayoutConfig = new ProfileLayoutConfig()
