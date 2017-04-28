@@ -25,7 +25,7 @@ import static org.apache.commons.httpclient.util.URIUtil.encodeWithinQuery
 @Transactional
 class NameService extends BaseDataAccessService {
 
-    static final String NSL_APC_PRODUCT = "AOC"
+    static final String NSL_APC_PRODUCT = "APC"
 
     WebService webService
 
