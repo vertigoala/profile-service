@@ -221,7 +221,7 @@ class SearchService extends BaseDataAccessService {
         filteredQuery(query, buildFilter(accessibleCollections, options.includeArchived))
     }
 
-    List<Map> findByScientificName(String scientificName, List<String> opusIds, ProfileSortOption sortBy = ProfileSortOption.getDefault(), boolean useWildcard = true, int max = -1, int startFrom = 0) {
+    List<Map> findByScientificName(String scientificName, List<String> opusIds, ProfileSortOption sortBy = ProfileSortOption.getDefault(), boolean useWildcard = true, int max = -1, int startFrom = 0, boolean autoCompleteScientificName = false) {
         checkArgument scientificName
         scientificName = Utils.sanitizeRegex(scientificName)
 
@@ -249,11 +249,16 @@ class SearchService extends BaseDataAccessService {
                 criteria << [opus: [$in: accessibleCollections*.id]]
             }
 
-            // using regex to perform a case-insensitive match on EITHER the scientificName OR fullName
-            criteria << [$or: [
-                    [scientificName: [$regex: /^${scientificName}${wildcard}/, $options: "i"]],
-                     [fullName      : [$regex: /^${scientificName}${wildcard}/, $options: "i"]]
-            ]]
+             if (autoCompleteScientificName) {
+                 // using regex to perform a case-insensitive match on the scientificName
+                criteria << [scientificName: [$regex: /${wildcard}${scientificName}${wildcard}/, $options: "i"]]
+            } else {
+                // using regex to perform a case-insensitive match on EITHER the scientificName OR fullName
+                criteria << [$or: [
+                        [scientificName: [$regex: /^${scientificName}${wildcard}/, $options: "i"]],
+                        [fullName      : [$regex: /^${scientificName}${wildcard}/, $options: "i"]]
+                ]]
+            }
 
             // Create a projection containing the commonly used Profile attributes, and calculated fields 'unknownRank'
             // and 'rankOrder' as required for taxonomic sorting
@@ -270,8 +275,14 @@ class SearchService extends BaseDataAccessService {
                     [$skip: startFrom], [$limit: max]
             ])
 
+            def aggregrateResult = aggregation.results()
+
+            if (autoCompleteScientificName) {
+                aggregrateResult = aggregrateResult.unique {it.scientificName}
+            }
+
             int order = 0;
-            results = aggregation.results().collect {
+            results = aggregrateResult.collect {
                 Opus opus = opusMap ? opusMap[it.opus] : Opus.get(it.opus)
 
                 [

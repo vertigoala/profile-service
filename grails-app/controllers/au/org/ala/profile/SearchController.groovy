@@ -33,11 +33,12 @@ class SearchController extends BaseController {
             List<String> opusIds = params.opusId?.split(",") ?: []
 
             boolean useWildcard = params.useWildcard ? params.useWildcard.equalsIgnoreCase("true") : false
+            boolean autoCompleteScientificName = params.autoCompleteScientificName ? params.autoCompleteScientificName.equalsIgnoreCase("true") : false
             int max = params.max ? params.max as int : -1
             int startFrom = params.offset ? params.offset as int : 0
             ProfileSortOption sortBy = ProfileSortOption.byName(params.sortBy) ?: ProfileSortOption.getDefault()
 
-            List<Map> profiles = searchService.findByScientificName(params.scientificName, opusIds, sortBy, useWildcard, max, startFrom)
+            List<Map> profiles = searchService.findByScientificName(params.scientificName, opusIds, sortBy, useWildcard, max, startFrom, autoCompleteScientificName)
 
             response.setContentType("application/json")
             render profiles.collect {
