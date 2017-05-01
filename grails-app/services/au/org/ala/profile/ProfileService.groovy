@@ -473,17 +473,16 @@ class ProfileService extends BaseDataAccessService {
         Profile profile = Profile.findByUuid(profileId)
         checkState profile
 
-        if (json.containsKey("nslNomenclatureIdentifier")
-                && json.nslNomenclatureIdentifier != profileOrDraft(profile).nslNomenclatureIdentifier) {
-            profileOrDraft(profile).nslNomenclatureIdentifier = json.nslNomenclatureIdentifier
+        if (json.containsKey("nslNomenclatureIdentifier")) {
+            profileOrDraft(profile).nslNomenclatureIdentifier = json.nslNomenclatureIdentifier ?: null
         }
 
         if (json.containsKey("showLinkedOpusAttributes")) {
             profileOrDraft(profile).showLinkedOpusAttributes = json.showLinkedOpusAttributes as Boolean
         }
 
-        if (json.containsKey("occurrenceQuery") && json.occurrenceQuery != profile.occurrenceQuery) {
-            profileOrDraft(profile).occurrenceQuery = json.occurrenceQuery
+        if (json.containsKey("occurrenceQuery")) {
+            profileOrDraft(profile).occurrenceQuery = json.occurrenceQuery ?: null
         }
 
         saveImages(profile, json, true)
@@ -507,13 +506,11 @@ class ProfileService extends BaseDataAccessService {
         checkArgument profile
         checkArgument json
 
-        if (json.containsKey("specimenIds") && json.specimenIds != profileOrDraft(profile).specimenIds) {
-            if (profileOrDraft(profile).specimenIds) {
-                profileOrDraft(profile).specimenIds.clear()
-            } else {
-                profileOrDraft(profile).specimenIds = []
+        if (json.containsKey("specimenIds")) {
+            profileOrDraft(profile).specimenIds = []
+            if (json.specimenIds) {
+                profileOrDraft(profile).specimenIds.addAll(json.specimenIds)
             }
-            profileOrDraft(profile).specimenIds.addAll(json.specimenIds ?: [])
 
             if (!deferSave) {
                 save profile
@@ -522,16 +519,14 @@ class ProfileService extends BaseDataAccessService {
     }
 
     boolean saveAuthorship(Profile profile, Map json, boolean deferSave = false) {
-        if (json.containsKey('authorship')) {
-            if (profileOrDraft(profile).authorship) {
-                profileOrDraft(profile).authorship.clear()
-            } else {
-                profileOrDraft(profile).authorship = []
-            }
-
-            json.authorship.each {
-                Term term = vocabService.getOrCreateTerm(it.category, profile.opus.authorshipVocabUuid)
-                profileOrDraft(profile).authorship << new Authorship(category: term, text: it.text)
+        if (json.containsKey("authorship")) {
+            profileOrDraft(profile).authorship = []
+            if (json.authorship) {
+                profileOrDraft(profile).authorship = json.authorship.collect {
+                    Term term = vocabService.getOrCreateTerm(it.category,
+                            profile.opus.authorshipVocabUuid)
+                    new Authorship(category: term, text: it.text)
+                }
             }
 
             if (!deferSave) {
@@ -556,23 +551,23 @@ class ProfileService extends BaseDataAccessService {
 
         def profileOrDraft = profileOrDraft(profile)
 
-        if (json.containsKey("primaryImage") && json.primaryImage != profileOrDraft.primaryImage) {
-            profileOrDraft.primaryImage = json.primaryImage
+        if (json.containsKey('primaryImage')) {
+            profileOrDraft.primaryImage = json.primaryImage ?: null
         }
 
-        if (json.containsKey("imageSettings") && json.imageSettings != profileOrDraft.imageSettings) {
-            if (profileOrDraft.imageSettings) {
-                profileOrDraft.imageSettings.clear()
-            } else {
-                profileOrDraft.imageSettings = [:]
-            }
+        if (json.containsKey("imageSettings")) {
+            profileOrDraft.imageSettings = [:]
+            if (json.imageSettings) {
+                profileOrDraft.imageSettings = json.imageSettings.collectEntries {
+                    ImageOption imageDisplayOption = it.displayOption ?
+                            ImageOption.byName(it.displayOption, profile.opus.approvedImageOption) :
+                            profile.opus.approvedImageOption
+                    if (imageDisplayOption == profile.opus.approvedImageOption) {
+                        imageDisplayOption = null
+                    }
 
-            json.imageSettings?.each {
-                ImageOption imageDisplayOption = it.displayOption ? ImageOption.byName(it.displayOption, profile.opus.approvedImageOption) : profile.opus.approvedImageOption
-                if (imageDisplayOption == profile.opus.approvedImageOption) {
-                    imageDisplayOption = null
+                    [(it.imageId): new ImageSettings(imageDisplayOption: imageDisplayOption, caption: it.caption ?: '')]
                 }
-                profileOrDraft.imageSettings << [(it.imageId): new ImageSettings(imageDisplayOption: imageDisplayOption, caption: it.caption ?: '')]
             }
         }
 
@@ -654,9 +649,15 @@ class ProfileService extends BaseDataAccessService {
         checkArgument profile
         checkArgument json
 
-        if (json.containsKey("bibliography") && json.bibliography != profileOrDraft(profile).bibliography) {
-            profileOrDraft(profile).bibliography = json.bibliography.collect {
-                new Bibliography(text: it.text, uuid: UUID.randomUUID().toString(), order: it.order)
+        if (json.containsKey('bibliography')) {
+            profileOrDraft(profile).bibliography = []
+            if (json.bibliography) {
+                profileOrDraft(profile).bibliography = json.bibliography.collect {
+                    new Bibliography(
+                            uuid: it.uuid ?: UUID.randomUUID().toString(),
+                            text: it.text,
+                            order: it.order)
+                }
             }
 
             if (!deferSave) {
@@ -739,17 +740,20 @@ class ProfileService extends BaseDataAccessService {
         Profile profile = Profile.findByUuid(profileId)
         checkState profile
 
-        if (json.containsKey("links") && json.links != profileOrDraft(profile).bhlLinks) {
-            profileOrDraft(profile).bhlLinks = json.links.collect {
-                Link link = new Link(uuid: UUID.randomUUID().toString())
-                link.url = it.url
-                link.title = it.title
-                link.description = it.description
-                link.fullTitle = it.fullTitle
-                link.edition = it.edition
-                link.publisherName = it.publisherName
-                link.doi = it.doi
-                link
+        if (json.containsKey("links")) {
+            profileOrDraft(profile).bhlLinks = []
+            if (json.links) {
+                profileOrDraft(profile).bhlLinks = json.links.collect {
+                    Link link = new Link(uuid: it.uuid ?: UUID.randomUUID().toString())
+                    link.url = it.url
+                    link.title = it.title
+                    link.description = it.description
+                    link.fullTitle = it.fullTitle
+                    link.edition = it.edition
+                    link.publisherName = it.publisherName
+                    link.doi = it.doi
+                    link
+                }
             }
 
             if (!deferSave) {
@@ -765,13 +769,16 @@ class ProfileService extends BaseDataAccessService {
         Profile profile = Profile.findByUuid(profileId)
         checkState profile
 
-        if (json.containsKey("links") && json.links != profileOrDraft(profile).links) {
-            profileOrDraft(profile).links = json.links.collect {
-                Link link = new Link(uuid: UUID.randomUUID().toString())
-                link.url = it.url
-                link.title = it.title
-                link.description = it.description
-                link
+        if (json.containsKey("links")) {
+            profileOrDraft(profile).links = []
+            if (json.links) {
+                profileOrDraft(profile).links = json.links.collect {
+                    Link link = new Link(uuid: it.uuid ?: UUID.randomUUID().toString())
+                    link.url = it.url
+                    link.title = it.title
+                    link.description = it.description
+                    link
+                }
             }
 
             if (!deferSave) {
