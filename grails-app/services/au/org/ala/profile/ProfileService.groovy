@@ -79,7 +79,7 @@ class ProfileService extends BaseDataAccessService {
         try {
             Map matchedName = nameService.matchName(name)
             if (matchedName) {
-                result.matchedName = [scientificName: matchedName.scientificName, fullName: matchedName.fullName, nameAuthor: matchedName.author, guid: matchedName.guid, rank: matchedName.rank]
+                result.matchedName = [scientificName: matchedName.scientificName, fullName: matchedName.fullName, nameAuthor: matchedName.nameAuthor, guid: matchedName.guid, rank: matchedName.rank]
 
                 List matchedScientificNameDuplicates = findByName(result.matchedName.scientificName, opus)
                 if (matchedScientificNameDuplicates) {
