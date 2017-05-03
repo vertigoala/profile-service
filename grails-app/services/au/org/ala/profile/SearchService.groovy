@@ -831,7 +831,7 @@ class SearchService extends BaseDataAccessService {
                         if (relatedProfile) {
                             ne "uuid", relatedProfile.uuid
                         }
-                        if (masterList != null) {
+                        if (opus.masterListUid) {
                             inList "scientificName", masterList
                         }
 
