@@ -492,7 +492,7 @@ class SearchService extends BaseDataAccessService {
             // children, or of whether there is a corresponding profile for the child.
             // Only consider the classifications of profiles that are on the master list
             String mapFunction = """function map() {
-                           if (masterList.indexOf(this.scientificName) == -1) {
+                           if (masterList != null && masterList.indexOf(this.scientificName) == -1) {
                                return
                            }
                            var filter = '${filter ?: ''}';
