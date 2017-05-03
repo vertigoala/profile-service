@@ -15,7 +15,9 @@ class OpusController extends BaseController {
 
     OpusService opusService
     AuthService authService
+    ImportService importService
     AttachmentService attachmentService
+    SearchService searchService
 
     def index() {
         def opuses = Opus.findAll()
@@ -425,6 +427,41 @@ class OpusController extends BaseController {
                 opusService.updateAdditionalStatuses(opus, request.JSON.addtionalStatuses)
                 render([success: true] as JSON)
             }
+        }
+    }
+
+    def updateMasterList() {
+        if (!params.opusId) {
+            badRequest "opusId is required"
+        } else {
+            Opus opus = getOpus()
+            opusService.updateMasterList(opus, request.JSON.masterListUid)
+            render([success: true] as JSON)
+        }
+    }
+
+    def syncMasterList() {
+        if (!params.opusId) {
+            badRequest "opusId is required"
+        } else {
+            Opus opus = getOpus()
+            importService.syncMasterList(opus)
+        }
+    }
+
+    def reindex() {
+        if (!params.opusId) {
+            badRequest "opusId is required"
+        } else {
+            if (Status.count() == 0) {
+                Status status = new Status()
+                status.searchReindex = true
+                status.save()
+            }
+
+            searchService.reindex(opus)
+
+            render (Status.first() as JSON)
         }
     }
 }

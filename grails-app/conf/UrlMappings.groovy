@@ -27,6 +27,8 @@ class UrlMappings {
 
         "/opus/$opusId/additionalStatuses" controller: "opus", action: [POST: 'updateAdditionalStatuses']
         "/opus/$opusId/about/" controller: "opus", action: [GET: "about", PUT: "updateAbout"]
+        "/opus/$opusId/masterList" controller: "opus", action: [POST: 'updateMasterList']
+        "/opus/$opusId/masterList/sync" controller: "opus", action: [POST: 'syncMasterList']
         "/opus/$opusId/vocab/" controller: "vocab", action: "index"
         "/opus/$opusId/vocab/$vocabId" controller: "vocab", action: [GET: "show", POST: "update"]
         "/opus/$opusId/vocab/usages/find" controller: "vocab", action: "findUsagesOfTerm"
@@ -102,6 +104,7 @@ class UrlMappings {
 
         "/opus/$opusId/archive/$profileId" controller: "profile", action: [POST: "archiveProfile"]
         "/opus/$opusId/restore/$profileId" controller: "profile", action: [POST: "restoreArchivedProfile"]
+        "/opus/$opusId/reindex" controller: "opus", action: [POST: "reindex"]
 
         "/checkName" controller: "profile", action: [GET: "checkName"]
 

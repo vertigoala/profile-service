@@ -147,40 +147,9 @@ class SearchController extends BaseController {
             String filter = params.filter ?: null
 
             List children = searchService.getImmediateChildren(opus, params.rank, params.name, filter, max, startFrom)
+            List enprofiledChildren = searchService.findProfilesForImmediateChildren(opus, children)
             response.setContentType("application/json")
-            render children.collect { profile ->
-                Profile relatedProfile
-                if (profile.guid) {
-                    relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(profile.guid, opus)
-                } else {
-                    relatedProfile = Profile.findByScientificNameAndOpusAndArchivedDateIsNull(profile.name, opus)
-                }
-
-                [
-                        profileId  : relatedProfile?.uuid,
-                        profileName: relatedProfile?.scientificName,
-                        guid       : profile.guid,
-                        name       : profile.name,
-                        rank       : profile.rank,
-                        opus       : [uuid: opus.uuid, title: opus.title, shortName: opus.shortName],
-                        childCount : Profile.withCriteria {
-                            eq "opus", opus
-                            isNull "archivedDate"
-                            if (relatedProfile) {
-                                ne "uuid", relatedProfile.uuid
-                            }
-
-                            "classification" {
-                                eq "rank", "${profile.rank.toLowerCase()}"
-                                ilike "name", "${profile.name}"
-                            }
-
-                            projections {
-                                count()
-                            }
-                        }[0]
-                ]
-            } as JSON
+            render enprofiledChildren as JSON
         }
     }
 

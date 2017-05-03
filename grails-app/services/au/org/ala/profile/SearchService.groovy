@@ -2,6 +2,7 @@ package au.org.ala.profile
 
 import au.org.ala.names.search.SearchResultException
 import au.org.ala.profile.util.SearchOptions
+import groovy.json.JsonOutput
 import org.elasticsearch.search.sort.SortBuilders
 
 import static org.elasticsearch.index.query.MatchQueryBuilder.Operator.AND
@@ -39,6 +40,7 @@ class SearchService extends BaseDataAccessService {
     BieService bieService
     ElasticSearchService elasticSearchService
     NameService nameService
+    MasterListService masterListService
 
     Map search(List<String> opusIds, String term, int offset, int pageSize, SearchOptions options) {
         log.debug("Searching for ${term} in collection(s) ${opusIds} with options ${options}")
@@ -48,6 +50,7 @@ class SearchService extends BaseDataAccessService {
         List<Vocab> vocabs = Vocab.findAllByUuidInList(opusList*.attributeVocabUuid)
         String[] summaryTerms = Term.findAllByVocabInListAndSummary(vocabs, true)*.uuid
         String[] nameTerms = Term.findAllByVocabInListAndContainsName(vocabs, true)*.uuid
+        Map<String, List<String>> masterLists = opusList.collectEntries { [(it.uuid) : masterListService.getMasterList(it)*.name ]}
 
         Map results = [:]
         if (accessibleCollections) {
@@ -57,16 +60,17 @@ class SearchService extends BaseDataAccessService {
                     size : pageSize
             ]
 
-            QueryBuilder query
-
+            QueryBuilder termQuery
             if (!term) {
-                query = filteredQuery(matchAllQuery(), buildFilter(accessibleCollections, options.includeArchived))
+                termQuery = matchAllQuery()
                 // if no term was provided then assume we are retrieving all records (in pages) sorted by the profile name (aka scientificName)
-                params.sort = SortBuilders.fieldSort("scientificNameLower")
+                params.sort = SortBuilders.fieldSort("scientificNameLower").unmappedType('string').missing('')
             } else {
-                query = options.nameOnly ? buildNameSearch(term, accessibleCollections, options) : buildTextSearch(term, accessibleCollections, options)
+                termQuery = options.nameOnly ? buildNameSearch(term, options) : buildTextSearch(term, options)
                 // if there is a term, then we need to use the ES relevance sorting, so we don't need a SortBuilder
             }
+
+            QueryBuilder query = filteredQuery(termQuery, buildFilter(accessibleCollections, options.includeArchived, masterLists))
             log.debug(query)
 
             long start = System.currentTimeMillis()
@@ -110,7 +114,7 @@ class SearchService extends BaseDataAccessService {
      * </ul>
      *
      */
-    private QueryBuilder buildNameSearch(String term, String[] accessibleCollections, SearchOptions options) {
+    private QueryBuilder buildNameSearch(String term, SearchOptions options) {
         String alaMatchedName = null;
         try {
             alaMatchedName = nameService.matchName(term)?.scientificName
@@ -149,7 +153,7 @@ class SearchService extends BaseDataAccessService {
             }
         }
 
-        filteredQuery(query, buildFilter(accessibleCollections, options.includeArchived))
+        query
     }
 
     private static QueryBuilder buildBaseNameSearch(String term, SearchOptions options) {
@@ -183,13 +187,26 @@ class SearchService extends BaseDataAccessService {
                 .must(matchQuery("text", term).operator(AND))
     }
 
-    private static FilterBuilder buildFilter(String[] accessibleCollections, boolean includeArchived = false) {
+    private static FilterBuilder buildFilter(String[] accessibleCollections, boolean includeArchived = false, Map<String, List<String>> masterLists = [:]) {
         FilterBuilder filter = boolFilter()
         if (!includeArchived) {
             filter.must(missingFilter("archivedDate"))
         }
 
-        filter.must(nestedFilter("opus", boolFilter().must(termsFilter("opus.uuid", accessibleCollections))))
+
+        filter.should(
+                *(accessibleCollections.collect { uuid ->
+                    def masterListFilter = boolFilter()
+                            .must(nestedFilter("opus", boolFilter().must(termFilter("opus.uuid", uuid))))
+
+                    def masterList = masterLists[uuid]
+                    if (masterList != null) {
+                        masterListFilter.must(termsFilter("scientificNameLower", masterLists[uuid]*.toLowerCase()))
+                    }
+                    masterListFilter
+                })
+        )
+
 
         filter
     }
@@ -198,7 +215,7 @@ class SearchService extends BaseDataAccessService {
      * A text search will look for the term(s) in any indexed field
      *
      */
-    private static QueryBuilder buildTextSearch(String term, String[] accessibleCollections, SearchOptions options) {
+    private static QueryBuilder buildTextSearch(String term, SearchOptions options) {
         MatchQueryBuilder.Operator operator = AND
         if (!options.matchAll) {
             operator = OR
@@ -218,7 +235,7 @@ class SearchService extends BaseDataAccessService {
         query.should(nestedQuery("attributes", boolQuery().must(matchQuery("text", term).operator(operator))))
         query.should(nestedQuery("attributes", boolQuery().must(matchPhrasePrefixQuery("text", term).operator(operator))))
 
-        filteredQuery(query, buildFilter(accessibleCollections, options.includeArchived))
+        query
     }
 
     List<Map> findByScientificName(String scientificName, List<String> opusIds, ProfileSortOption sortBy = ProfileSortOption.getDefault(), boolean useWildcard = true, int max = -1, int startFrom = 0, boolean autoCompleteScientificName = false) {
@@ -401,7 +418,20 @@ class SearchService extends BaseDataAccessService {
         preMatchCriteria << ["scientificName": [$regex: /^(?!(${scientificName})$)/, $options: "i"]] // case insensitive NOT condition
 
         if (opusList) {
-            preMatchCriteria << [opus: [$in: opusList*.id]]
+            preMatchCriteria << ['$or': opusList.collect { opus ->
+                def opusIdFilter = [opus: opus.id]
+                def filter
+                if (opus.masterListUid) {
+                    def masterList = masterListService.getMasterList(opus)
+                    filter = ['$and': [
+                            opusIdFilter,
+                            [scientificName: [$in: masterList*.name]]
+                    ]]
+                } else {
+                    filter = opusIdFilter
+                }
+                filter
+            }]
         }
 
         // Create a projection containing the commonly used Profile attributes, and calculated fields 'unknownRank'
@@ -451,11 +481,20 @@ class SearchService extends BaseDataAccessService {
         List results = []
         MapReduceOutput hierarchyView = null
 
+        def masterList = null
+        if  (opus.masterListUid) {
+            masterList = masterListService.getMasterList(opus)*.name
+        }
+
         try {
             // Find all the classification item that is exactly 1 item below the specified topRank.
             // This will find all immediate children of the specified rank, regardless of whether they in turn have
             // children, or of whether there is a corresponding profile for the child.
+            // Only consider the classifications of profiles that are on the master list
             String mapFunction = """function map() {
+                           if (masterList.indexOf(this.scientificName) == -1) {
+                               return
+                           }
                            var filter = '${filter ?: ''}';
 
                            if (typeof this.classification != 'undefined' && this.classification.length > 0) {
@@ -538,6 +577,9 @@ class SearchService extends BaseDataAccessService {
             MapReduceCommand command = new MapReduceCommand(Profile.collection, mapFunction, reduceFunction,
                     UUID.randomUUID().toString().replaceAll("-", ""), MapReduceCommand.OutputType.REPLACE, query)
             command.setFinalize(finalizeFunction)
+            command.setScope([
+                    masterList: masterList
+            ])
 
             hierarchyView = Profile.collection.mapReduce(command)
 
@@ -565,7 +607,7 @@ class SearchService extends BaseDataAccessService {
         Map groupedRanks = [:]
 
         if (opus) {
-            groupedRanks = Profile.collection.aggregate([[$match: [opus: opus.id, archivedDate: null]],
+            groupedRanks = Profile.collection.aggregate([[$match: matchForOpus(opus)],
                                                          [$unwind: '$classification'],
                                                          [$group: [_id: [rank: '$classification.rank', name: '$classification.name'], cnt: [$sum: 1]]],
                                                          [$group: [_id: '$_id.rank', total: [$sum: 1]]]]
@@ -573,7 +615,12 @@ class SearchService extends BaseDataAccessService {
                 [(it._id): it.total]
             }
 
-            groupedRanks[UNKNOWN_RANK] = Profile.countByOpusAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus)
+            if (opus.masterListUid) {
+                def masterList = masterListService.getMasterList(opus)*.name
+                groupedRanks[UNKNOWN_RANK] = Profile.countByOpusAndScientificNameInListAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus, masterList)
+            } else {
+                groupedRanks[UNKNOWN_RANK] = Profile.countByOpusAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus)
+            }
         }
 
         groupedRanks
@@ -590,9 +637,16 @@ class SearchService extends BaseDataAccessService {
         Map groupedTaxa = [:]
         if (opus) {
             if (!taxon || UNKNOWN_RANK.equalsIgnoreCase(taxon)) {
-                groupedTaxa[UNKNOWN_RANK] = Profile.countByOpusAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus)
+                if (opus.masterListUid) {
+                    def masterList = masterListService.getMasterList(opus)*.name
+                    Profile.findAllByOpusAndScientificNameInList
+                    groupedTaxa[UNKNOWN_RANK] = Profile.countByOpusAndScientificNameInListAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus, masterList)
+                } else {
+                    groupedTaxa[UNKNOWN_RANK] = Profile.countByOpusAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus)
+                }
+
             } else {
-                def result = Profile.collection.aggregate([$match: [opus: opus.id, archivedDate: null]],
+                def result = Profile.collection.aggregate([$match: matchForOpus(opus)],
                         [$unwind: '$classification'],
                         [$match: ["classification.rank": taxon, "classification.name": [$regex: /^${filter}/, $options: "i"], "rank": [$ne: taxon]]],
                         [$group: [_id: '$classification.name', cnt: [$sum: 1]]],
@@ -607,6 +661,17 @@ class SearchService extends BaseDataAccessService {
         }
 
         groupedTaxa
+    }
+
+    private matchForOpus(Opus opus) {
+        def match
+        if (opus.masterListUid) {
+            def masterList = masterListService.getMasterList(opus)*.name
+            match = [opus: opus.id, archivedDate: null, scientificName: ['$in': masterList ]]
+        } else {
+            match = [opus: opus.id, archivedDate: null]
+        }
+        match
     }
 
     private List<Opus> getAccessibleCollections(List<String> opusIds) {
@@ -712,6 +777,74 @@ class SearchService extends BaseDataAccessService {
             log.debug("Re-indexing ${profiles.size()} profiles...")
             elasticSearchService.index(profiles)
             log.debug("Finished re-indexing ${profiles.size()} profiles")
+        }
+    }
+
+    @Async
+    def reindex(Opus opus) {
+        if (opus) {
+            log.debug("Re-indexing ${opus.shortName}...")
+            def profiles = Profile.findAllByOpus(opus)
+            log.debug("Re-indexing ${profiles.size()} profiles...")
+            elasticSearchService.index(profiles)
+            log.debug("Finished re-indexing ${profiles.size()} profiles")
+        }
+    }
+
+    List findProfilesForImmediateChildren(Opus opus, List immediateChildren) {
+        def masterList = null
+        if (opus.masterListUid) {
+            masterList = masterListService.getMasterList(opus)*.name
+        }
+
+        List<Profile> profiles = Profile.withCriteria {
+            eq "opus", opus
+            or {
+                inList "guid", immediateChildren*.guid
+                inList "scientificName", immediateChildren*.name
+            }
+            if (opus.masterListUid) {
+                inList "scientificName", masterList
+            }
+        }
+        def byGuid = profiles.findAll { it.guid }.collectEntries { [(it.guid): it ]}
+        def byName = profiles.collectEntries { [ (it.name) : it ]}
+
+        immediateChildren.collect { profile ->
+            Profile relatedProfile
+            if (profile.guid) {
+                relatedProfile = byGuid[profile.guid]
+            } else {
+                relatedProfile = byName[profile.name]
+            }
+
+            [
+                    profileId  : relatedProfile?.uuid,
+                    profileName: relatedProfile?.scientificName,
+                    guid       : profile.guid,
+                    name       : profile.name,
+                    rank       : profile.rank,
+                    opus       : [uuid: opus.uuid, title: opus.title, shortName: opus.shortName],
+                    childCount : Profile.withCriteria {
+                        eq "opus", opus
+                        isNull "archivedDate"
+                        if (relatedProfile) {
+                            ne "uuid", relatedProfile.uuid
+                        }
+                        if (masterList != null) {
+                            inList "scientificName", masterList
+                        }
+
+                        "classification" {
+                            eq "rank", "${profile.rank.toLowerCase()}"
+                            ilike "name", "${profile.name}"
+                        }
+
+                        projections {
+                            count()
+                        }
+                    }[0]
+            ]
         }
     }
 }

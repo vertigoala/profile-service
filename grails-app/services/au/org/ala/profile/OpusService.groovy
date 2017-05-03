@@ -12,12 +12,16 @@ import org.springframework.web.multipart.commons.CommonsMultipartFile
 
 import java.text.SimpleDateFormat
 
+import static grails.async.Promises.*
+
 @Transactional
 class OpusService extends BaseDataAccessService {
 
     EmailService emailService
     AuthService authService
     AttachmentService attachmentService
+    ImportService importService
+    MasterListService masterListService
     def grailsApplication
     def groovyPageRenderer
 
@@ -679,5 +683,22 @@ class OpusService extends BaseDataAccessService {
     void updateAdditionalStatuses(Opus opus, List<String> additionalStatuses) {
         opus.additionalStatuses = additionalStatuses
         save opus
+    }
+
+    def updateMasterList(Opus opus, String masterListUid) {
+        opus.masterListUid = masterListUid
+        save opus
+        log.info("Queueing sync of opus master list")
+        task {
+            importService.syncMasterList(opus)
+        }
+    }
+
+    boolean isProfileOnMasterList(Opus opus, profile) {
+        if (!opus.masterListUid || !profile) return true
+
+        def masterList = masterListService.getMasterList(opus)
+        def exists = masterList.find { it.name.toLowerCase() == (profile.scientificNameLower ?: profile.scientificName?.toLowerCase()) }
+        return exists != null
     }
 }

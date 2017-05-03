@@ -1,11 +1,17 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.MasterListService.MasterListUnavailableException
 import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
 import au.org.ala.profile.util.Utils
+import com.google.common.collect.Sets
+import com.mongodb.DBCollection
+import com.mongodb.WriteConcern
+import com.mongodb.WriteResult
 import grails.converters.JSON
 import groovyx.net.http.ContentType
 import groovyx.net.http.RESTClient
 import org.apache.http.HttpStatus
+import org.grails.datastore.mapping.mongo.config.MongoCollection
 import org.springframework.scheduling.annotation.Async
 
 import java.util.concurrent.ConcurrentHashMap
@@ -21,6 +27,7 @@ class ImportService extends BaseDataAccessService {
     ProfileService profileService
     NameService nameService
     def grailsApplication
+    def masterListService
 
     Term getOrCreateTerm(String vocabId, String name) {
         Vocab vocab = Vocab.findByUuid(vocabId)
@@ -79,10 +86,10 @@ class ImportService extends BaseDataAccessService {
             profilesJson.eachParallel {
                 Map results = [errors: [], warnings: []]
                 try {
-                    index.incrementAndGet()
+                    def currentIndex = index.incrementAndGet()
 
                     if (!it.scientificName) {
-                        results.errors << "Failed to import row ${index}, does not have a scientific name"
+                        results.errors << "Failed to import row ${currentIndex}, does not have a scientific name"
                     } else {
                         Map matchedName = nameService.matchName(it.scientificName?.trim(), it.classification ?: [:])
 
@@ -101,11 +108,19 @@ class ImportService extends BaseDataAccessService {
                         }
 
                         Profile profile = Profile.findByScientificNameAndOpus(scientificName, opus)
-                        if (profile) {
+                        if (profile && profile.profileStatus != Profile.STATUS_EMPTY) {
                             log.info("Profile already exists in this opus for scientific name ${scientificName}")
                             results.errors << "'${it.scientificName}' already exists (provided as ${it.scientificName}, matched as ${fullName})"
                         } else {
-                            profile = new Profile(scientificName: scientificName, nameAuthor: nameAuthor, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: [], bibliography: [], profileStatus: Profile.STATUS_LEGACY);
+                            if (!profile) {
+                                profile = new Profile(scientificName: scientificName, nameAuthor: nameAuthor, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: [], bibliography: [], profileStatus: Profile.STATUS_LEGACY);
+                            } else {
+                                profile.scientificName = scientificName
+                                profile.nameAuthor = nameAuthor
+                                profile.opus = opus
+                                profile.guid = guid
+                                profile.profileStatus = Profile.STATUS_LEGACY
+                            }
                             profile.fullName = fullName
 
                             if (matchedName) {
@@ -245,9 +260,9 @@ class ImportService extends BaseDataAccessService {
                                 profile.errors.each { log.error(it) }
                                 results.errors << "Failed to save profile ${profile.errors.allErrors.get(0)}"
                             } else {
-                                success.incrementAndGet()
-                                if (index % reportInterval == 0) {
-                                    log.debug("Saved ${success} of ${profilesJson.size()}")
+                                def currentSuccess = success.incrementAndGet()
+                                if (currentIndex % reportInterval == 0) {
+                                    log.debug("Saved ${currentSuccess} of ${profilesJson.size()}")
                                 }
                             }
                         }
@@ -355,5 +370,150 @@ class ImportService extends BaseDataAccessService {
         }
 
         link
+    }
+
+    def syncMasterList(Opus collection) {
+
+        def masterList
+        try {
+            masterList = masterListService.getMasterList(collection)
+        } catch (MasterListUnavailableException e) {
+            log.error("Master list for ${collection.shortName} unavailable, skipping import")
+        }
+
+        log.info("Syncing Master List for ${collection.shortName} with ${masterList.size()} entries")
+        boolean enableNSLMatching = true
+
+        Map nslNamesCached = enableNSLMatching ? nameService.loadNSLSimpleNameDump() : [:]
+
+        if (!nslNamesCached) {
+            log.warn("NSL Simple Name cache failed - using live service lookup instead")
+        }
+
+        log.info "Importing master list ..."
+        withPool(IMPORT_THREAD_POOL_SIZE, logException("syncMasterList(${collection.shortName})")) {
+//            Map results = [errors: [], warnings: []]
+            def matches = masterList.collectParallel {
+                [match: nameService.matchName(it.name, [:]), listItem: it]
+            }
+            log.info("Sync Master List for ${collection.shortName} matched ${matches.size()} records")
+
+            def matchesMap = matches.collectEntries { [(it.listItem.name.trim()): it] }
+//            def namesMap = masterList.collectEntries { [(it.name): it]}
+
+            def names = masterList.collect { it.name?.trim() }
+
+            DBCollection pc = (DBCollection) Profile.collection
+            WriteResult deletes = pc.remove(['scientificName': ['$nin': names ], 'opus': collection.id, 'profileStatus': Profile.STATUS_EMPTY ])
+
+            log.info("Sync Master List for ${collection.shortName} deleted ${deletes.n} existing empty records which do not exist on master list")
+
+            def existingProfiles = Profile.findAllByOpusAndScientificNameInList(collection, names)
+            def groups = existingProfiles.groupBy {
+                it.profileStatus == Profile.STATUS_EMPTY
+            }
+
+            def existingEmpty = groups[true]
+            def updated = groups[false]
+
+            log.info("Sync Master List for ${collection.shortName} found ${existingEmpty?.size() ?: 0} existing empty records")
+            log.info("Sync Master List for ${collection.shortName} found ${updated?.size() ?: 0} existing non-empty records")
+
+            def newNames = Sets.difference(names.toSet(), existingProfiles*.scientificName.toSet())
+//            def unmatchedNames = matches.findAll { !it.match }*.listItem*.name
+
+            def inserts = newNames.collectParallel {
+                def match = matchesMap[it]
+                Map results = [errors: [], warnings: []]
+                def emptyProfile = generateEmptyProfile(collection, match.listItem, match.match, nslNamesCached, results)
+                log.info("Sync Master List for ${collection.shortName} results $results")
+                emptyProfile
+            }
+
+//            def existingProfiles2 = Profile.findAllByOpusAndScientificNameInListAndGuidIsEmpty(collection, unmatchedNames)
+//
+//            def newNames = Sets.difference(unmatchedNames.toSet(), existingProfiles2*.scientificName.toSet())
+//
+//            def inserts2 = newNames.collectParallel {
+//                def listItem = namesMap[it]
+//                generateEmptyProfile(collection, listItem, null, nslNamesCached, results)
+//            }
+
+            def ids = Profile.saveAll(inserts)
+            log.info("Sync Master List for ${collection.shortName} inserted ${ids.size()} empty records")
+        }
+    }
+
+    def generateEmptyProfile(opus, listItem, matchedName, nslNamesCached, results) {
+        // Always assign the name as the list name, because the list is the source of truth
+        String scientificName = listItem.name.trim()
+//        String scientificName = matchedName?.scientificName?.trim() ?: listItem.name.trim()
+        String fullName = matchedName?.fullName?.trim() ?: matchedName?.scientificName?.trim() ?: listItem.name.trim()
+        String nameAuthor = matchedName?.nameAuthor?.trim() ?: null
+        String guid = matchedName?.guid ?: null
+
+        if (!matchedName) {
+            results.warnings << "ALA - No matching name for ${listItem.name} in the ALA"
+        } else if (!listItem.name.equalsIgnoreCase(matchedName.scientificName) && !listItem.name.equalsIgnoreCase(fullName)) {
+            results.warnings << "ALA - Provided with name ${listItem.name}, but was matched with name ${fullName} in the ALA. Using provided name."
+//            scientificName = listItem.name
+            fullName = listItem.fullName
+            nameAuthor = listItem.nameAuthor
+        }
+
+
+        Profile profile = new Profile(scientificName: scientificName, nameAuthor: nameAuthor, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: [], bibliography: [], profileStatus: Profile.STATUS_EMPTY)
+        profile.fullName = fullName
+
+        if (matchedName) {
+            profile.matchedName = new Name(matchedName)
+        }
+
+        if (listItem.nslNameIdentifier) {
+            profile.nslNameIdentifier = listItem.nslNameIdentifier
+        } else {
+            Map nslMatch
+            boolean matchedByName
+            if (listItem.nslNomenclatureIdentifier) {
+                nslMatch = nameService.findNslNameFromNomenclature(listItem.nslNomenclatureIdentifier)
+                matchedByName = false
+            } else if (nslNamesCached) {
+                nslMatch = nameService.matchCachedNSLName(nslNamesCached, listItem.name, listItem.nameAuthor, listItem.fullName ?: listItem.name)
+                matchedByName = true
+            } else {
+                nslMatch = nameService.matchNSLName(listItem.name)
+                matchedByName = true
+            }
+
+            if (nslMatch) {
+                profile.nslNameIdentifier = nslMatch.nslIdentifier
+                profile.nslProtologue = nslMatch.nslProtologue
+                if (!profile.nameAuthor) {
+                    profile.nameAuthor = nslMatch.nameAuthor
+                }
+
+                if (matchedByName && !listItem.name.equalsIgnoreCase(nslMatch.scientificName) && !listItem.name.equalsIgnoreCase(nslMatch.fullName)) {
+                    results.warnings << "NSL - Provided with name ${listItem.name}, but was matched with name ${nslMatch.fullName} in the NSL. Using provided name."
+                }
+            } else {
+                results.warnings << "NSL - No matching name for ${listItem.name} in the NSL."
+            }
+        }
+
+        if (profile.guid) {
+            profileService.populateTaxonHierarchy(profile)
+        }
+
+        return profile
+    }
+
+    private Thread.UncaughtExceptionHandler logException(String prefix) {
+//        return UncaughtEx
+        new Thread.UncaughtExceptionHandler() {
+            @Override
+            void uncaughtException(Thread t, Throwable e) {
+                log.error("Uncaught exception for $prefix", e)
+            }
+        }
     }
 }

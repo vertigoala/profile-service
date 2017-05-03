@@ -506,9 +506,13 @@ class ProfileController extends BaseController {
         } else {
             Profile profile = getProfile()
 
-            boolean success = profileService.recordPrivateImage(profile.uuid, json)
+            if (!profile) {
+                notFound()
+            } else {
+                boolean success = profileService.recordPrivateImage(profile.uuid, json)
 
-            render([success: success] as JSON)
+                render([success: success] as JSON)
+            }
         }
     }
 

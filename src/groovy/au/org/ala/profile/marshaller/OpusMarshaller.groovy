@@ -18,6 +18,7 @@ class OpusMarshaller {
                     title                      : opus.title,
                     shortName                  : opus.shortName,
                     description                : opus.description,
+                    masterListUid              : opus.masterListUid,
                     dataResourceConfig         : marshalDataResourceConfig(opus.dataResourceConfig),
                     approvedImageOption        : opus.approvedImageOption?.name() ?: ImageOption.INCLUDE.name(),
                     approvedLists              : opus.approvedLists ?: [],

@@ -56,6 +56,10 @@ grails.project.dependency.resolution = {
         compile 'com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer:20160827.1'
         compile "com.itextpdf:itextpdf:5.5.1"
         compile "org.imgscalr:imgscalr-lib:4.2"
+        // use an updated elasticsearch library that matches server major.minor version
+        compile 'org.elasticsearch:elasticsearch-groovy:1.7.4', {
+            excludes 'groovy-all'
+        }
     }
 
     plugins {
@@ -65,8 +69,8 @@ grails.project.dependency.resolution = {
         runtime ":ala-ws-security:1.4"
         runtime ":ala-ws-plugin:1.1"
         runtime ":mongodb:3.0.3"
-        runtime (":elasticsearch:0.0.4.6") {
-            excludes 'groovy-all' // elasticsearch:0.0.4.6 bundles groovy-all:2.4.3; Grails 2.5.2 uses groovy-all:2.4.4
+        compile (":elasticsearch:0.0.4.6") {
+            excludes 'groovy-all', 'elasticsearch-groovy' // elasticsearch:0.0.4.6 bundles groovy-all:2.4.3; Grails 2.5.5 uses groovy-all:2.4.4.  We provide our own ES client
         }
         runtime ":cors:1.1.6"
         compile ":asset-pipeline:2.9.1"

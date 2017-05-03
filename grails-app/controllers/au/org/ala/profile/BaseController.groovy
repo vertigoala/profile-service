@@ -10,18 +10,21 @@ import static au.org.ala.profile.util.Utils.enc
 class BaseController extends BasicWSController {
 
     ProfileService profileService
+    OpusService opusService
 
     Profile getProfile() {
         Stopwatch sw = new Stopwatch().start()
 
         Profile profile
+        Opus opus
 
         if (isUuid(params.profileId)) {
             profile = Profile.findByUuid(params.profileId)
+            opus = profile.opus
             log.trace("getProfile() - Get profile by UUID ${params.profileId}: $sw")
             sw.reset().start()
         } else {
-            Opus opus = getOpus()
+            opus = getOpus()
             profile = Profile.findByOpusAndScientificNameIlike(opus, params.profileId)
             log.trace("getProfile() - Get profile by opus ${opus.uuid} and sci name ${params.profileId}: $sw")
             sw.reset().start()
@@ -38,6 +41,10 @@ class BaseController extends BasicWSController {
                 log.trace("getProfile() - Get profile by with changed name: $sw")
                 sw.reset().start()
             }
+        }
+
+        if (!profile || !opusService.isProfileOnMasterList(opus, profile)) {
+            return null
         }
 
         // if the profile has no specific occurrence query then we just set it to the default for the collection,

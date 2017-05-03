@@ -26,6 +26,7 @@ class Opus {
     String description
     String dataResourceUid
 
+    String masterListUid
     List<String> approvedLists
     List<String> featureLists
     String featureListSectionName
@@ -81,6 +82,7 @@ class Opus {
     static constraints = {
         shortName nullable: true
         description nullable: true
+        masterListUid nullable: true
         brandingConfig nullable: true
         profileLayoutConfig nullable: true
         mapConfig nullable: true
