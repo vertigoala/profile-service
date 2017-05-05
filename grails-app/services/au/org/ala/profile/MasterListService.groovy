@@ -7,8 +7,15 @@ class MasterListService {
     def grailsApplication
     def webService
 
-    List<Map> getMasterList(Opus opus) throws MasterListUnavailableException {
+    /**
+     * Return the master list for a given collection or null if no master list is set.
+     * @param opus The collection to get the master list for
+     * @return A list of objects that probably have name and scientificName properties.
+     * @throws MasterListUnavailableException
+     */
+    List<Map<String, String>> getMasterList(Opus opus) throws MasterListUnavailableException {
         def baseUrl = grailsApplication.config.lists.base.url ?: 'https://lists.ala.org.au'
+        if (!opus.masterListUid) return null
         def response = webService.get("$baseUrl/ws/speciesListItems/${opus.masterListUid}" )
         if (response.statusCode >= 400) {
             log.error("Can't get master list for ${opus.shortName}")

@@ -50,7 +50,7 @@ class SearchService extends BaseDataAccessService {
         List<Vocab> vocabs = Vocab.findAllByUuidInList(opusList*.attributeVocabUuid)
         String[] summaryTerms = Term.findAllByVocabInListAndSummary(vocabs, true)*.uuid
         String[] nameTerms = Term.findAllByVocabInListAndContainsName(vocabs, true)*.uuid
-        Map<String, List<String>> masterLists = opusList.collectEntries { [(it.uuid) : masterListService.getMasterList(it)*.name ]}
+        Map<String, List<String>> masterLists = opusList.findAll { it.masterListUid }.collectEntries { [(it.uuid) : masterListService.getMasterList(it)*.name ]}
 
         Map results = [:]
         if (accessibleCollections) {
