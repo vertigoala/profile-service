@@ -664,7 +664,6 @@ class SearchService extends BaseDataAccessService {
             if (!taxon || UNKNOWN_RANK.equalsIgnoreCase(taxon)) {
                 if (opus.masterListUid) {
                     def masterList = masterListService.getMasterList(opus)*.name
-                    Profile.findAllByOpusAndScientificNameInList
                     groupedTaxa[UNKNOWN_RANK] = Profile.countByOpusAndScientificNameInListAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus, masterList)
                 } else {
                     groupedTaxa[UNKNOWN_RANK] = Profile.countByOpusAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus)
