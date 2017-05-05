@@ -7,11 +7,14 @@ import groovy.transform.ToString
 @EqualsAndHashCode
 class Name {
 
+    private static final String NOT_ANALYZED_INDEX = "not_analyzed"
+
     static searchable = {
         root = false
-        only = ["scientificName", "fullName"]
+        only = ["scientificName", "fullName", "nameAuthor"]
         scientificName multi_field: true
         fullName multi_field: true
+        nameAuthor index: NOT_ANALYZED_INDEX
     }
 
     String scientificName
@@ -24,5 +27,9 @@ class Name {
         nameAuthor nullable: true
         fullName nullable: true
         guid nullable: true
+    }
+
+    static mapping = {
+        nameAuthor index: true
     }
 }

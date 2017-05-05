@@ -186,10 +186,10 @@ class NameService extends BaseDataAccessService {
      * synonyms, etc) with the taxonomic status for each name.
      *
      * @param name The name to search for
-     * @return Map containing [alternateName : taxonomicStatus]
+     * @return Map containing [alternateName in lowercase : nslInfoMap consisting of canonical name, authorName and taxonomy Status]
      */
-    Map<String, String> searchNSLName(String name) {
-        Map<String, String> matches = [:]
+    Map<String, Map> searchNSLName(String name) {
+        Map<String, Map> matches = [:]
 
         String url = "${grailsApplication.config.nsl.search.service.url.prefix}?tree=${NSL_APC_PRODUCT}&q=${enc(StringUtils.capitalize(name))}"
         Map result = webService.get(url)
@@ -210,18 +210,21 @@ class NameService extends BaseDataAccessService {
             //     }
             // }
             result.resp.records.synonyms?.each { Map synonym ->
-                matches.put(synonym.canonicalName, synonym.taxonomicStatus)
+                matches.put(synonym.canonicalName.toLowerCase(), ["canonicalName": synonym.canonicalName, "scientificNameAuthorship": synonym.scientificNameAuthorship, "taxonomicStatus": synonym.taxonomicStatus])
+
                 if (synonym.acceptedNameUsage) {
-                    matches.put(synonym.acceptedNameUsage, synonym.taxonomicStatus)
+                    matches.put(synonym.acceptedNameUsage.toLowerCase(), ["canonicalName": synonym.canonicalName, "scientificNameAuthorship": synonym.scientificNameAuthorship, "taxonomicStatus": synonym.taxonomicStatus])
                 }
             }
 
+            // Synonyms under acceptedNames are ignored as part of the change from https://github.com/AtlasOfLivingAustralia/profile-hub/issues/380
             result.resp.records.acceptedNames?.each { String nameId, Map nslName ->
-                matches.put(nslName.canonicalName, nslName.taxonomicStatus)
+                matches.put(nslName.canonicalName.toLowerCase(), ["canonicalName": nslName.canonicalName, "scientificNameAuthorship": nslName.scientificNameAuthorship, "taxonomicStatus": nslName.taxonomicStatus])
 
-                nslName.synonyms?.each { Map synonym ->
-                    matches.put(synonym.canonicalName, synonym.taxonomicStatus)
-                }
+                /*nslName.synonyms?.each { Map synonym ->
+                       matches.put(synonym.canonicalName, synonym.taxonomicStatus)
+                    }
+                }*/
             }
         } else {
             matches = [:]

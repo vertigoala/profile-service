@@ -61,12 +61,16 @@ class SearchService extends BaseDataAccessService {
             ]
 
             QueryBuilder termQuery
+            Map result = [:]
+            Map nslSearchResult = [:]
             if (!term) {
                 termQuery = matchAllQuery()
                 // if no term was provided then assume we are retrieving all records (in pages) sorted by the profile name (aka scientificName)
                 params.sort = SortBuilders.fieldSort("scientificNameLower").unmappedType('string').missing('')
             } else {
-                termQuery = options.nameOnly ? buildNameSearch(term, options) : buildTextSearch(term, options)
+                result = options.nameOnly ? buildNameSearch(term, options) : buildTextSearch(term, options)
+                termQuery = result.query
+                nslSearchResult = result.nslSearchResult ?: [:]
                 // if there is a term, then we need to use the ES relevance sorting, so we don't need a SortBuilder
             }
 
@@ -79,8 +83,12 @@ class SearchService extends BaseDataAccessService {
 
             results.total = rawResults.total
             results.items = rawResults.searchResults.collect { Profile it ->
+                def status = options.nameOnly ? getProfileMatchReason (term, it, nslSearchResult): null
                 [
                         scientificName: it.scientificName,
+                        matchInfo     : status,
+                        nameAuthor    : it.nameAuthor,
+                        fullName      : it.fullName,
                         uuid          : it.uuid,
                         guid          : it.guid,
                         rank          : it.rank,
@@ -104,6 +112,20 @@ class SearchService extends BaseDataAccessService {
         results
     }
 
+    private Map getProfileMatchReason (String term, Profile profile, Map nslResult) {
+        Map matchReason = [:]
+        if (profile.scientificNameLower == term.toLowerCase()) {
+            matchReason.put("reason", "accname")
+        } else if (profile.fullNameLower == term.toLowerCase() || profile.matchedNameLower == term.toLowerCase()) {
+            matchReason.put("reason", "internalmatch")
+            matchReason.put("matchName", profile.matchedName)
+        } else if (nslResult) {
+            matchReason.put("reason", "nslaccname")
+            matchReason.put("nslmatchname", nslResult?.get(profile.scientificNameLower) ?: nslResult.get(profile.fullNameLower) ?: nslResult.get(profile.matchedNameLower) ?: null)
+        }
+        return matchReason
+    }
+
     /**
      * A name search will look for the term(s) in:
      * <ul>
@@ -114,7 +136,7 @@ class SearchService extends BaseDataAccessService {
      * </ul>
      *
      */
-    private QueryBuilder buildNameSearch(String term, SearchOptions options) {
+    private Map buildNameSearch(String term, SearchOptions options) {
         String alaMatchedName = null;
         try {
             alaMatchedName = nameService.matchName(term)?.scientificName
@@ -139,10 +161,13 @@ class SearchService extends BaseDataAccessService {
         QueryBuilder providedNameQuery = buildBaseNameSearch(term, options).boost(3)
         query.should(providedNameQuery)
 
+        Map<String, Map> nslSearchResult = [:]
+
         if (options.searchNsl) {
             // use the provided name to search the NSL: the matched term was matched against the ALA, and we don't want
             // mix matching logic.
-            nameService.searchNSLName(term)?.each { String possibleName, String taxonomicStatus ->
+            nslSearchResult = nameService.searchNSLName(term)
+            nslSearchResult?.each { String possibleName, Map taxonomicStatus ->
                 query.should(buildBaseNameSearch(possibleName, options))
             }
         }
@@ -153,7 +178,7 @@ class SearchService extends BaseDataAccessService {
             }
         }
 
-        query
+       [query: query, nslSearchResult: nslSearchResult]
     }
 
     private static QueryBuilder buildBaseNameSearch(String term, SearchOptions options) {
@@ -215,7 +240,7 @@ class SearchService extends BaseDataAccessService {
      * A text search will look for the term(s) in any indexed field
      *
      */
-    private static QueryBuilder buildTextSearch(String term, SearchOptions options) {
+    private static Map buildTextSearch(String term, SearchOptions options) {
         MatchQueryBuilder.Operator operator = AND
         if (!options.matchAll) {
             operator = OR
@@ -235,7 +260,7 @@ class SearchService extends BaseDataAccessService {
         query.should(nestedQuery("attributes", boolQuery().must(matchQuery("text", term).operator(operator))))
         query.should(nestedQuery("attributes", boolQuery().must(matchPhrasePrefixQuery("text", term).operator(operator))))
 
-        query
+        [query: query]
     }
 
     List<Map> findByScientificName(String scientificName, List<String> opusIds, ProfileSortOption sortBy = ProfileSortOption.getDefault(), boolean useWildcard = true, int max = -1, int startFrom = 0, boolean autoCompleteScientificName = false) {

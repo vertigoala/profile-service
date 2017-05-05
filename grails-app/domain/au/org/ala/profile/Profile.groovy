@@ -22,7 +22,7 @@ class Profile {
     static searchable = {
         only = ["uuid", "guid", "scientificName", "fullName", "matchedName", "rank", "primaryImage", "opus",
                 "attributes", "lastUpdated", "archivedDate", "archivedWithName", "scientificNameLower",
-                "archivedNameLower", "matchedNameLower", "fullNameLower"]
+                "archivedNameLower", "matchedNameLower", "fullNameLower", "nameAuthor"]
         scientificName multi_field: true, boost: 20
         archivedWithName multi_field: true, boost: 20
         matchedName component: true, boost: 10
@@ -38,6 +38,7 @@ class Profile {
         archivedNameLower index: NOT_ANALYZED_INDEX
         matchedNameLower index: NOT_ANALYZED_INDEX
         fullNameLower index: NOT_ANALYZED_INDEX
+        nameAuthor index: NOT_ANALYZED_INDEX
     }
 
     ObjectId id
@@ -148,6 +149,7 @@ class Profile {
         rank index: true
         uuid index: true
         opus index: true
+        nameAuthor index: true
         profileStatus defaultValue: STATUS_PARTIAL
     }
 
