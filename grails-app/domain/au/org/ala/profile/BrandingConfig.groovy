@@ -1,5 +1,7 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.sanitizer.SanitizedHtml
+
 /**
  * Embedded entity to encapsulate the configuration items that control the branding on the UI (banners, logos, etc)
  */
@@ -17,12 +19,19 @@ class BrandingConfig {
     String thumbnailUrl
 
     String colourTheme
+    String issn
+    @SanitizedHtml
+    String shortLicense
+    String pdfLicense
 
     static constraints = {
         opusBannerUrl nullable: true
         profileBannerUrl nullable: true
         thumbnailUrl nullable: true
         colourTheme nullable: true
+        issn nullable: true
+        shortLicense nullable: true
+        pdfLicense nullable: true
     }
 
     static mapping = {
