@@ -210,21 +210,16 @@ class NameService extends BaseDataAccessService {
             //     }
             // }
             result.resp.records.synonyms?.each { Map synonym ->
-                matches.put(synonym.canonicalName.toLowerCase(), ["canonicalName": synonym.canonicalName, "scientificNameAuthorship": synonym.scientificNameAuthorship, "taxonomicStatus": synonym.taxonomicStatus])
+                matches.put(synonym.canonicalName?.toLowerCase(), ["canonicalName": synonym.canonicalName, "scientificNameAuthorship": synonym.scientificNameAuthorship, "taxonomicStatus": synonym.taxonomicStatus])
 
                 if (synonym.acceptedNameUsage) {
-                    matches.put(synonym.acceptedNameUsage.toLowerCase(), ["canonicalName": synonym.canonicalName, "scientificNameAuthorship": synonym.scientificNameAuthorship, "taxonomicStatus": synonym.taxonomicStatus])
+                    matches.put(synonym.acceptedNameUsage?.toLowerCase(), ["canonicalName": synonym.canonicalName, "scientificNameAuthorship": synonym.scientificNameAuthorship, "taxonomicStatus": synonym.taxonomicStatus])
                 }
             }
 
             // Synonyms under acceptedNames are ignored as part of the change from https://github.com/AtlasOfLivingAustralia/profile-hub/issues/380
-            result.resp.records.acceptedNames?.each { String nameId, Map nslName ->
-                matches.put(nslName.canonicalName.toLowerCase(), ["canonicalName": nslName.canonicalName, "scientificNameAuthorship": nslName.scientificNameAuthorship, "taxonomicStatus": nslName.taxonomicStatus])
-
-                /*nslName.synonyms?.each { Map synonym ->
-                       matches.put(synonym.canonicalName, synonym.taxonomicStatus)
-                    }
-                }*/
+            result.resp.records?.acceptedNames?.each { String nameId, Map nslName ->
+                matches.put(nslName.canonicalName?.toLowerCase(), ["canonicalName": nslName.canonicalName, "scientificNameAuthorship": nslName.scientificNameAuthorship, "taxonomicStatus": nslName.taxonomicStatus])
             }
         } else {
             matches = [:]
