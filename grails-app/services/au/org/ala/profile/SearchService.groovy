@@ -1,31 +1,26 @@
 package au.org.ala.profile
 
 import au.org.ala.names.search.SearchResultException
-import au.org.ala.profile.util.SearchOptions
-import groovy.json.JsonOutput
-import org.elasticsearch.search.sort.SortBuilders
-
-import static org.elasticsearch.index.query.MatchQueryBuilder.Operator.AND
-import static org.elasticsearch.index.query.MatchQueryBuilder.Operator.OR
 import au.org.ala.profile.util.ProfileSortOption
+import au.org.ala.profile.util.SearchOptions
 import au.org.ala.profile.util.Utils
+import au.org.ala.web.AuthService
 import com.mongodb.BasicDBObject
 import com.mongodb.MapReduceCommand
 import com.mongodb.MapReduceOutput
 import org.elasticsearch.index.query.BoolQueryBuilder
+import org.elasticsearch.index.query.FilterBuilder
 import org.elasticsearch.index.query.MatchQueryBuilder
+import org.elasticsearch.index.query.QueryBuilder
+import org.elasticsearch.search.sort.SortBuilders
 import org.gbif.ecat.voc.Rank
+import org.grails.plugins.elasticsearch.ElasticSearchService
 import org.springframework.scheduling.annotation.Async
 
 import static org.elasticsearch.index.query.FilterBuilders.*
+import static org.elasticsearch.index.query.MatchQueryBuilder.Operator.AND
+import static org.elasticsearch.index.query.MatchQueryBuilder.Operator.OR
 import static org.elasticsearch.index.query.QueryBuilders.*
-
-import au.org.ala.web.AuthService
-import org.elasticsearch.index.query.FilterBuilder
-import org.elasticsearch.index.query.QueryBuilder
-
-import org.grails.plugins.elasticsearch.ElasticSearchService
-
 /**
  * See http://noamt.github.io/elasticsearch-grails-plugin/docs/index.html for elastic search plugin API doco
  */
@@ -672,8 +667,8 @@ class SearchService extends BaseDataAccessService {
             } else {
                 def result = Profile.collection.aggregate([$match: matchForOpus(opus)],
                         [$unwind: '$classification'],
-                        [$match: ["classification.rank": taxon, "classification.name": [$regex: /^${filter}/, $options: "i"], "rank": [$ne: taxon]]],
-                        [$group: [_id: '$classification.name', cnt: [$sum: 1]]],
+                        [$match: ["classification.rank": taxon, "classification.name": [$regex: /^${filter}/, $options: "i"]]],
+                        [$group: [_id: '$classification.name', cnt: [ $sum: [$cond: [ if: [$ne:['$rank', taxon]] , then: 1, else: 0]]]]],
                         [$sort: ["_id": 1]],
                         [$skip: startFrom], [$limit: max < 0 ? DEFAULT_MAX_BROAD_SEARCH_RESULTS : max]
                 )?.results()
