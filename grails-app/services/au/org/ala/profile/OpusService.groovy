@@ -224,6 +224,7 @@ class OpusService extends BaseDataAccessService {
         opus.showLinkedOpusAttributes = json.showLinkedOpusAttributes?.toBoolean() ?: false
         opus.keepImagesPrivate = json.keepImagesPrivate?.toBoolean() ?: false
         opus.usePrivateRecordData = json.usePrivateRecordData?.toBoolean() ?: false
+        opus.citationProfile = json.citationProfile ?: null
 
         opus.privateCollection = json.privateCollection?.toBoolean() ?: false
         // if we are changing from public to private, then all other collections that have been granted access to

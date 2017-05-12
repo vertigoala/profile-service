@@ -54,6 +54,7 @@ class Opus {
     String aboutHtml
     @SanitizedHtml
     String citationHtml
+    String citationProfile
     String copyrightText
     String footerText
     String email
@@ -98,6 +99,7 @@ class Opus {
         keybaseKeyId nullable: true
         aboutHtml nullable: true
         citationHtml nullable: true
+        citationProfile nullable: true
         copyrightText nullable: true
         footerText nullable: true
         email nullable: true
