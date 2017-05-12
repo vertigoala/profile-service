@@ -26,7 +26,7 @@ class UrlMappings {
         "/opus/$opusId/glossary" controller: "opus", action: [POST: "saveGlossaryItems"]
 
         "/opus/$opusId/additionalStatuses" controller: "opus", action: [POST: 'updateAdditionalStatuses']
-        "/opus/$opusId/about/" controller: "opus", action: [GET: "about", PUT: "updateAbout"]
+        "/opus/$opusId/about" controller: "opus", action: [GET: "about", PUT: "updateAbout"]
         "/opus/$opusId/masterList" controller: "opus", action: [POST: 'updateMasterList']
         "/opus/$opusId/masterList/sync" controller: "opus", action: [POST: 'syncMasterList']
         "/opus/$opusId/vocab/" controller: "vocab", action: "index"

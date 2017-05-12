@@ -280,6 +280,7 @@ class OpusController extends BaseController {
             } else {
                 render ([opus: [title: opus.title,
                                 opusId: opus.uuid,
+                                shortName: opus.shortName,
                                 aboutHtml: opus.aboutHtml,
                                 citationHtml: opus.citationHtml,
                                 copyright: opus.copyrightText,
@@ -305,7 +306,7 @@ class OpusController extends BaseController {
             } else {
                 opus = opusService.updateAbout(opus.uuid, json)
 
-                render ([opus: [title: opus.title, opusId: opus.uuid, aboutHtml: opus.aboutHtml]] as JSON)
+                render ([opus: [title: opus.title, opusId: opus.uuid, shortName: opus.shortName, aboutHtml: opus.aboutHtml]] as JSON)
             }
         }
     }
