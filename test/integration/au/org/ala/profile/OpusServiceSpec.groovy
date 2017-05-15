@@ -3,6 +3,7 @@ package au.org.ala.profile
 import au.org.ala.profile.security.Role
 import au.org.ala.profile.util.ShareRequestStatus
 import au.org.ala.web.AuthService
+import au.org.ala.web.UserDetails
 import grails.gsp.PageRenderer
 import org.springframework.web.multipart.commons.CommonsMultipartFile
 
@@ -13,7 +14,7 @@ class OpusServiceSpec extends BaseIntegrationSpec {
 
     def setup() {
         service.authService = Mock(AuthService)
-        service.authService.getUserForUserId(_) >> [displayName: "Fred"]
+        service.authService.getUserForUserId(_) >> new UserDetails(userId: "123", firstName: "fred", lastName: "fred")
         service.authService.getUserId() >> "123"
         service.groovyPageRenderer = Mock(PageRenderer)
         service.groovyPageRenderer.render(_, _) >> "bla"

@@ -97,6 +97,14 @@ grails.cache.config = {
     }
 }
 
+security {
+    cas {
+        uriExclusionFilterPattern='/images.*,/css.*,/js.*,/less.*'
+        uriFilterPattern='/admin.*'
+        authenticateOnlyIfLoggedInFilterPattern=''
+    }
+}
+
 environments {
     development {
         grails.logging.jul.usebridge = true
@@ -111,6 +119,7 @@ environments {
         elasticSearch {
             client.mode = "transport"
         }
+        security.cas.appServerName='http://devt.ala.org.au:8081'
     }
     test {
         app.file.upload.path = "./target/archive"
@@ -122,6 +131,7 @@ environments {
             client.mode = 'local'
             index.store.type = 'memory' // store local node in memory and not on disk
         }
+        security.cas.appServerName='http://devt.ala.org.au:8082'
     }
     production {
         grails.logging.jul.usebridge = false

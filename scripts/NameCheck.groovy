@@ -2,6 +2,7 @@
 
 @GrabResolver(name = 'ala', root = 'http://nexus.ala.org.au/content/groups/public/')
 @Grab('au.org.ala:ala-name-matching:2.1')
+@Grab('com.google.guava:guava:19.0')
 @GrabExclude('org.apache.lucene:lucene-queries')
 
 import au.org.ala.names.model.LinnaeanRankClassification
@@ -9,8 +10,8 @@ import au.org.ala.names.model.NameSearchResult
 import au.org.ala.names.search.ALANameSearcher
 import au.org.ala.names.search.HomonymException
 import au.org.ala.names.search.ParentSynonymChildException
+import com.google.common.net.UrlEscapers
 import groovy.json.JsonSlurper
-import org.apache.commons.httpclient.util.URIUtil
 import org.apache.http.client.utils.URIBuilder
 
 import java.util.concurrent.atomic.AtomicInteger
@@ -234,8 +235,7 @@ class NameMatch {
     static Map matchNSLName(String name) {
         Map match = [:]
         try {
-            new URIBuilder('').addParameter('','')
-            String url = "https://biodiversity.org.au/nsl/services/api/name/acceptable-name.json?name=${encodeWithinQuery(name, "utf-8")}"
+            String url = "https://biodiversity.org.au/nsl/services/api/name/acceptable-name.json?name=${UrlEscapers.urlFormParameterEscaper().escape(name)}"
             def json = new JsonSlurper().parse(url.toURL(), 'UTF-8')
             println "NSL Match: ${json}\n"
             if (json.count == 1) {

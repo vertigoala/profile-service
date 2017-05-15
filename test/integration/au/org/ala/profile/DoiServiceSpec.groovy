@@ -1,9 +1,10 @@
 package au.org.ala.profile
 
 import au.org.ala.web.AuthService
+import au.org.ala.web.UserDetails
 import groovyx.net.http.HttpResponseDecorator
 import groovyx.net.http.RESTClient
-import org.apache.commons.httpclient.HttpStatus
+import org.apache.http.HttpStatus
 import org.apache.http.HttpVersion
 import org.apache.http.message.BasicHttpResponse
 import org.apache.http.message.BasicStatusLine
@@ -64,7 +65,7 @@ class DoiServiceSpec extends BaseIntegrationSpec {
         setup:
         service.authService = Mock(AuthService)
         service.authService.getUserId() >> "user1"
-        service.authService.getUserForUserId(_) >> [userName: "username1"]
+        service.authService.getUserForUserId(_) >> new UserDetails(userName: "username1")
 
         mockServiceResponse(HttpStatus.SC_OK, [response: [responsecode: DoiService.ANDS_RESPONSE_STATUS_DEAD, message: 'service is dead!!']], -1, null)
 
@@ -80,7 +81,7 @@ class DoiServiceSpec extends BaseIntegrationSpec {
         setup:
         service.authService = Mock(AuthService)
         service.authService.getUserId() >> "user1"
-        service.authService.getUserForUserId(_) >> [userName: "username1"]
+        service.authService.getUserForUserId(_) >> new UserDetails(userId: 'user1', userName: "username1")
 
         mockServiceResponse(HttpStatus.SC_BAD_REQUEST, [response: [responsecode: DoiService.ANDS_RESPONSE_STATUS_OK, message: 'service is dead!!']], -1, null)
 
@@ -96,7 +97,7 @@ class DoiServiceSpec extends BaseIntegrationSpec {
         setup:
         service.authService = Mock(AuthService)
         service.authService.getUserId() >> "user1"
-        service.authService.getUserForUserId(_) >> [userName: "username1"]
+        service.authService.getUserForUserId(_) >> new UserDetails(userId: 'user1', userName: "username1")
 
         mockServiceResponse(HttpStatus.SC_OK, [response: [responsecode: DoiService.ANDS_RESPONSE_STATUS_OK, message: 'all good!!']],
                 HttpStatus.SC_BAD_GATEWAY, null)
@@ -113,7 +114,7 @@ class DoiServiceSpec extends BaseIntegrationSpec {
         setup:
         service.authService = Mock(AuthService)
         service.authService.getUserId() >> "user1"
-        service.authService.getUserForUserId(_) >> [userName: "username1"]
+        service.authService.getUserForUserId(_) >> new UserDetails(userId: 'user1', userName: "username1")
 
         mockServiceResponse(HttpStatus.SC_OK, [response: [responsecode: DoiService.ANDS_RESPONSE_STATUS_OK, message: 'all good!!']],
                 HttpStatus.SC_OK, [response: [responsecode: "xyz", message: 'it blew up again!!']])
@@ -130,7 +131,7 @@ class DoiServiceSpec extends BaseIntegrationSpec {
         setup:
         service.authService = Mock(AuthService)
         service.authService.getUserId() >> "user1"
-        service.authService.getUserForUserId(_) >> [userName: "username1"]
+        service.authService.getUserForUserId(_) >> new UserDetails(userId: 'user1', userName: "username1")
 
         mockServiceResponse(HttpStatus.SC_OK, [response: [responsecode: DoiService.ANDS_RESPONSE_STATUS_OK, message: 'all good!!']],
                 HttpStatus.SC_OK, [response: [responsecode: DoiService.ANDS_RESPONSE_MINT_SUCCESS, doi: "12345"]])

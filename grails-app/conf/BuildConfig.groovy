@@ -65,9 +65,9 @@ grails.project.dependency.resolution = {
     plugins {
         build ":release:3.0.1"
         build ":tomcat:7.0.55"
-        runtime ":ala-auth:1.3.1"
+        runtime ":ala-auth:2.1.0"
         runtime ":ala-ws-security:1.4"
-        runtime ":ala-ws-plugin:1.1"
+        runtime ":ala-ws-plugin:1.6.1-SNAPSHOT"
         runtime ":mongodb:3.0.3"
         compile (":elasticsearch:0.0.4.6") {
             excludes 'groovy-all', 'elasticsearch-groovy' // elasticsearch:0.0.4.6 bundles groovy-all:2.4.3; Grails 2.5.5 uses groovy-all:2.4.4.  We provide our own ES client
