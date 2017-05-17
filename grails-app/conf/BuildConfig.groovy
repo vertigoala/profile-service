@@ -76,5 +76,6 @@ grails.project.dependency.resolution = {
         compile ":asset-pipeline:2.9.1"
         compile ":quartz:1.0.2"
         compile ":mail:1.0.7"
+        compile ":yammer-metrics:3.0.1-2"
     }
 }
