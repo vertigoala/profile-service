@@ -7,6 +7,8 @@ import au.org.ala.profile.util.ShareRequestAction
 import au.org.ala.profile.util.ShareRequestStatus
 import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
+import org.grails.plugins.metrics.groovy.Metered
+import org.grails.plugins.metrics.groovy.Timed
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.commons.CommonsMultipartFile
 
@@ -698,6 +700,8 @@ class OpusService extends BaseDataAccessService {
         }
     }
 
+    @Timed
+    @Metered
     boolean isProfileOnMasterList(Opus opus, profile) {
         if (!opus.masterListUid || !profile) return true
 

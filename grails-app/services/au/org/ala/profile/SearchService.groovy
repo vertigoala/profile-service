@@ -91,6 +91,7 @@ class SearchService extends BaseDataAccessService {
                         opusShortName : it.opus.shortName,
                         opusName      : it.opus.title,
                         opusId        : it.opus.uuid,
+                        profileStatus : it.profileStatus,
                         archivedDate  : it.archivedDate,
                         classification: it.classification ?: [],
                         score         : term ? rawResults.scores[it.id.toString()] : -1,

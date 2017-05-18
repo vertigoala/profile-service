@@ -12,6 +12,8 @@ import groovyx.net.http.ContentType
 import groovyx.net.http.RESTClient
 import org.apache.http.HttpStatus
 import org.grails.datastore.mapping.mongo.config.MongoCollection
+import org.grails.plugins.metrics.groovy.Metered
+import org.grails.plugins.metrics.groovy.Timed
 import org.springframework.scheduling.annotation.Async
 
 import java.util.concurrent.ConcurrentHashMap
@@ -372,6 +374,8 @@ class ImportService extends BaseDataAccessService {
         link
     }
 
+    @Timed
+    @Metered
     def syncMasterList(Opus collection) {
 
         def masterList
@@ -439,7 +443,20 @@ class ImportService extends BaseDataAccessService {
 //                generateEmptyProfile(collection, listItem, null, nslNamesCached, results)
 //            }
 
-            def ids = Profile.saveAll(inserts)
+            //def ids = Profile.saveAll(inserts)
+            inserts*.save(flush: true, validate: true)
+
+            def ids = inserts*.id.findAll { it }
+            def errors = inserts.findAll { it.hasErrors() }
+            if (errors) {
+                log.warn("Some validation errors while creating empty profiles")
+                errors.each { profile ->
+                    log.warn("${profile.scientificName} has errors:")
+                    profile.errors.allErrors.each { error ->
+                        log.warn(error)
+                    }
+                }
+            }
             log.info("Sync Master List for ${collection.shortName} inserted ${ids.size()} empty records")
         }
     }

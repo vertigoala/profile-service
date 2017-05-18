@@ -1,5 +1,8 @@
 package au.org.ala.profile
 
+import org.grails.plugins.metrics.groovy.Metered
+import org.grails.plugins.metrics.groovy.Timed
+
 class MasterListService {
 
     static transactional = false
@@ -13,6 +16,8 @@ class MasterListService {
      * @return A list of objects that probably have name and scientificName properties.
      * @throws MasterListUnavailableException
      */
+    @Timed
+    @Metered
     List<Map<String, String>> getMasterList(Opus opus) throws MasterListUnavailableException {
         def baseUrl = grailsApplication.config.lists.base.url ?: 'https://lists.ala.org.au'
         if (!opus.masterListUid) return null
