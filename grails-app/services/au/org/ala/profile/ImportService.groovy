@@ -447,11 +447,14 @@ class ImportService extends BaseDataAccessService {
             inserts*.save(flush: true, validate: true)
 
             def ids = inserts*.id.findAll { it }
-            def errors = inserts.findAll { it.errors }
+            def errors = inserts.findAll { it.hasErrors() }
             if (errors) {
                 log.warn("Some validation errors while creating empty profiles")
-                errors.each {
-                    log.warn("$it: $it.errors")
+                errors.each { profile ->
+                    log.warn("${profile.scientificName} has errors:")
+                    profile.errors.allErrors.each { error ->
+                        log.warn(error)
+                    }
                 }
             }
             log.info("Sync Master List for ${collection.shortName} inserted ${ids.size()} empty records")

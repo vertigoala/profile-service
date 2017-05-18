@@ -69,6 +69,8 @@ class ImportServiceSpec extends BaseIntegrationSpec {
 
         c1 != null
         c1.profileStatus == Profile.STATUS_EMPTY
+        c1.uuid != null
+        c1.uuid != ''
 
         d1 == null
 
