@@ -100,7 +100,7 @@ grails.cache.config = {
 security {
     cas {
         uriExclusionFilterPattern='/images.*,/css.*,/js.*,/less.*'
-        uriFilterPattern='/admin.*'
+        uriFilterPattern=''
         authenticateOnlyIfLoggedInFilterPattern=''
     }
 }
