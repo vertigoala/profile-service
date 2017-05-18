@@ -5,12 +5,15 @@ import org.springframework.scheduling.annotation.Async
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
+import static au.org.ala.profile.util.Utils.decode
+import static au.org.ala.profile.util.Utils.enc
 import static groovyx.gpars.GParsPool.withPool
 
 class AdminService extends BaseDataAccessService {
     static final int THREAD_POOL_SIZE = 10
 
     NameService nameService
+    ProfileService profileService
 
     @Async
     void rematchAllNames(List<String> opusIds) {
@@ -42,6 +45,7 @@ class AdminService extends BaseDataAccessService {
             withPool(THREAD_POOL_SIZE) {
                 profiles.eachParallel { Profile profile ->
                     try {
+                        Boolean isDirty = false
                         Map<String, String> classification = profile.classification?.collectEntries {
                             [(it.rank): it.name]
                         } ?: [:]
@@ -64,9 +68,26 @@ class AdminService extends BaseDataAccessService {
                             profile.matchedName = new Name(newMatchedName)
                             profile.guid = newMatchedName?.guid
 
-                            save profile
+                            isDirty = true
 
                             changed.incrementAndGet()
+                        }
+
+                        // Occurrence query can have lsid information that needs to change with name change.
+                        // But e-flora permits custom queries. So it is important to check if occurrence query has lsid.
+                        // Since this field was not updated previously, this check needs to be done even if name has not
+                        // changed.
+                        if(profile.occurrenceQuery?.contains("lsid")){
+                            String name = profileService.getProfileIdentifierForMapQuery(profile)
+                            String query = decode(profile.occurrenceQuery)
+                            if(!query?.contains(name)){
+                                profile.occurrenceQuery = enc(query.replaceAll("lsid:[^ \$]+",name))
+                                isDirty = true
+                            }
+                        }
+
+                        if(isDirty){
+                            save profile
                         }
                     } catch (Exception e) {
                         log.error("Failed to match ${profile.scientificName}", e)

@@ -1,10 +1,10 @@
 package au.org.ala.profile
 
 import au.org.ala.names.search.HomonymException
-import au.org.ala.profile.util.Utils
 import au.org.ala.profile.util.CloneAndDraftUtil
 import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.StorageExtension
+import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
 import com.google.common.base.Stopwatch
 import groovy.transform.stc.ClosureParams
@@ -16,10 +16,8 @@ import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.commons.CommonsMultipartFile
 
 import java.text.SimpleDateFormat
-
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
-
 
 @Transactional
 class ProfileService extends BaseDataAccessService {
@@ -1300,5 +1298,15 @@ class ProfileService extends BaseDataAccessService {
         save originalProfile
 
         return !originalProfile.hasErrors()
+    }
+
+    public String getProfileIdentifierForMapQuery(Profile profile) {
+        String query = ""
+        if (profile.guid && profile.guid != "null") {
+            query += "${"lsid:${profile.guid}"}"
+        } else {
+            query += profile.scientificName
+        }
+        query
     }
 }

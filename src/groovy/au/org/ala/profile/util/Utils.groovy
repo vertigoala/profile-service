@@ -45,6 +45,10 @@ class Utils {
         URLEncoder.encode(str, CHAR_ENCODING)
     }
 
+    static String decode(String str) {
+        URLDecoder.decode(str, CHAR_ENCODING)
+    }
+
     static boolean isUuid(String str) {
         str =~ UUID_REGEX
     }
