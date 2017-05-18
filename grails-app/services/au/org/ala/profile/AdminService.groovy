@@ -5,7 +5,6 @@ import org.springframework.scheduling.annotation.Async
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
-import static au.org.ala.profile.util.Utils.decode
 import static au.org.ala.profile.util.Utils.enc
 import static groovyx.gpars.GParsPool.withPool
 
@@ -78,10 +77,10 @@ class AdminService extends BaseDataAccessService {
                         // Since this field was not updated previously, this check needs to be done even if name has not
                         // changed.
                         if(profile.occurrenceQuery?.contains("lsid")){
-                            String name = profileService.getProfileIdentifierForMapQuery(profile)
-                            String query = decode(profile.occurrenceQuery)
+                            String name = enc(profileService.getProfileIdentifierForMapQuery(profile))
+                            String query = profile.occurrenceQuery
                             if(!query?.contains(name)){
-                                profile.occurrenceQuery = enc(query.replaceAll("lsid:[^ \$]+",name))
+                                profile.occurrenceQuery = query.replaceAll("lsid%3A[^+\$]+",name)
                                 isDirty = true
                             }
                         }
