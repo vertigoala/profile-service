@@ -453,6 +453,19 @@ class SearchService extends BaseDataAccessService {
                 }
                 filter
             }]
+        } else {
+            def opuses = Opus.findAllByMasterListUidIsNotNull()
+            if (opuses) {
+                def orCrit = [ [opus: [$nin: opuses*.id]] ] // default to allow any opus that doesn't have a master list
+                orCrit += opuses.collect { opus ->
+                    def masterList = masterListService.getMasterList(opus)
+                    ['$and': [
+                            [opus: opus.id],
+                            [scientificName: [$in: masterList*.name]]
+                    ]]
+                }
+                preMatchCriteria << ['$or': orCrit ]
+            }
         }
 
         // Create a projection containing the commonly used Profile attributes, and calculated fields 'unknownRank'
