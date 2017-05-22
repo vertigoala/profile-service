@@ -483,6 +483,14 @@ class ProfileService extends BaseDataAccessService {
             profileOrDraft(profile).occurrenceQuery = json.occurrenceQuery ?: null
         }
 
+        if (json.containsKey("isCustomMapConfig") && json.isCustomMapConfig) {
+            profileOrDraft(profile).isCustomMapConfig = true
+            profileOrDraft(profile).occurrenceQuery = json.occurrenceQuery ?: null
+        } else {
+            profileOrDraft(profile).isCustomMapConfig = false;
+            profileOrDraft(profile).occurrenceQuery = null
+        }
+
         saveImages(profile, json, true)
 
         saveSpecimens(profile, json, true)

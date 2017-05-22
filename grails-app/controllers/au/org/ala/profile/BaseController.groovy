@@ -47,16 +47,13 @@ class BaseController extends BasicWSController {
             return null
         }
 
-        // if the profile has no specific occurrence query then we just set it to the default for the collection,
-        // which limits the query to the LSID (or name if there is no LSID) and the selected data resources
-        if (!profile.occurrenceQuery) {
-            String query = createOccurrenceQuery(profile)
-            profile.occurrenceQuery = query
-            if (profile.draft) {
-                profile.draft.occurrenceQuery = query
-            }
-            log.trace("getProfile() - createOccurenceQuery: $sw")
-            sw.reset().start()
+        // if occurrenceQuery is not custom configured by user, then use default occurrenceQuery for opus/profile combo.
+        if(!profile.isCustomMapConfig){
+            profile.occurrenceQuery = createOccurrenceQuery(profile)
+        }
+
+        if(profile.draft?.isCustomMapConfig == false){
+            profile.draft?.occurrenceQuery = createOccurrenceQuery(profile)
         }
 
         profile

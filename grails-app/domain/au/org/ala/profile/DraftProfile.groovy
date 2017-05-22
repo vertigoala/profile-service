@@ -1,6 +1,5 @@
 package au.org.ala.profile
 
-import au.org.ala.profile.util.ImageOption
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
@@ -23,6 +22,7 @@ class DraftProfile {
     String primaryVideo
     String primaryAudio
     String occurrenceQuery
+    boolean isCustomMapConfig = false
     String profileStatus = Profile.STATUS_PARTIAL
     Map<String, ImageSettings> imageSettings = [:]
     List<String> specimenIds

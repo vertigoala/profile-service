@@ -5,7 +5,7 @@ import org.springframework.scheduling.annotation.Async
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
-import static au.org.ala.profile.util.Utils.enc
+import static au.org.ala.profile.util.Utils.*
 import static groovyx.gpars.GParsPool.withPool
 
 class AdminService extends BaseDataAccessService {
@@ -77,10 +77,23 @@ class AdminService extends BaseDataAccessService {
                         // Since this field was not updated previously, this check needs to be done even if name has not
                         // changed.
                         if(profile.occurrenceQuery?.contains("lsid")){
-                            String name = enc(profileService.getProfileIdentifierForMapQuery(profile))
+                            String name = profileService.getProfileIdentifierForMapQuery(profile)
                             String query = profile.occurrenceQuery
                             if(!query?.contains(name)){
-                                profile.occurrenceQuery = query.replaceAll("lsid%3A[^+\$]+",name)
+                                profile.occurrenceQuery = updateLSIDInQueryString(name, query);
+                                isDirty = true
+                            }
+                        }
+
+                        // make sure occurrence query field in profile's draft version is also updated
+                        if(profile.draft?.occurrenceQuery?.contains("lsid")){
+                            // make sure draft profile guid is used for its occurrenceQuery since it is possible profile and draft
+                            // have different guid.
+                            Profile draftProfile = new Profile(profile.draft.properties)
+                            String name = profileService.getProfileIdentifierForMapQuery(draftProfile)
+                            String query = profile.draft.occurrenceQuery
+                            if(!query?.contains(name)){
+                                profile.draft.occurrenceQuery = updateLSIDInQueryString(name, query);
                                 isDirty = true
                             }
                         }
@@ -103,6 +116,17 @@ class AdminService extends BaseDataAccessService {
         rematch.results = results
         rematch.endDate = new Date()
         save rematch
+    }
+
+    private String updateLSIDInQueryString(String lsid, String query){
+        if(lsid && query){
+            Map parsedQuery = parseQueryString(query)
+            if(parsedQuery.q){
+                parsedQuery.q[0] = parsedQuery.q[0].replaceFirst("lsid:[^ \$]+", lsid)
+            }
+
+            createQueryString(parsedQuery);
+        }
     }
 
     Tag createTag(Map properties) {

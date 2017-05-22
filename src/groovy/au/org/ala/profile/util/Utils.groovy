@@ -84,4 +84,32 @@ class Utils {
     static  boolean isSuccessful(int statusCode) {
         return statusCode >= SC_OK && statusCode <= 299
     }
+
+    static String createQueryString(Map parsedQuery){
+        List params  = []
+        parsedQuery.each{ key, values ->
+            values.each{ value ->
+                params.push("${key}=${enc(value)}")
+            }
+        }
+
+        params.join('&');
+    }
+
+    static Map parseQueryString(String query) {
+        Map result = [:]
+        List params = query.split('&')
+        params?.each { param ->
+            List pair = param.split('=')
+            if (pair.size() == 2) {
+                if(!result[pair[0]]){
+                    result[pair[0]] = []
+                }
+
+                result[pair[0]].push(decode(pair[1]))
+            }
+        }
+
+        result
+    }
 }

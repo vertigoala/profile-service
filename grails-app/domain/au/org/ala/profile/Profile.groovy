@@ -53,6 +53,7 @@ class Profile {
     String nslNomenclatureIdentifier
     String nslProtologue
     String occurrenceQuery
+    boolean isCustomMapConfig = false
 
     String profileStatus = STATUS_PARTIAL
 
