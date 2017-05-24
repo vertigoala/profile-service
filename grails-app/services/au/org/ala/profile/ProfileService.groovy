@@ -42,7 +42,7 @@ class ProfileService extends BaseDataAccessService {
                     cl.hasChildren = searchService.hasDescendantsByClassificationAndRank(cl.rank?.toLowerCase(), cl.name, profile.opus, true)
                 }
 
-                Profile relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(cl.guid, profile.opus)
+                Profile relatedProfile = cl.guid? Profile.findByGuidAndOpusAndArchivedDateIsNull(cl.guid, profile.opus) : null
                 if (!relatedProfile) {
                     relatedProfile = Profile.findByScientificNameAndOpusAndArchivedDateIsNull(cl.name, profile.opus)
                 }
