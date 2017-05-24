@@ -45,57 +45,27 @@ class AdminService extends BaseDataAccessService {
                 profiles.eachParallel { Profile profile ->
                     try {
                         Boolean isDirty = false
-                        Map<String, String> classification = profile.classification?.collectEntries {
-                            [(it.rank): it.name]
-                        } ?: [:]
+                        isDirty = updateProfileWithRematchedName(profile, isDirty, results, opus)
 
-                        Map newMatchedName
-                        if (profile.manuallyMatchedName) {
-                            newMatchedName = nameService.matchName(profile.matchedName.scientificName, classification, profile.matchedName.guid)
-                        } else {
-                            newMatchedName = nameService.matchName(profile.scientificName, classification)
+                        if(profile.draft){
+                            isDirty = updateProfileWithRematchedName(profile.draft, isDirty, results, opus)
                         }
 
-                        if (profile.matchedName?.guid != newMatchedName?.guid) {
-                            results[opus.uuid].profilesUpdated << [
-                                    (profile.uuid): [
-                                            profileName: profile.scientificName,
-                                            old: [guid: profile.guid, name: profile.matchedName?.fullName],
-                                            new: [guid: newMatchedName?.guid, name: newMatchedName?.fullName]
-                                    ]
-                            ]
-                            profile.matchedName = new Name(newMatchedName)
-                            profile.guid = newMatchedName?.guid
-
-                            isDirty = true
-
+                        if(isDirty){
                             changed.incrementAndGet()
                         }
 
-                        // Occurrence query can have lsid information that needs to change with name change.
-                        // But e-flora permits custom queries. So it is important to check if occurrence query has lsid.
-                        // Since this field was not updated previously, this check needs to be done even if name has not
-                        // changed.
+                        // Doing this check independent of name change since this field was not kept updated with previous
+                        // name changes. So it is possible that profile.guid and lsid in occurrenceQuery are out of sync.
                         if(profile.occurrenceQuery?.contains("lsid")){
-                            String name = profileService.getProfileIdentifierForMapQuery(profile)
-                            String query = profile.occurrenceQuery
-                            if(!query?.contains(name)){
-                                profile.occurrenceQuery = updateLSIDInQueryString(name, query);
-                                isDirty = true
-                            }
+                            isDirty = updateOccurrenceQuery(profile, isDirty)
                         }
 
                         // make sure occurrence query field in profile's draft version is also updated
                         if(profile.draft?.occurrenceQuery?.contains("lsid")){
-                            // make sure draft profile guid is used for its occurrenceQuery since it is possible profile and draft
+                            // make sure draft's guid is used in occurrenceQuery. It is possible profile and draft
                             // have different guid.
-                            Profile draftProfile = new Profile(profile.draft.properties)
-                            String name = profileService.getProfileIdentifierForMapQuery(draftProfile)
-                            String query = profile.draft.occurrenceQuery
-                            if(!query?.contains(name)){
-                                profile.draft.occurrenceQuery = updateLSIDInQueryString(name, query);
-                                isDirty = true
-                            }
+                            isDirty = updateOccurrenceQuery(profile.draft, isDirty)
                         }
 
                         if(isDirty){
@@ -116,6 +86,45 @@ class AdminService extends BaseDataAccessService {
         rematch.results = results
         rematch.endDate = new Date()
         save rematch
+    }
+
+    public boolean updateOccurrenceQuery(Object profile, boolean isDirty) {
+        String name = profileService.getProfileIdentifierForMapQuery(profile)
+        String query = profile.occurrenceQuery
+        if (!query?.contains(name)) {
+            profile.occurrenceQuery = updateLSIDInQueryString(name, query);
+            isDirty = true
+        }
+        isDirty
+    }
+
+    public boolean updateProfileWithRematchedName(Object profile, boolean isDirty, Map results, Opus opus) {
+        Map<String, String> classification = profile.classification?.collectEntries {
+            [(it.rank): it.name]
+        } ?: [:]
+
+        Map newMatchedName
+        if (profile.manuallyMatchedName) {
+            newMatchedName = nameService.matchName(profile.matchedName.scientificName, classification, profile.matchedName.guid)
+        } else {
+            newMatchedName = nameService.matchName(profile.scientificName, classification)
+        }
+
+        if (profile.matchedName?.guid != newMatchedName?.guid) {
+            results[opus.uuid].profilesUpdated << [
+                    (profile.uuid): [
+                            profileName: profile.scientificName,
+                            old        : [guid: profile.guid, name: profile.matchedName?.fullName],
+                            new        : [guid: newMatchedName?.guid, name: newMatchedName?.fullName]
+                    ]
+            ]
+            profile.matchedName = new Name(newMatchedName)
+            profile.guid = newMatchedName?.guid
+
+            isDirty = true
+        }
+
+        isDirty
     }
 
     private String updateLSIDInQueryString(String lsid, String query){

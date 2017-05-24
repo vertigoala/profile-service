@@ -1308,7 +1308,7 @@ class ProfileService extends BaseDataAccessService {
         return !originalProfile.hasErrors()
     }
 
-    public String getProfileIdentifierForMapQuery(Profile profile) {
+    public String getProfileIdentifierForMapQuery(Object profile) {
         String query = ""
         if (profile.guid && profile.guid != "null") {
             query += "${"lsid:${profile.guid}"}"
