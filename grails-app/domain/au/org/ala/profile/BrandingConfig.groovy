@@ -29,9 +29,9 @@ class BrandingConfig {
         profileBannerUrl nullable: true
         thumbnailUrl nullable: true
         colourTheme nullable: true
-        issn nullable: true
+        issn nullable: true, maxSize: 8, minSize: 8
         shortLicense nullable: true
-        pdfLicense nullable: true
+        pdfLicense nullable: true, maxSize: 500
     }
 
     static mapping = {
