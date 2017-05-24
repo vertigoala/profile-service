@@ -99,7 +99,7 @@ class Opus {
         keybaseKeyId nullable: true
         aboutHtml nullable: true
         citationHtml nullable: true
-        citationProfile nullable: true
+        citationProfile nullable: true, maxSize: 500
         copyrightText nullable: true
         footerText nullable: true
         email nullable: true
