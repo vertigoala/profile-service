@@ -85,15 +85,8 @@ class Utils {
         return statusCode >= SC_OK && statusCode <= 299
     }
 
-    static String createQueryString(Map parsedQuery){
-        List params  = []
-        parsedQuery.each{ key, values ->
-            values.each{ value ->
-                params.push("${key}=${enc(value)}")
-            }
-        }
-
-        params.join('&');
+    static String createQueryString(Map parsedQuery) {
+        parsedQuery.collectMany { k, vs -> vs.collect { v -> "${enc(k)}=${enc(v)}" } }.join('&')
     }
 
     static Map parseQueryString(String query) {
@@ -106,7 +99,7 @@ class Utils {
                     result[pair[0]] = []
                 }
 
-                result[pair[0]].push(decode(pair[1]))
+                result[pair[0]] << decode(pair[1])
             }
         }
 
