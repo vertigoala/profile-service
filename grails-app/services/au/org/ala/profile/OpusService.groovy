@@ -170,18 +170,20 @@ class OpusService extends BaseDataAccessService {
                 opus.opusLayoutConfig.images = []
             }
 
-            json.opusLayoutConfig.images?.each{ image ->
-                Image imageLink = new Image(imageUrl: image.imageUrl, credit: image.credit)
-                opus.opusLayoutConfig.images.push(imageLink)
-            }
+            opus.opusLayoutConfig.images.addAll(json.opusLayoutConfig.images?.collect { image ->
+                new Image(imageUrl: image.imageUrl, credit: image.credit)
+            })
 
             opus.opusLayoutConfig.updatesSection = json.opusLayoutConfig.updatesSection as String
             opus.opusLayoutConfig.explanatoryText = json.opusLayoutConfig.explanatoryText as String
             opus.opusLayoutConfig.duration = json.opusLayoutConfig.duration ?: opus.opusLayoutConfig.duration
+            opus.opusLayoutConfig.gradient = json.opusLayoutConfig.gradient
+            opus.opusLayoutConfig.gradientWidth = json.opusLayoutConfig.gradientWidth
             opus.opusLayoutConfig.helpTextSearch = json.opusLayoutConfig.helpTextSearch ?: null
             opus.opusLayoutConfig.helpTextIdentify = json.opusLayoutConfig.helpTextIdentify ?: null
             opus.opusLayoutConfig.helpTextBrowse = json.opusLayoutConfig.helpTextBrowse ?: null
             opus.opusLayoutConfig.helpTextDocuments = json.opusLayoutConfig.helpTextDocuments ?: null
+            opus.opusLayoutConfig.opusLogoUrl = json.opusLayoutConfig.opusLogoUrl
         }
 
         if (json.profileLayoutConfig) {
