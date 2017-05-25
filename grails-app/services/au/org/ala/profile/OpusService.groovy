@@ -177,7 +177,7 @@ class OpusService extends BaseDataAccessService {
             opus.opusLayoutConfig.explanatoryText = json.opusLayoutConfig.explanatoryText as String
             opus.opusLayoutConfig.duration = json.opusLayoutConfig.duration ?: opus.opusLayoutConfig.duration
             opus.opusLayoutConfig.gradient = json.opusLayoutConfig.gradient
-            opus.opusLayoutConfig.gradientWidth = json.opusLayoutConfig.gradientWidth
+            opus.opusLayoutConfig.gradientWidth = json.opusLayoutConfig.gradientWidth?.toDouble()
             opus.opusLayoutConfig.helpTextSearch = json.opusLayoutConfig.helpTextSearch ?: null
             opus.opusLayoutConfig.helpTextIdentify = json.opusLayoutConfig.helpTextIdentify ?: null
             opus.opusLayoutConfig.helpTextBrowse = json.opusLayoutConfig.helpTextBrowse ?: null
