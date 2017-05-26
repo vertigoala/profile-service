@@ -374,7 +374,7 @@ class ImportService extends BaseDataAccessService {
         link
     }
 
-    final static int EMPTY_PROFILE_VERSION = 1
+    final static int EMPTY_PROFILE_VERSION = 2
 
     @Timed
     @Metered
