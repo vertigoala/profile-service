@@ -97,7 +97,7 @@ class ImportServiceSpec extends BaseIntegrationSpec {
 
     def 'test master list profiles get a nsl nomenclature id'() {
         given:
-        nameService.matchName(_) >> { name ->
+        nameService.matchName(_) >> { String name ->
             println("here")
             [
                     guid          : "urn:lsid:$name",

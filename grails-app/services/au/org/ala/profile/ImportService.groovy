@@ -380,15 +380,17 @@ class ImportService extends BaseDataAccessService {
     @Metered
     def syncMasterList(Opus collection) {
 
+        def colId = collection.shortName ?: collection.uuid
+
         def masterList
         try {
             masterList = masterListService.getMasterList(collection)
         } catch (MasterListUnavailableException e) {
-            log.error("Master list for ${collection.shortName} unavailable, skipping import")
+            log.error("Master list for ${colId} unavailable, skipping import")
             return
         }
 
-        log.info("Syncing Master List for ${collection.shortName} with ${masterList.size()} entries")
+        log.info("Syncing Master List for ${colId} with ${masterList.size()} entries")
         boolean enableNSLMatching = true
 
         Map nslNamesCached = enableNSLMatching ? nameService.loadNSLSimpleNameDump() : [:]
@@ -398,11 +400,11 @@ class ImportService extends BaseDataAccessService {
         }
 
         log.info "Importing master list ..."
-        withPool(IMPORT_THREAD_POOL_SIZE, logException("syncMasterList(${collection.shortName})")) {
+        withPool(IMPORT_THREAD_POOL_SIZE, logException("syncMasterList(${colId})")) {
             def matches = masterList.collectParallel {
                 [match: nameService.matchName(it.name), listItem: it]
             }
-            log.info("Sync Master List for ${collection.shortName} matched ${matches.inject(0) { s, m -> s + (m.match ? 1 : 0) } } records")
+            log.info("Sync Master List for ${colId} matched ${matches.inject(0) { s, m -> s + (m.match ? 1 : 0) } } records")
 
             def matchesMap = matches.collectEntries { [(it.listItem.name): it] }
 
@@ -429,13 +431,13 @@ class ImportService extends BaseDataAccessService {
                 Profile.deleteAll(toDelete)
                 def deleteCount = toDelete.size()
 
-                log.info("Sync Master List for ${collection.shortName} deleted ${deleteCount} existing empty records which do not exist on master list")
+                log.info("Sync Master List for ${colId} deleted ${deleteCount} existing empty records which do not exist on master list")
                 toDelete.clear()
 
                 toDelete = Profile.findAllByOpusAndProfileStatusAndEmptyProfileVersionNotEqual(collection, Profile.STATUS_EMPTY, EMPTY_PROFILE_VERSION)
                 Profile.deleteAll(toDelete)
                 deleteCount = toDelete.size()
-                log.info("Sync Master List for ${collection.shortName} deleted ${deleteCount} outdated empty records")
+                log.info("Sync Master List for ${colId} deleted ${deleteCount} outdated empty records")
                 toDelete.clear()
                 session.flush()
                 session.clear()
@@ -444,14 +446,13 @@ class ImportService extends BaseDataAccessService {
 
             def existingProfileNames = Profile.withCriteria {
                 eq('opus', collection.id)
-//                ne("profileStatus", Profile.STATUS_EMPTY)
                 'in'('scientificName', names)
 
                 projections {
                     property('scientificName')
                 }
             }
-            log.info("Sync Master List for ${collection.shortName} found ${existingProfileNames?.size() ?: 0} existing non-empty records")
+            log.info("Sync Master List for ${colId} found ${existingProfileNames?.size() ?: 0} existing non-empty records")
 
             def newNames = Sets.difference(namesSet, existingProfileNames.toSet())
 
@@ -460,7 +461,7 @@ class ImportService extends BaseDataAccessService {
                 Map results = [errors: [], warnings: []]
                 def emptyProfile = generateEmptyProfile(collection, match.listItem, match.match, nslNamesCached, results)
                 if (results.errors || results.warnings) {
-                    log.info("Sync Master List for ${collection.shortName}: ${match.listItem.name} results $results")
+                    log.info("Sync Master List for ${colId}: ${match.listItem.name} results $results")
                 }
                 emptyProfile
             }
@@ -478,14 +479,13 @@ class ImportService extends BaseDataAccessService {
                     }
                 }
             }
-            log.info("Sync Master List for ${collection.shortName} inserted ${ids.size()} empty records")
+            log.info("Sync Master List for ${colId} inserted ${ids.size()} empty records")
         }
     }
 
     def generateEmptyProfile(opus, listItem, matchedName, nslNamesCached, results) {
-        // Always assign the name as the list name, because the list is the source of truth
-        String scientificName = listItem.name.trim()
-//        String scientificName = matchedName?.scientificName?.trim() ?: listItem.name.trim()
+//        String scientificName = listItem.name.trim()
+        String scientificName = matchedName?.scientificName?.trim() ?: listItem.name.trim()
         String fullName = matchedName?.fullName?.trim() ?: matchedName?.scientificName?.trim() ?: listItem.name.trim()
         String nameAuthor = matchedName?.nameAuthor?.trim() ?: null
         String guid = matchedName?.guid ?: null
@@ -493,15 +493,11 @@ class ImportService extends BaseDataAccessService {
         if (!matchedName) {
             results.warnings << "ALA - No matching name for ${listItem.name} in the ALA"
         } else if (!listItem.name.equalsIgnoreCase(matchedName.scientificName) && !listItem.name.equalsIgnoreCase(fullName)) {
-            results.warnings << "ALA - Provided with name ${listItem.name}, but was matched with name ${fullName} in the ALA. Using provided name."
-//            scientificName = listItem.name
-//            fullName = listItem.fullName
-//            nameAuthor = listItem.nameAuthor
+            results.warnings << "ALA - Provided with name ${listItem.name}, but was matched with name ${fullName} in the ALA."
         }
 
-
-        Profile profile = new Profile(scientificName: scientificName, nameAuthor: nameAuthor, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: [], bibliography: [], profileStatus: Profile.STATUS_EMPTY, emptyProfileVersion: EMPTY_PROFILE_VERSION)
-        profile.fullName = fullName
+        // Always assign the name as the list name, because the list is the source of truth
+        Profile profile = new Profile(scientificName: listItem.name, nameAuthor: nameAuthor, fullName: fullName, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: [], bibliography: [], profileStatus: Profile.STATUS_EMPTY, emptyProfileVersion: EMPTY_PROFILE_VERSION)
 
         if (matchedName) {
             profile.matchedName = new Name(matchedName)
@@ -534,7 +530,7 @@ class ImportService extends BaseDataAccessService {
                     results.warnings << "NSL - Provided with name ${listItem.name}, but was matched with name ${nslMatch.fullName} in the NSL. Using provided name."
                 }
             } else {
-                results.warnings << "NSL - No matching name for ${listItem.name} in the NSL."
+                results.warnings << "NSL - No matching name for ${listItem.name} in the NSL using scientific name: $scientificName, author: $nameAuthor, fullname: $fullName"
             }
         }
 
