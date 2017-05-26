@@ -26,7 +26,9 @@ class MasterListService {
             log.error("Can't get master list for ${opus.shortName}")
             throw new MasterListUnavailableException()
         } else {
-            return response.resp
+            return response.resp?.each { entry ->
+                if (entry.name) entry.name = entry.name.trim()
+            }
         }
     }
 

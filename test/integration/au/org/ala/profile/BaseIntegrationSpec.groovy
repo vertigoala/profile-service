@@ -16,7 +16,7 @@ class BaseIntegrationSpec extends IntegrationSpec {
         }
     }
 
-    def save(entity) {
+    public <T> T save(T entity) {
         entity.save(flush: true, failOnError: true)
     }
 }

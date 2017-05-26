@@ -374,6 +374,8 @@ class ImportService extends BaseDataAccessService {
         link
     }
 
+    final static int EMPTY_PROFILE_VERSION = 1
+
     @Timed
     @Metered
     def syncMasterList(Opus collection) {
@@ -383,6 +385,7 @@ class ImportService extends BaseDataAccessService {
             masterList = masterListService.getMasterList(collection)
         } catch (MasterListUnavailableException e) {
             log.error("Master list for ${collection.shortName} unavailable, skipping import")
+            return
         }
 
         log.info("Syncing Master List for ${collection.shortName} with ${masterList.size()} entries")
@@ -396,54 +399,72 @@ class ImportService extends BaseDataAccessService {
 
         log.info "Importing master list ..."
         withPool(IMPORT_THREAD_POOL_SIZE, logException("syncMasterList(${collection.shortName})")) {
-//            Map results = [errors: [], warnings: []]
             def matches = masterList.collectParallel {
-                [match: nameService.matchName(it.name, [:]), listItem: it]
+                [match: nameService.matchName(it.name), listItem: it]
             }
-            log.info("Sync Master List for ${collection.shortName} matched ${matches.size()} records")
+            log.info("Sync Master List for ${collection.shortName} matched ${matches.inject(0) { s, m -> s + (m.match ? 1 : 0) } } records")
 
-            def matchesMap = matches.collectEntries { [(it.listItem.name.trim()): it] }
-//            def namesMap = masterList.collectEntries { [(it.name): it]}
+            def matchesMap = matches.collectEntries { [(it.listItem.name): it] }
 
-            def names = masterList.collect { it.name?.trim() }
+            def namesSet = masterList*.name.toSet()
+            def names = namesSet.toList()
 
-            DBCollection pc = (DBCollection) Profile.collection
-            WriteResult deletes = pc.remove(['scientificName': ['$nin': names ], 'opus': collection.id, 'profileStatus': Profile.STATUS_EMPTY ])
+            // Load all profiles from mongo so that we can run a GORM delete on them, this should trigger
+            // an equivalent delete in elasticsearch as well.  TODO find a more efficient way of doing this.
 
-            log.info("Sync Master List for ${collection.shortName} deleted ${deletes.n} existing empty records which do not exist on master list")
+            Profile.withStatelessSession { session ->
+                // Use a stateless session to reduce memory pressure since we're just going to delete these
+                // As a side benefit, this means that integration tests won't return the deleted objects afterwards
+                // TODO does the elastic search entry get deleted as well?
 
-            def existingProfiles = Profile.findAllByOpusAndScientificNameInList(collection, names)
-            def groups = existingProfiles.groupBy {
-                it.profileStatus == Profile.STATUS_EMPTY
+                // ids = delete from profile where opus_id = ? and profile_status = ? and scientificName not in ? returning id
+                // elasticsearchService.delete(ids.collect { new Profile(id: id) }) !
+
+                def toDelete = Profile.withCriteria {
+                    eq('opus', collection.id)
+                    eq('profileStatus', Profile.STATUS_EMPTY)
+                    not { 'in'('scientificName', names) } // need to use a withCriteria because the GORM dynamic finder ScientificNameNotInList doesn't apply the not part
+                }
+
+                Profile.deleteAll(toDelete)
+                def deleteCount = toDelete.size()
+
+                log.info("Sync Master List for ${collection.shortName} deleted ${deleteCount} existing empty records which do not exist on master list")
+                toDelete.clear()
+
+                toDelete = Profile.findAllByOpusAndProfileStatusAndEmptyProfileVersionNotEqual(collection, Profile.STATUS_EMPTY, EMPTY_PROFILE_VERSION)
+                Profile.deleteAll(toDelete)
+                deleteCount = toDelete.size()
+                log.info("Sync Master List for ${collection.shortName} deleted ${deleteCount} outdated empty records")
+                toDelete.clear()
+                session.flush()
+                session.clear()
             }
 
-            def existingEmpty = groups[true]
-            def updated = groups[false]
 
-            log.info("Sync Master List for ${collection.shortName} found ${existingEmpty?.size() ?: 0} existing empty records")
-            log.info("Sync Master List for ${collection.shortName} found ${updated?.size() ?: 0} existing non-empty records")
+            def existingProfileNames = Profile.withCriteria {
+                eq('opus', collection.id)
+//                ne("profileStatus", Profile.STATUS_EMPTY)
+                'in'('scientificName', names)
 
-            def newNames = Sets.difference(names.toSet(), existingProfiles*.scientificName.toSet())
-//            def unmatchedNames = matches.findAll { !it.match }*.listItem*.name
+                projections {
+                    property('scientificName')
+                }
+            }
+            log.info("Sync Master List for ${collection.shortName} found ${existingProfileNames?.size() ?: 0} existing non-empty records")
+
+            def newNames = Sets.difference(namesSet, existingProfileNames.toSet())
 
             def inserts = newNames.collectParallel {
                 def match = matchesMap[it]
                 Map results = [errors: [], warnings: []]
                 def emptyProfile = generateEmptyProfile(collection, match.listItem, match.match, nslNamesCached, results)
-                log.info("Sync Master List for ${collection.shortName} results $results")
+                if (results.errors || results.warnings) {
+                    log.info("Sync Master List for ${collection.shortName}: ${match.listItem.name} results $results")
+                }
                 emptyProfile
             }
 
-//            def existingProfiles2 = Profile.findAllByOpusAndScientificNameInListAndGuidIsEmpty(collection, unmatchedNames)
-//
-//            def newNames = Sets.difference(unmatchedNames.toSet(), existingProfiles2*.scientificName.toSet())
-//
-//            def inserts2 = newNames.collectParallel {
-//                def listItem = namesMap[it]
-//                generateEmptyProfile(collection, listItem, null, nslNamesCached, results)
-//            }
-
-            //def ids = Profile.saveAll(inserts)
             inserts*.save(flush: true, validate: true)
 
             def ids = inserts*.id.findAll { it }
@@ -474,12 +495,12 @@ class ImportService extends BaseDataAccessService {
         } else if (!listItem.name.equalsIgnoreCase(matchedName.scientificName) && !listItem.name.equalsIgnoreCase(fullName)) {
             results.warnings << "ALA - Provided with name ${listItem.name}, but was matched with name ${fullName} in the ALA. Using provided name."
 //            scientificName = listItem.name
-            fullName = listItem.fullName
-            nameAuthor = listItem.nameAuthor
+//            fullName = listItem.fullName
+//            nameAuthor = listItem.nameAuthor
         }
 
 
-        Profile profile = new Profile(scientificName: scientificName, nameAuthor: nameAuthor, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: [], bibliography: [], profileStatus: Profile.STATUS_EMPTY)
+        Profile profile = new Profile(scientificName: scientificName, nameAuthor: nameAuthor, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: [], bibliography: [], profileStatus: Profile.STATUS_EMPTY, emptyProfileVersion: EMPTY_PROFILE_VERSION)
         profile.fullName = fullName
 
         if (matchedName) {
@@ -495,10 +516,10 @@ class ImportService extends BaseDataAccessService {
                 nslMatch = nameService.findNslNameFromNomenclature(listItem.nslNomenclatureIdentifier)
                 matchedByName = false
             } else if (nslNamesCached) {
-                nslMatch = nameService.matchCachedNSLName(nslNamesCached, listItem.name, listItem.nameAuthor, listItem.fullName ?: listItem.name)
+                nslMatch = nameService.matchCachedNSLName(nslNamesCached, scientificName, nameAuthor, fullName)
                 matchedByName = true
             } else {
-                nslMatch = nameService.matchNSLName(listItem.name)
+                nslMatch = nameService.matchNSLName(scientificName)
                 matchedByName = true
             }
 
@@ -519,6 +540,17 @@ class ImportService extends BaseDataAccessService {
 
         if (profile.guid) {
             profileService.populateTaxonHierarchy(profile)
+        }
+
+        if (profile.nslNameIdentifier) {
+            NSLNomenclatureMatchStrategy matchStrategy = NSLNomenclatureMatchStrategy.DEFAULT
+            Map nomenclature = nameService.findNomenclature(profile.nslNameIdentifier, matchStrategy)
+
+            if (!nomenclature) {
+                results.warnings << "No matching nomenclature was found with NSL Name ID '${profile.nslNameIdentifier}' using $matchStrategy match strategy"
+            }
+
+            profile.nslNomenclatureIdentifier = nomenclature?.id
         }
 
         return profile

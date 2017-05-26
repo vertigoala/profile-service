@@ -56,6 +56,7 @@ class Profile {
     boolean isCustomMapConfig = false
 
     String profileStatus = STATUS_PARTIAL
+    Integer emptyProfileVersion
 
     @Transient
     boolean privateMode = false
@@ -141,6 +142,7 @@ class Profile {
         archivedWithName nullable: true
         occurrenceQuery nullable: true
         profileStatus nullable: true
+        emptyProfileVersion nullable: true
         lastPublished nullable: true
     }
 
