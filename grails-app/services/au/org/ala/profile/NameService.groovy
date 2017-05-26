@@ -417,8 +417,6 @@ class NameService extends BaseDataAccessService {
         log.info "Loading NSL Simple Name dump into memory...."
         long start = System.currentTimeMillis()
 
-        Map result = [bySimpleName: [:].withDefault { [] }, byFullName: [:].withDefault { [] }]
-
         // Names with these statuses are considered to be 'acceptable' names in the NSL. We do not want to match to any
         // unacceptable names
         List validStatuses = ['legitimate', 'manuscript', 'nom. alt.', 'nom. cons.', 'nom. cons., nom. alt.',
@@ -427,13 +425,15 @@ class NameService extends BaseDataAccessService {
         try {
             URL url = new URL("${grailsApplication.config.nsl.name.export.url}")
 
-            url.withReader { reader ->
+            return url.withReader { reader ->
                 def csv = parseCsv(reader)
 
                 if (csv.columns.size() == 0) {
                     log.error("NSL Name Export returned 0 columns!  Aborting...")
                     return [:]
                 }
+
+                Map result = [bySimpleName: [:].withDefault { [] }, byFullName: [:].withDefault { [] }]
 
                 csv.each { fields ->
                     Map name = [scientificName    : fields.canonicalName,
@@ -451,6 +451,7 @@ class NameService extends BaseDataAccessService {
                     result.bySimpleName[fields.canonicalName] << name
                     result.byFullName[fields.scientificName] << name
                 }
+                return result // returns from url.withReader
             }
         } catch (Exception e) {
             log.error "Failed to load NSL simple name dump", e
@@ -458,7 +459,5 @@ class NameService extends BaseDataAccessService {
         } finally {
             log.info "... finished loading NSL Simple Name dump in ${System.currentTimeMillis() - start} ms"
         }
-
-        result
     }
 }
