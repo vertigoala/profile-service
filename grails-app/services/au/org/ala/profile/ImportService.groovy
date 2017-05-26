@@ -129,6 +129,10 @@ class ImportService extends BaseDataAccessService {
                                 profile.matchedName = new Name(matchedName)
                             }
 
+                            if (profile.guid) {
+                                profileService.populateTaxonHierarchy(profile)
+                            }
+
                             if (it.nslNameIdentifier) {
                                 profile.nslNameIdentifier = it.nslNameIdentifier
                             } else if (enableNSLMatching) {
@@ -141,7 +145,7 @@ class ImportService extends BaseDataAccessService {
                                     nslMatch = nameService.matchCachedNSLName(nslNamesCached, it.scientificName, it.nameAuthor, it.fullName)
                                     matchedByName = true
                                 } else {
-                                    nslMatch = nameService.matchNSLName(it.scientificName)
+                                    nslMatch = nameService.matchNSLName(it.scientificName, profile.rank)
                                     matchedByName = true
                                 }
 
@@ -158,10 +162,6 @@ class ImportService extends BaseDataAccessService {
                                 } else {
                                     results.warnings << "NSL - No matching name for ${it.scientificName} in the NSL."
                                 }
-                            }
-
-                            if (profile.guid) {
-                                profileService.populateTaxonHierarchy(profile)
                             }
 
                             if (it.nslNomenclatureIdentifier) {
@@ -378,7 +378,7 @@ class ImportService extends BaseDataAccessService {
 
     @Timed
     @Metered
-    def syncMasterList(Opus collection) {
+    def syncMasterList(Opus collection, boolean forceStubRegeneration = false) {
 
         def colId = collection.shortName ?: collection.uuid
 
@@ -434,10 +434,15 @@ class ImportService extends BaseDataAccessService {
                 log.info("Sync Master List for ${colId} deleted ${deleteCount} existing empty records which do not exist on master list")
                 toDelete.clear()
 
-                toDelete = Profile.findAllByOpusAndProfileStatusAndEmptyProfileVersionNotEqual(collection, Profile.STATUS_EMPTY, EMPTY_PROFILE_VERSION)
+                if (forceStubRegeneration) {
+                    toDelete = Profile.findAllByOpusAndProfileStatus(collection, Profile.STATUS_EMPTY)
+                } else {
+                    toDelete = Profile.findAllByOpusAndProfileStatusAndEmptyProfileVersionNotEqual(collection, Profile.STATUS_EMPTY, EMPTY_PROFILE_VERSION)
+                }
+
                 Profile.deleteAll(toDelete)
                 deleteCount = toDelete.size()
-                log.info("Sync Master List for ${colId} deleted ${deleteCount} outdated empty records")
+                log.info("Sync Master List for ${colId} deleted ${deleteCount} ${forceStubRegeneration ? '' : 'outdated '}empty records")
                 toDelete.clear()
                 session.flush()
                 session.clear()
@@ -503,6 +508,10 @@ class ImportService extends BaseDataAccessService {
             profile.matchedName = new Name(matchedName)
         }
 
+        if (profile.guid) {
+            profileService.populateTaxonHierarchy(profile)
+        }
+
         if (listItem.nslNameIdentifier) {
             profile.nslNameIdentifier = listItem.nslNameIdentifier
         } else {
@@ -515,7 +524,7 @@ class ImportService extends BaseDataAccessService {
                 nslMatch = nameService.matchCachedNSLName(nslNamesCached, scientificName, nameAuthor, fullName)
                 matchedByName = true
             } else {
-                nslMatch = nameService.matchNSLName(scientificName)
+                nslMatch = nameService.matchNSLName(scientificName, profile.rank)
                 matchedByName = true
             }
 
@@ -532,10 +541,6 @@ class ImportService extends BaseDataAccessService {
             } else {
                 results.warnings << "NSL - No matching name for ${listItem.name} in the NSL using scientific name: $scientificName, author: $nameAuthor, fullname: $fullName"
             }
-        }
-
-        if (profile.guid) {
-            profileService.populateTaxonHierarchy(profile)
         }
 
         if (profile.nslNameIdentifier) {

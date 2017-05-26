@@ -239,7 +239,7 @@ class ProfileService extends BaseDataAccessService {
         populateTaxonHierarchy(profile, manualHierarchy)
 
         // try to match the name against the NSL. If we get a match, and there is currently no name author, use the author from the NSL match
-        Map matchedNSLName = nameService.matchNSLName(providedName)
+        Map matchedNSLName = nameService.matchNSLName(providedName, profile.rank)
         if (matchedNSLName) {
             profile.nslNameIdentifier = matchedNSLName.nslIdentifier
             profile.nslProtologue = matchedNSLName.nslProtologue

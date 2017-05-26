@@ -155,29 +155,44 @@ class NameService extends BaseDataAccessService {
         }
     }
 
-    Map matchNSLName(String name) {
-        Map match = [:]
+    Map matchNSLName(String name, String rank = '') {
+        Map match
         try {
             String url = grailsApplication.config.nsl.name.match.url.prefix + encodeQueryParam(name, 'UTF-8')
             log.debug("GET request to $url")
             def json = new JsonSlurper().parse(url.toURL(), 'UTF-8')
             if (json.count == 1) {
-                match.scientificName = json.names[0].simpleName
-                match.scientificNameHtml = json.names[0].simpleNameHtml
-                match.fullName = json.names[0].fullName
-                match.fullNameHtml = json.names[0].fullNameHtml
-                match.nameAuthor = extractAuthorsFromNameHtml(match.fullNameHtml)
-                String linkUrl = json.names[0]._links.permalink.link
-                match.nslIdentifier = linkUrl.substring(linkUrl.lastIndexOf("/") + 1)
-                match.nslProtologue = json.names[0].primaryInstance[0]?.citationHtml
+                match = extractFromNSLNameMatchJson(json.names[0] )
+            } else if (json.count > 1 && rank) {
+                def nameJsons = json.names.findAll { rank.trim().equalsIgnoreCase(it.nameRank?.trim()) }
+                if (nameJsons.size() == 1) {
+                    match = extractFromNSLNameMatchJson(nameJsons[0])
+                } else if (nameJsons.size() > 1) {
+                    log.warn("NSL matches for $name contained multiple of rank $rank")
+                } else {
+                    log.warn("NSL provided ${json.count} results for $name but none matched rank $rank")
+                }
             } else {
-                log.warn("${json.count} NSL matches for ${name}")
+                log.warn("${json.count} NSL matches for ${name} and no rank provided")
             }
         } catch (Exception e) {
             log.error(e)
         }
 
-        match
+        return match ?: [:]
+    }
+
+    private Map extractFromNSLNameMatchJson(json) {
+        String linkUrl = json._links.permalink.link
+        [
+                scientificName: json.simpleName,
+                scientificNameHtml: json.simpleNameHtml,
+                fullName: json.fullName,
+                fullNameHtml: json.fullNameHtml,
+                nameAuthor: extractAuthorsFromNameHtml(json.fullNameHtml),
+                nslIdentifier: linkUrl.substring(linkUrl.lastIndexOf("/") + 1),
+                nslProtologue: json.primaryInstance[0]?.citationHtml
+        ]
     }
 
     /**
@@ -415,6 +430,11 @@ class NameService extends BaseDataAccessService {
             url.withReader { reader ->
                 def csv = parseCsv(reader)
 
+                if (csv.columns.size() == 0) {
+                    log.error("NSL Name Export returned 0 columns!  Aborting...")
+                    return [:]
+                }
+
                 csv.each { fields ->
                     Map name = [scientificName    : fields.canonicalName,
                                 scientificNameHtml: fields.canonicalNameHTML,
@@ -432,12 +452,13 @@ class NameService extends BaseDataAccessService {
                     result.byFullName[fields.scientificName] << name
                 }
             }
-
         } catch (Exception e) {
             log.error "Failed to load NSL simple name dump", e
+            return [:]
+        } finally {
+            log.info "... finished loading NSL Simple Name dump in ${System.currentTimeMillis() - start} ms"
         }
 
-        log.info "... finished loading NSL Simple Name dump in ${System.currentTimeMillis() - start} ms"
         result
     }
 }
