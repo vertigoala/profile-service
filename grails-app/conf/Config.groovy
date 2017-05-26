@@ -186,7 +186,7 @@ log4j = {
 
     info    'au.org.ala.ws.security',
             'au.org.ala.cas',
-            'grails.app.filters.au.org.ala.profile'
+            'grails.app.filters.au.org.ala.ws.security'
 
     debug   "grails.app",
 //            "org.grails.plugins.elasticsearch",
