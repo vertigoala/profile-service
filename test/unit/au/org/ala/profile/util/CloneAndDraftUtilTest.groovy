@@ -40,6 +40,7 @@ class CloneAndDraftUtilTest extends Specification {
                 taxonomyTree: "taxonomyTree",
                 nslNameIdentifier: "nslId",
                 primaryImage: "primaryImage",
+                showLinkedOpusAttributes: true,
                 profileStatus: Profile.STATUS_PARTIAL,
                 imageSettings: [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE)],
                 specimenIds: ["spec1", "spec2"],
@@ -67,6 +68,7 @@ class CloneAndDraftUtilTest extends Specification {
         draft.guid == original.guid
         draft.nslNameIdentifier == original.nslNameIdentifier
         draft.primaryImage == original.primaryImage
+        draft.showLinkedOpusAttributes == original.showLinkedOpusAttributes
         draft.taxonomyTree == original.taxonomyTree
         draft.profileStatus == original.profileStatus
 
