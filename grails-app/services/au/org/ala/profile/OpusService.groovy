@@ -711,7 +711,13 @@ class OpusService extends BaseDataAccessService {
         save opus
         log.info("Queueing sync of opus master list")
         task {
-            importService.syncMasterList(opus)
+            def colId = opus.shortName ?: opus.uuid
+            log.debug("Master List sync task started for $colId")
+            try {
+                importService.syncMasterList(opus)
+            } catch (e) {
+                log.error("Uncaught exception from syncMasterList for $colId", e)
+            }
         }
     }
 
