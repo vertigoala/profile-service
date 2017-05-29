@@ -383,23 +383,27 @@ class ImportService extends BaseDataAccessService {
         def colId = collection.shortName ?: collection.uuid
 
         def masterList
-        try {
-            masterList = masterListService.getMasterList(collection)
-        } catch (MasterListUnavailableException e) {
-            log.error("Master list for ${colId} unavailable, skipping import")
-            return
+        if (collection.masterListUid) {
+            try {
+                masterList = masterListService.getMasterList(collection)
+            } catch (MasterListUnavailableException e) {
+                log.error("Master list for ${colId} unavailable, skipping import")
+                return
+            }
+        } else {
+            masterList = []
         }
 
         log.info("Syncing Master List for ${colId} with ${masterList.size()} entries")
         boolean enableNSLMatching = true
 
-        Map nslNamesCached = enableNSLMatching ? nameService.loadNSLSimpleNameDump() : [:]
+        Map nslNamesCached = enableNSLMatching && masterList ? nameService.loadNSLSimpleNameDump() : [:]
 
-        if (!nslNamesCached) {
+        if (!nslNamesCached && masterList) {
             log.warn("NSL Simple Name cache failed - using live service lookup instead")
         }
 
-        log.info "Importing master list ..."
+        log.info "Syncing Master List, starting pooled operations ..."
         withPool(IMPORT_THREAD_POOL_SIZE, logException("syncMasterList(${colId})")) {
             def matches = masterList.collectParallel {
                 [match: nameService.matchName(it.name), listItem: it]
@@ -486,6 +490,8 @@ class ImportService extends BaseDataAccessService {
             }
             log.info("Sync Master List for ${colId} inserted ${ids.size()} empty records")
         }
+
+        log.info("Sync Master List completed.")
     }
 
     def generateEmptyProfile(opus, listItem, matchedName, nslNamesCached, results) {
