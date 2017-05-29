@@ -5,9 +5,11 @@ import au.org.ala.profile.util.ProfileSortOption
 import au.org.ala.profile.util.SearchOptions
 import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
+import au.org.ala.ws.service.WebService
 import com.mongodb.BasicDBObject
 import com.mongodb.MapReduceCommand
 import com.mongodb.MapReduceOutput
+import org.apache.http.entity.ContentType
 import org.elasticsearch.index.query.BoolQueryBuilder
 import org.elasticsearch.index.query.FilterBuilder
 import org.elasticsearch.index.query.MatchQueryBuilder
@@ -17,6 +19,7 @@ import org.gbif.ecat.voc.Rank
 import org.grails.plugins.elasticsearch.ElasticSearchService
 import org.springframework.scheduling.annotation.Async
 
+import groovy.json.JsonSlurper
 import static org.elasticsearch.index.query.FilterBuilders.*
 import static org.elasticsearch.index.query.MatchQueryBuilder.Operator.AND
 import static org.elasticsearch.index.query.MatchQueryBuilder.Operator.OR
@@ -36,6 +39,8 @@ class SearchService extends BaseDataAccessService {
     ElasticSearchService elasticSearchService
     NameService nameService
     MasterListService masterListService
+    WebService webService
+    def grailsApplication
 
     Map search(List<String> opusIds, String term, int offset, int pageSize, SearchOptions options) {
         log.debug("Searching for ${term} in collection(s) ${opusIds} with options ${options}")
@@ -781,16 +786,44 @@ class SearchService extends BaseDataAccessService {
         projection
     }
 
+    def deleteUnsearchableData() {
+        String elasticSearchUrl = grailsApplication.config.elasticSearch.url ?: "http://localhost:9200"
+
+        def jsonSlurper = new JsonSlurper()
+        def query = jsonSlurper.parseText('{"query": {"match_all": {}}}')
+        def resp = webService.post(elasticSearchUrl + "/_search", query, [:], ContentType.APPLICATION_JSON, false, false, [:])
+
+        Integer total = resp?.resp?.hits?.total?: 0
+
+        if (total > 0) {
+            // must add q:scientificName:* for deletion to make sure that it is only data that is deleted and not the index itself, i.e. au.org.ala.profile_v0
+            webService.delete("${elasticSearchUrl}/${resp?.resp?.hits?.hits[0]._index}/profile/_query" , ['q':'scientificName:*'], ContentType.APPLICATION_JSON, false, false, [:])
+        }
+        ["RecordsDeleted": total]
+    }
+
     @Async
     def reindexAll() {
-        Status status = Status.list()[0]
+
+        Status status
+        if (Status.count() == 0) {
+            status = new Status()
+        } else {
+            status = Status.list()[0]
+        }
+
         status.searchReindex = true
         save status
 
         long start = System.currentTimeMillis()
 
         log.warn("Deleting existing index...")
+
+        // This deletes the elasticsearch documents that are in Mongodb
         elasticSearchService.unindex(Profile)
+
+        // Unsearchable data are documents that the records don't exist in Mongodb anymore.
+        deleteUnsearchableData()
 
         log.warn("Recreating search index...")
         elasticSearchService.index(Profile)
