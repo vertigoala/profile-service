@@ -237,8 +237,18 @@ class OpusService extends BaseDataAccessService {
         }
 
         opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus?.toBoolean() ?: false
-        opus.allowFineGrainedAttribution = json.allowFineGrainedAttribution?.toBoolean() ?: true
-        opus.autoApproveShareRequests = json.autoApproveShareRequests?.toBoolean() ?: true
+        def allowFineGrainedAttribution = json.allowFineGrainedAttribution?.toBoolean()
+        if (allowFineGrainedAttribution == null) {
+            allowFineGrainedAttribution = true
+        }
+        opus.allowFineGrainedAttribution = allowFineGrainedAttribution
+
+        def autoApproveShareRequests = json.autoApproveShareRequests?.toBoolean()
+        if (autoApproveShareRequests == null) {
+            autoApproveShareRequests = true
+        }
+        opus.autoApproveShareRequests = autoApproveShareRequests
+
         opus.autoDraftProfiles = json.autoDraftProfiles?.toBoolean() ?: false
         if (json.tags) {
             opus.tags = []
@@ -449,7 +459,11 @@ class OpusService extends BaseDataAccessService {
         }
 
         opus.showLinkedOpusAttributes = json.showLinkedOpusAttributes?.toBoolean() ?: false
-        opus.autoApproveShareRequests = json.autoApproveShareRequests?.toBoolean() ?: true
+        def autoApproveShareRequests = json.autoApproveShareRequests?.toBoolean()
+        if (autoApproveShareRequests == null) {
+            autoApproveShareRequests = true
+        }
+        opus.autoApproveShareRequests = autoApproveShareRequests
         opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus?.toBoolean() ?: false
 
         save opus
