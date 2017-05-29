@@ -21,6 +21,7 @@ class DraftProfile {
     String primaryImage
     String primaryVideo
     String primaryAudio
+    boolean showLinkedOpusAttributes = false // Even if set to true, this needs Opus.showLinkedOpusAttributes to also be true
     String occurrenceQuery
     boolean isCustomMapConfig = false
     String profileStatus = Profile.STATUS_PARTIAL

@@ -31,6 +31,7 @@ class CloneAndDraftUtil {
         profile.nslNameIdentifier = profile.draft.nslNameIdentifier
         profile.nslNomenclatureIdentifier = profile.draft.nslNomenclatureIdentifier
         profile.primaryImage = profile.draft.primaryImage
+        profile.showLinkedOpusAttributes = profile.draft.showLinkedOpusAttributes
         profile.occurrenceQuery = profile.draft.occurrenceQuery
         profile.imageSettings = profile.draft.imageSettings
         profile.specimenIds = profile.draft.specimenIds
@@ -78,6 +79,7 @@ class CloneAndDraftUtil {
         clone.nslNameIdentifier = profile.nslNameIdentifier
         clone.nslNomenclatureIdentifier = profile.nslNomenclatureIdentifier
         clone.primaryImage = profile.primaryImage
+        clone.showLinkedOpusAttributes = profile.showLinkedOpusAttributes
         clone.occurrenceQuery = profile.occurrenceQuery
         clone.imageSettings = profile.imageSettings?.clone()
         clone.specimenIds = profile.specimenIds?.collect()
