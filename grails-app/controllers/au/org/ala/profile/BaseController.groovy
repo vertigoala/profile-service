@@ -20,7 +20,7 @@ class BaseController extends BasicWSController {
 
         if (isUuid(params.profileId)) {
             profile = Profile.findByUuid(params.profileId)
-            opus = profile.opus
+            opus = profile?.opus
             log.trace("getProfile() - Get profile by UUID ${params.profileId}: $sw")
             sw.reset().start()
         } else {
