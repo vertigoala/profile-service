@@ -50,7 +50,7 @@ class ImportServiceSpec extends BaseIntegrationSpec {
         def e = save new Profile(opus: opus, scientificName: 'e', profileStatus: Profile.STATUS_PARTIAL)
 
         when:
-        importService.syncMasterList(opus)
+        importService.syncroniseMasterList(opus.uuid)
         def a1 = Profile.findAllByOpusAndScientificName(opus,'a')
         def b1 = Profile.findAllByOpusAndScientificName(opus, 'b')
         def c1 = Profile.findAllByOpusAndScientificName(opus, 'c')
@@ -83,7 +83,7 @@ class ImportServiceSpec extends BaseIntegrationSpec {
         def b = save new Profile(opus: opus, scientificName: 'b', profileStatus: Profile.STATUS_EMPTY, emptyProfileVersion: ImportService.EMPTY_PROFILE_VERSION)
 
         when:
-        importService.syncMasterList(opus)
+        importService.syncroniseMasterList(opus.uuid)
         def a1 = Profile.findAllByScientificName('a')
         def b1 = Profile.findAllByScientificName('b')
 
@@ -131,7 +131,7 @@ class ImportServiceSpec extends BaseIntegrationSpec {
         def opus = save new Opus(title: "opus1", shortName: 'opus1', dataResourceUid: "123", glossary: new Glossary(), masterListUid: 'a')
 
         when:
-        importService.syncMasterList(opus)
+        importService.syncroniseMasterList(opus.uuid)
         def a1 = Profile.findAllByScientificName('a')
 
         then:

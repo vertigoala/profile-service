@@ -446,8 +446,13 @@ class OpusController extends BaseController {
             badRequest "opusId is required"
         } else {
             Opus opus = getOpus()
-            def regen = params.boolean('regenerateStubs', false)
-            importService.syncMasterList(opus, regen)
+            if (opus) {
+                def regen = params.boolean('regenerateStubs', false)
+                def response = importService.syncroniseMasterList(opus.uuid, regen)
+                render(response as JSON)
+            } else {
+                notFound 'opus not found'
+            }
         }
     }
 

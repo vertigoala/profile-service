@@ -4,18 +4,19 @@ import au.org.ala.profile.MasterListService.MasterListUnavailableException
 import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
 import au.org.ala.profile.util.Utils
 import com.google.common.collect.Sets
-import com.mongodb.DBCollection
-import com.mongodb.WriteConcern
-import com.mongodb.WriteResult
 import grails.converters.JSON
+import groovy.transform.ToString
+import groovyx.gpars.actor.Actors
+import groovyx.gpars.actor.DefaultActor
+import groovyx.gpars.dataflow.Promise
 import groovyx.net.http.ContentType
 import groovyx.net.http.RESTClient
 import org.apache.http.HttpStatus
-import org.grails.datastore.mapping.mongo.config.MongoCollection
 import org.grails.plugins.metrics.groovy.Metered
 import org.grails.plugins.metrics.groovy.Timed
 import org.springframework.scheduling.annotation.Async
 
+import javax.annotation.PreDestroy
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicInteger
@@ -376,20 +377,51 @@ class ImportService extends BaseDataAccessService {
 
     final static int EMPTY_PROFILE_VERSION = 2
 
+    /**
+     * Syncronise the master list for the given Opus UUID and wait for the result before returning.
+     *
+     * @param uuid The opus UUID
+     * @param forceStubRegeneration true to delete all empty profiles instead of only missing / old version ones
+     * @return A SyncActorResponse
+     */
+    SyncActorResponse syncroniseMasterList(String uuid, boolean forceStubRegeneration = false) {
+        def result = syncActor.sendAndWait(new SyncActorMessage.SyncMessage(uuid: uuid, forceRegenStubs: forceStubRegeneration))
+        switch(result) {
+            case SyncActorResponse.SyncFailed:
+                log.error("syncroniseMasterList for $uuid failed", result.exception)
+                break
+        }
+        return result
+    }
+
+    /**
+     * Syncronise the master list for the given Opus UUID and return a GPars Actor MessageStream.
+     *
+     * @param uuid The opus UUID
+     * @param forceStubRegeneration true to delete all empty profiles instead of only missing / old version ones
+     * @return The GPars Promise that the result will be delivered to.
+     */
+    Promise<SyncActorResponse> asyncSyncroniseMasterList(String uuid, boolean forceStubRegeneration = false) {
+        def promise = syncActor.sendAndPromise(new SyncActorMessage.SyncMessage(uuid: uuid, forceRegenStubs: forceStubRegeneration))
+        return promise.then { result ->
+            switch (result) {
+                case SyncActorResponse.SyncFailed:
+                    log.error("asyncSyncroniseMasterList for $uuid failed", result.exception)
+                    break
+            }
+            result
+        }
+    }
+
     @Timed
     @Metered
-    def syncMasterList(Opus collection, boolean forceStubRegeneration = false) {
+    private def syncMasterList(Opus collection, boolean forceStubRegeneration = false) {
 
         def colId = collection.shortName ?: collection.uuid
 
         def masterList
         if (collection.masterListUid) {
-            try {
-                masterList = masterListService.getMasterList(collection)
-            } catch (MasterListUnavailableException e) {
-                log.error("Master list for ${colId} unavailable, skipping import")
-                return
-            }
+            masterList = masterListService.getMasterList(collection)
         } else {
             masterList = []
         }
@@ -403,8 +435,9 @@ class ImportService extends BaseDataAccessService {
             log.warn("NSL Simple Name cache failed - using live service lookup instead")
         }
 
+        def allResults = [:].withDefault { [:] }
         log.info "Syncing Master List, starting pooled operations ..."
-        withPool(IMPORT_THREAD_POOL_SIZE, logException("syncMasterList(${colId})")) {
+        withPool(IMPORT_THREAD_POOL_SIZE, logException("syncMasterList(${colId})")) { pool ->
             def matches = masterList.collectParallel {
                 [match: nameService.matchName(it.name), listItem: it]
             }
@@ -470,8 +503,9 @@ class ImportService extends BaseDataAccessService {
                 Map results = [errors: [], warnings: []]
                 def emptyProfile = generateEmptyProfile(collection, match.listItem, match.match, nslNamesCached, results)
                 if (results.errors || results.warnings) {
-                    log.info("Sync Master List for ${colId}: ${match.listItem.name} results $results")
+                    log.info("Sync Master List for ${colId} Name: ${match.listItem.name} Results: $results")
                 }
+                allResults[match.listItem.name] = results
                 emptyProfile
             }
 
@@ -486,12 +520,14 @@ class ImportService extends BaseDataAccessService {
                     profile.errors.allErrors.each { error ->
                         log.warn(error)
                     }
+                    allResults[profile.scientificName].validationErrors = profile.errors.allErrors
                 }
             }
             log.info("Sync Master List for ${colId} inserted ${ids.size()} empty records")
         }
 
-        log.info("Sync Master List completed.")
+        log.info("Sync Master List for $colId completed.")
+        return allResults
     }
 
     def generateEmptyProfile(opus, listItem, matchedName, nslNamesCached, results) {
@@ -561,6 +597,79 @@ class ImportService extends BaseDataAccessService {
         }
 
         return profile
+    }
+
+    def newUuidSyncActor = { uuid ->
+        Actors.actor {
+            loop {
+                react { message ->
+                    def result = syncMasterListForActor(uuid, message.forceRegenStubs)
+                    replyIfExists(result)
+                }
+            }
+        }
+    }
+
+    def syncActor = Actors.actor {
+        Map<String, DefaultActor> actors = [:].withDefault(newUuidSyncActor)
+
+        loop {
+            react { message ->
+                switch (message) {
+                    case SyncActorMessage.SyncMessage:
+                        if (message.uuid) {
+                            def actor = actors[message.uuid]
+                            actor.send(message, sender)
+                        }
+                        break
+                    case SyncActorMessage.ShutdownMessage:
+                        actors.values().each { it?.stop() }*.join()
+                        stop()
+                        replyIfExists('shutdown')
+                        break
+                    default:
+                        log.warn("Unexpected message: $message")
+                }
+            }
+        }
+    }
+
+    /* sealed */ static class SyncActorMessage {
+        @ToString final static class ShutdownMessage extends SyncActorMessage { final static INSTANCE = new ShutdownMessage() }
+        @ToString final static class SyncMessage extends SyncActorMessage {
+            String uuid
+            boolean forceRegenStubs = false
+        }
+    }
+
+    /* sealed */ static class SyncActorResponse {
+        @ToString final static class OpusNotFound extends SyncActorResponse { String uuid }
+        @ToString final static class SyncFailed extends SyncActorResponse { Exception exception }
+        @ToString final static class SyncComplete extends SyncActorResponse { Map results }
+    }
+
+    private SyncActorResponse syncMasterListForActor(String opusUuid, boolean forceStubRegeneration = false) {
+        try {
+            return Opus.withNewSession { session ->
+                def opus = Opus.findByUuid(opusUuid)
+                if (opus) {
+                    def results = syncMasterList(opus, forceStubRegeneration)
+                    return new SyncActorResponse.SyncComplete(results: results)
+                } else {
+                    return new SyncActorResponse.OpusNotFound(uuid: opusUuid)
+                }
+            }
+        } catch (Exception e) {
+            return new SyncActorResponse.SyncFailed(exception: e)
+        }
+    }
+
+    @PreDestroy
+    void shutdownActors() {
+        log.info("Sending shutdown message to Import Service actors")
+        syncActor.send(SyncActorMessage.ShutdownMessage.INSTANCE)
+        syncActor.join()
+        log.info("Import Service actors shutdown")
     }
 
     private Thread.UncaughtExceptionHandler logException(String prefix) {
