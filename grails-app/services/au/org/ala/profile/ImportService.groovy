@@ -1,6 +1,5 @@
 package au.org.ala.profile
 
-import au.org.ala.profile.MasterListService.MasterListUnavailableException
 import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
 import au.org.ala.profile.util.Utils
 import com.google.common.collect.Sets
@@ -384,10 +383,10 @@ class ImportService extends BaseDataAccessService {
      * @param forceStubRegeneration true to delete all empty profiles instead of only missing / old version ones
      * @return A SyncActorResponse
      */
-    SyncActorResponse syncroniseMasterList(String uuid, boolean forceStubRegeneration = false) {
+    SyncResponse syncroniseMasterList(String uuid, boolean forceStubRegeneration = false) {
         def result = syncActor.sendAndWait(new SyncActorMessage.SyncMessage(uuid: uuid, forceRegenStubs: forceStubRegeneration))
         switch(result) {
-            case SyncActorResponse.SyncFailed:
+            case SyncResponse.SyncFailed:
                 log.error("syncroniseMasterList for $uuid failed", result.exception)
                 break
         }
@@ -401,11 +400,11 @@ class ImportService extends BaseDataAccessService {
      * @param forceStubRegeneration true to delete all empty profiles instead of only missing / old version ones
      * @return The GPars Promise that the result will be delivered to.
      */
-    Promise<SyncActorResponse> asyncSyncroniseMasterList(String uuid, boolean forceStubRegeneration = false) {
+    Promise<SyncResponse> asyncSyncroniseMasterList(String uuid, boolean forceStubRegeneration = false) {
         def promise = syncActor.sendAndPromise(new SyncActorMessage.SyncMessage(uuid: uuid, forceRegenStubs: forceStubRegeneration))
         return promise.then { result ->
             switch (result) {
-                case SyncActorResponse.SyncFailed:
+                case SyncResponse.SyncFailed:
                     log.error("asyncSyncroniseMasterList for $uuid failed", result.exception)
                     break
             }
@@ -599,7 +598,7 @@ class ImportService extends BaseDataAccessService {
         return profile
     }
 
-    def newUuidSyncActor = { uuid ->
+    def createUuidSyncActor = { uuid ->
         Actors.actor {
             loop {
                 react { message ->
@@ -610,8 +609,11 @@ class ImportService extends BaseDataAccessService {
         }
     }
 
+    // This actor responds to SyncActorMessages and creates a new actor per Opus UUID on
+    // demand when a SyncMessage arrives, the response of the child actor will then be
+    // routed to the sender of the original message
     def syncActor = Actors.actor {
-        Map<String, DefaultActor> actors = [:].withDefault(newUuidSyncActor)
+        Map<String, DefaultActor> actors = [:].withDefault(createUuidSyncActor)
 
         loop {
             react { message ->
@@ -619,7 +621,7 @@ class ImportService extends BaseDataAccessService {
                     case SyncActorMessage.SyncMessage:
                         if (message.uuid) {
                             def actor = actors[message.uuid]
-                            actor.send(message, sender)
+                            actor.send(message, sender) // send the result to the sender
                         }
                         break
                     case SyncActorMessage.ShutdownMessage:
@@ -642,25 +644,25 @@ class ImportService extends BaseDataAccessService {
         }
     }
 
-    /* sealed */ static class SyncActorResponse {
-        @ToString final static class OpusNotFound extends SyncActorResponse { String uuid }
-        @ToString final static class SyncFailed extends SyncActorResponse { Exception exception }
-        @ToString final static class SyncComplete extends SyncActorResponse { Map results }
+    /* sealed */ static class SyncResponse {
+        @ToString final static class OpusNotFound extends SyncResponse { String uuid }
+        @ToString final static class SyncFailed extends SyncResponse { Exception exception }
+        @ToString final static class SyncComplete extends SyncResponse { Map results }
     }
 
-    private SyncActorResponse syncMasterListForActor(String opusUuid, boolean forceStubRegeneration = false) {
+    private SyncResponse syncMasterListForActor(String opusUuid, boolean forceStubRegeneration = false) {
         try {
             return Opus.withNewSession { session ->
                 def opus = Opus.findByUuid(opusUuid)
                 if (opus) {
                     def results = syncMasterList(opus, forceStubRegeneration)
-                    return new SyncActorResponse.SyncComplete(results: results)
+                    return new SyncResponse.SyncComplete(results: results)
                 } else {
-                    return new SyncActorResponse.OpusNotFound(uuid: opusUuid)
+                    return new SyncResponse.OpusNotFound(uuid: opusUuid)
                 }
             }
         } catch (Exception e) {
-            return new SyncActorResponse.SyncFailed(exception: e)
+            return new SyncResponse.SyncFailed(exception: e)
         }
     }
 
