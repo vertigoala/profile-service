@@ -194,7 +194,7 @@ class OpusController extends BaseController {
         if (!glossary) {
             notFound()
         } else {
-            List<GlossaryItem> items = GlossaryItem.findAllByGlossaryAndTermLike(glossary, "${params.prefix ?: ''}%")
+            List<GlossaryItem> items = GlossaryItem.findAllByGlossaryAndTermIlike(glossary, "${params.prefix ?: ''}%")
 
             glossary.items = items
         }
