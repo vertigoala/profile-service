@@ -60,21 +60,24 @@ class SearchService extends BaseDataAccessService {
                     size : pageSize
             ]
 
-            QueryBuilder termQuery
+            QueryBuilder tQuery
             Map result = [:]
             Map nslSearchResult = [:]
             if (!term) {
-                termQuery = matchAllQuery()
+                tQuery = boolQuery()
+                if(options.hideStubs){
+                    tQuery.mustNot(termQuery("profileStatus", Profile.STATUS_EMPTY))
+                }
                 // if no term was provided then assume we are retrieving all records (in pages) sorted by the profile name (aka scientificName)
                 params.sort = SortBuilders.fieldSort("scientificNameLower").unmappedType('string').missing('')
             } else {
                 result = options.nameOnly ? buildNameSearch(term, options) : buildTextSearch(term, options)
-                termQuery = result.query
+                tQuery = result.query
                 nslSearchResult = result.nslSearchResult ?: [:]
                 // if there is a term, then we need to use the ES relevance sorting, so we don't need a SortBuilder
             }
 
-            QueryBuilder query = filteredQuery(termQuery, buildFilter(accessibleCollections, options.includeArchived, masterLists))
+            QueryBuilder query = filteredQuery(tQuery, buildFilter(accessibleCollections, options.includeArchived, masterLists))
             log.debug(query)
 
             long start = System.currentTimeMillis()
@@ -202,6 +205,10 @@ class SearchService extends BaseDataAccessService {
             query.should(termQuery("archivedNameLower", term).boost(4))
         }
 
+        if(options.hideStubs){
+            query.mustNot(termQuery("profileStatus", Profile.STATUS_EMPTY))
+        }
+
         query
     }
 
@@ -253,6 +260,10 @@ class SearchService extends BaseDataAccessService {
         if (options.includeArchived) {
             // rank exact matches on the profile name at the time it was archived the same way as we rank the scientificName
             query.should(matchQuery("archivedWithName.untouched", term).boost(4))
+        }
+
+        if(options.hideStubs){
+            query.mustNot(termQuery("profileStatus", Profile.STATUS_EMPTY))
         }
 
         query.should(matchQuery("scientificName", term).boost(4))

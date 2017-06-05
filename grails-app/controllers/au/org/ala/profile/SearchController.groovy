@@ -17,11 +17,12 @@ class SearchController extends BaseController {
 
         SearchOptions options = new SearchOptions()
         options.nameOnly = params.nameOnly?.toBoolean()
-        options.includeArchived = params.includeArchived?.toBoolean()
+        options.includeArchived = (params.includeArchived?:"false").toBoolean()
         options.matchAll = params.matchAll?.toBoolean()
-        options.searchAla = params.searchAla?.toBoolean()
-        options.searchNsl = params.searchNsl?.toBoolean()
+        options.searchAla = (params.searchAla?:"false").toBoolean()
+        options.searchNsl = (params.searchNsl?:"false").toBoolean()
         options.includeNameAttributes = params.includeNameAttributes?.toBoolean()
+        options.hideStubs = (params.hideStubs?:"true").toBoolean()
 
         render searchService.search(opusIds, term, offset, pageSize, options) as JSON
     }

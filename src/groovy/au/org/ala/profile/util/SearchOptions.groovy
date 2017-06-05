@@ -10,4 +10,5 @@ class SearchOptions {
     boolean searchAla = true
     boolean searchNsl = true
     boolean includeNameAttributes = true
+    boolean hideStubs = true
 }
