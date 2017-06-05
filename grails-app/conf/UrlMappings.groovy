@@ -12,6 +12,8 @@ class UrlMappings {
         "/admin/search/reindex" controller: "search", action: [POST: "reindex"]
         "/admin/rematchNames" controller: "admin", action: [POST: "rematchNames"]
         "/admin/tag/$tagId?" controller: "admin", action: [GET: "getTag", PUT: "createTag", POST: "updateTag", DELETE: "deleteTag"]
+        "/admin/backupCollections" controller: "admin", action: [POST: "backupCollections"]
+        "/admin/restoreCollections" controller: "admin", action: [POST: "restoreCollections"]
 
         "/audit/object/$entityId" controller: "audit", action: [GET: "auditTrailForObject"]
 

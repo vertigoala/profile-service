@@ -8,6 +8,7 @@ import javax.validation.constraints.NotNull
 @RequireApiKey
 class AdminController extends BaseController {
     AdminService adminService
+    BackupRestoreService backupRestoreService
 
     def rematchNames() {
         List opusIds = request.getJSON()?.opusIds ?: []
@@ -60,4 +61,25 @@ class AdminController extends BaseController {
             render tag as JSON
         }
     }
+
+    def backupCollections () {
+        Map json = request.getJSON()
+        if (!json) {
+            badRequest "A json body is required"
+        } else {
+            backupRestoreService.backupCollections(json.opusUuids, json.backupFolder, json.backupName)
+            success [:]
+        }
+    }
+
+    def restoreCollections () {
+        Map json = request.getJSON()
+        if (!json) {
+            badRequest "A json body is required"
+        } else {
+            backupRestoreService.restoreCollections(json.backupFolder, json.backupNames, json.restoreDB)
+            success [:]
+        }
+    }
+
 }
