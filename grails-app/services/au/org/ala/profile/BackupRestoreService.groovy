@@ -15,7 +15,7 @@ class BackupRestoreService {
     @Async
     void backupCollections(def backupOpusUuids, String backupDir, String backupName) {
         String currentDB = getCurrentDB()
-        executeOnShell("sh scripts/mongo/backup.sh -b ${currentDB} ${backupDir} ${backupName} ${backupOpusUuids.toString()}")
+        executeOnShell("sh ${getScriptPath()}/backup.sh -b ${currentDB} ${backupDir} ${backupName} ${backupOpusUuids.toString()}")
     }
 
     /**
@@ -28,11 +28,15 @@ class BackupRestoreService {
     @Async
     void restoreCollections(String backupDir, def backupNames, String restoreToDB) {
         String currentDB = getCurrentDB()
-        executeOnShell("sh scripts/mongo/backup.sh -r ${currentDB} ${backupDir} ${backupNames.toString()} ${restoreToDB}")
+        executeOnShell("sh ${getScriptPath()}/backup.sh -r ${currentDB} ${backupDir} ${backupNames.toString()} ${restoreToDB}")
     }
 
-    private String getCurrentDB () {
+    private String getCurrentDB() {
         return grailsApplication.config.grails.mongo.databaseName?:"profiles"
+    }
+
+    private String getScriptPath() {
+        return grailsApplication.config.backupScript.path?:"/data/profile-service/config"
     }
 
     private executeOnShell(String command) {
