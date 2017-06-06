@@ -15,7 +15,7 @@ class BackupRestoreService {
     @Async
     void backupCollections(def backupOpusUuids, String backupDir, String backupName) {
         String currentDB = getCurrentDB()
-        executeOnShell("sh ${getScriptPath()}/backup.sh -b ${currentDB} ${backupDir} ${backupName} ${backupOpusUuids.toString()}")
+        executeOnShell("${getScriptPath()}/backup.sh -b ${currentDB} ${backupDir} ${backupName} ${backupOpusUuids.toString()}")
     }
 
     /**
@@ -28,7 +28,7 @@ class BackupRestoreService {
     @Async
     void restoreCollections(String backupDir, def backupNames, String restoreToDB) {
         String currentDB = getCurrentDB()
-        executeOnShell("sh ${getScriptPath()}/backup.sh -r ${currentDB} ${backupDir} ${backupNames.toString()} ${restoreToDB}")
+        executeOnShell("${getScriptPath()}/backup.sh -r ${currentDB} ${backupDir} ${backupNames.toString()} ${restoreToDB}")
     }
 
     private String getCurrentDB() {
