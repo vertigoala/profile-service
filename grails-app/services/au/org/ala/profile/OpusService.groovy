@@ -722,4 +722,12 @@ class OpusService extends BaseDataAccessService {
         def exists = masterList.find { it.name.toLowerCase() == (profile.scientificNameLower ?: profile.scientificName?.toLowerCase()) }
         return exists != null
     }
+
+    def getMasterListKeybaseItems(Opus opus) {
+        def ml = masterListService.getMasterList(opus)
+        def ps = Profile.findAllByOpusAndScientificNameInList(opus, ml*.name)
+        def names = (ml*.name + ps.collect { it.matchedName?.scientificName }).findAll { it }.unique()
+        def guids = ps.collect { it.guid }.findAll { it }.unique()
+        return [ names: names, guids: guids ]
+    }
 }

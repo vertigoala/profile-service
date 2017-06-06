@@ -18,6 +18,7 @@ class OpusController extends BaseController {
     ImportService importService
     AttachmentService attachmentService
     SearchService searchService
+    MasterListService masterListService
 
     def index() {
         def opuses = Opus.findAll()
@@ -452,6 +453,23 @@ class OpusController extends BaseController {
                 render(response as JSON)
             } else {
                 notFound 'opus not found'
+            }
+        }
+    }
+
+    def getMasterListKeybaseItems() {
+        log.info("Get the master list items plox ${params.opusId}")
+        if (!params.opusId) {
+            badRequest "opusId is required"
+        } else {
+            Opus opus = getOpus()
+            if (!opus) {
+                notFound "Ain't no opus"
+            } else if (opus.masterListUid) {
+                def result = opusService.getMasterListKeybaseItems(opus)
+                render(result as JSON)
+            } else {
+                badRequest "Opus ain't got no master list"
             }
         }
     }
