@@ -4,6 +4,7 @@ import org.springframework.scheduling.annotation.Async
 
 class BackupRestoreService {
 
+    def grailsApplication
     /**
      * Call bash script to create a backup for the one or more collections
      *
@@ -12,14 +13,9 @@ class BackupRestoreService {
      * @param backupName: backup file name
      */
     @Async
-    void backupCollections(def backupOpusUuids, String outputDir, String backupName) {
-     /*   List<String> ids = []
-        backupOpusUuids.each {
-            Opus opus = Opus.findByUuid(it)
-            ids.add(opus.getId().toString())
-        }*/
-        //executeOnShell("sh scripts/mongo/backup.sh -b ${outputDir} ${backupName} [${ids.join(",")}]")
-        executeOnShell("sh scripts/mongo/backup.sh -b ${outputDir} ${backupName} ${backupOpusUuids.toString()}")
+    void backupCollections(def backupOpusUuids, String backupDir, String backupName) {
+        String currentDB = getCurrentDB()
+        executeOnShell("sh scripts/mongo/backup.sh -b ${currentDB} ${backupDir} ${backupName} ${backupOpusUuids.toString()}")
     }
 
     /**
@@ -30,8 +26,13 @@ class BackupRestoreService {
      * @param restoreDB: DB name to be restored to
      */
     @Async
-    void restoreCollections(String backupDir, def backupNames, String restoreDB) {
-        executeOnShell("sh scripts/mongo/backup.sh -r ${backupDir} ${backupNames.toString()} ${restoreDB}")
+    void restoreCollections(String backupDir, def backupNames, String restoreToDB) {
+        String currentDB = getCurrentDB()
+        executeOnShell("sh scripts/mongo/backup.sh -r ${currentDB} ${backupDir} ${backupNames.toString()} ${restoreToDB}")
+    }
+
+    private String getCurrentDB () {
+        return grailsApplication.config.grails.mongo.databaseName?:"profiles"
     }
 
     private executeOnShell(String command) {
