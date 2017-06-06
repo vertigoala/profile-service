@@ -14,6 +14,7 @@ import org.springframework.web.multipart.commons.CommonsMultipartFile
 
 import java.text.SimpleDateFormat
 
+import static au.org.ala.profile.util.Utils.toBooleanWithDefault
 import static grails.async.Promises.*
 
 @Transactional
@@ -237,17 +238,9 @@ class OpusService extends BaseDataAccessService {
         }
 
         opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus?.toBoolean() ?: false
-        def allowFineGrainedAttribution = json.allowFineGrainedAttribution?.toBoolean()
-        if (allowFineGrainedAttribution == null) {
-            allowFineGrainedAttribution = true
-        }
-        opus.allowFineGrainedAttribution = allowFineGrainedAttribution
+        opus.allowFineGrainedAttribution = toBooleanWithDefault(json.allowFineGrainedAttribution, true)
 
-        def autoApproveShareRequests = json.autoApproveShareRequests?.toBoolean()
-        if (autoApproveShareRequests == null) {
-            autoApproveShareRequests = true
-        }
-        opus.autoApproveShareRequests = autoApproveShareRequests
+        opus.autoApproveShareRequests = toBooleanWithDefault(json.autoApproveShareRequests, true)
 
         opus.autoDraftProfiles = json.autoDraftProfiles?.toBoolean() ?: false
         if (json.tags) {
@@ -459,11 +452,7 @@ class OpusService extends BaseDataAccessService {
         }
 
         opus.showLinkedOpusAttributes = json.showLinkedOpusAttributes?.toBoolean() ?: false
-        def autoApproveShareRequests = json.autoApproveShareRequests?.toBoolean()
-        if (autoApproveShareRequests == null) {
-            autoApproveShareRequests = true
-        }
-        opus.autoApproveShareRequests = autoApproveShareRequests
+        opus.autoApproveShareRequests = toBooleanWithDefault(json.autoApproveShareRequests, true)
         opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus?.toBoolean() ?: false
 
         save opus

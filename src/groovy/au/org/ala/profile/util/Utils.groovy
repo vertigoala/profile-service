@@ -105,4 +105,9 @@ class Utils {
 
         result
     }
+
+    static boolean toBooleanWithDefault(value, boolean defaultValue) {
+        Boolean b = value?.toBoolean()
+        return b != null ? b : defaultValue
+    }
 }
