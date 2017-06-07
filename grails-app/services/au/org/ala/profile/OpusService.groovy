@@ -7,6 +7,8 @@ import au.org.ala.profile.util.ShareRequestAction
 import au.org.ala.profile.util.ShareRequestStatus
 import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
+import com.mongodb.DBObject
+import org.grails.datastore.mapping.mongo.query.MongoQuery
 import org.grails.plugins.metrics.groovy.Metered
 import org.grails.plugins.metrics.groovy.Timed
 import org.springframework.transaction.annotation.Transactional
@@ -714,9 +716,37 @@ class OpusService extends BaseDataAccessService {
 
     def getMasterListKeybaseItems(Opus opus) {
         def ml = masterListService.getMasterList(opus)
-        def ps = Profile.findAllByOpusAndScientificNameInList(opus, ml*.name)
-        def names = (ml*.name + ps.collect { it.matchedName?.scientificName }).findAll { it }.unique()
-        def guids = ps.collect { it.guid }.findAll { it }.unique()
+        MongoQuery.AggregatedResultList ps = Profile.withCriteria {
+            eq('opus', opus)
+            'in'('scientificName', ml*.name)
+            projections {
+                property('matchedName') // TODO use matchedName.scientificName after GORM 6.1+ upgrade
+                property('guid')
+            }
+        }
+
+        // XXX Trying to run a .collect or .each on ps results in a NPE from running ps.size()
+        // so white box the $#!? out of this to find a way to get results without running ps.initializeFully
+        // TODO replace with
+        //   def names = (ml*.name + ps.collect { it[0]?.scientificName }).findAll { it }.unique()
+        //   def guids = ps.collect { it[1] }.findAll { it }.unique()
+        // after upgrading GORM?
+        // NOTE placing a debug point around here will attempt to load all the ps properties which will trigger
+        // the consumption of the cursor and then this method doesn't work
+        def pnames = []
+        def pguids = []
+        ps.withCloseable {
+            def cursor = ps.cursor // this is a private property, whoops
+            while (cursor.hasNext()) {
+                DBObject obj = cursor.next()
+                pnames << obj[0]?.scientificName
+                pguids << obj[1]
+            }
+
+        }
+
+        def names = (ml*.name + pnames).findAll { it }.unique()
+        def guids = pguids.findAll { it }.unique()
         return [ names: names, guids: guids ]
     }
 }
