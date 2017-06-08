@@ -279,18 +279,15 @@ class OpusController extends BaseController {
             if (!opus) {
                 notFound()
             } else {
-                render ([opus: [title: opus.title,
-                                opusId: opus.uuid,
-                                shortName: opus.shortName,
-                                aboutHtml: opus.aboutHtml,
-                                citationHtml: opus.citationHtml,
-                                copyright: opus.copyrightText,
-                                administrators: opus.authorities.collect {
-                                    if (it.role == Role.ROLE_PROFILE_ADMIN) {
-                                        [email: authService.getUserForUserId(it.user.userId, false)?.userName,
-                                         name: it.user.name]
-                                    }
-                                }]] as JSON)
+                render ([
+                        opus: opus,
+                        opusId: opus.uuid,
+                        administrators: opus.authorities.collect {
+                            if (it.role == Role.ROLE_PROFILE_ADMIN) {
+                                [email: authService.getUserForUserId(it.user.userId, false)?.userName,
+                                 name: it.user.name]
+                            }
+                        }] as JSON)
             }
         }
     }
