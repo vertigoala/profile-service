@@ -74,6 +74,8 @@ class Opus {
 
     @Transient
     int profileCount
+    @Transient
+    String florulaListId
 
     List<String> additionalStatuses = ['In Review', 'Complete']
 

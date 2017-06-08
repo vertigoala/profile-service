@@ -709,13 +709,13 @@ class OpusService extends BaseDataAccessService {
     boolean isProfileOnMasterList(Opus opus, profile) {
         if (!opus.masterListUid || !profile) return true
 
-        def masterList = masterListService.getMasterList(opus)
+        def masterList = masterListService.getMasterListForUser(opus)
         def exists = masterList.find { it.name.toLowerCase() == (profile.scientificNameLower ?: profile.scientificName?.toLowerCase()) }
         return exists != null
     }
 
     def getMasterListKeybaseItems(Opus opus) {
-        def ml = masterListService.getMasterList(opus)
+        def ml = masterListService.getMasterListForUser(opus)
         MongoQuery.AggregatedResultList ps = Profile.withCriteria {
             eq('opus', opus)
             'in'('scientificName', ml*.name)
@@ -724,6 +724,9 @@ class OpusService extends BaseDataAccessService {
                 property('guid')
             }
         }
+
+        // If you see this and think the following sucks and the mongo plugin is > 3.0.3 then please feel free to try
+        // replacing it.
 
         // XXX Trying to run a .collect or .each on ps results in a NPE from running ps.size()
         // so white box the $#!? out of this to find a way to get results without running ps.initializeFully

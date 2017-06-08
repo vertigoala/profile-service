@@ -17,6 +17,7 @@ class ProfileController extends BaseController {
     ProfileService profileService
     BieService bieService
     AttachmentService attachmentService
+    UserSettingsService userSettingsService
 
     def saveBHLLinks() {
         def json = request.getJSON()
@@ -436,6 +437,12 @@ class ProfileController extends BaseController {
                 profile.attributes?.each { it.profile = profile }
                 profile.opus = opus
                 profile.privateMode = true
+            }
+
+            def userId = request.getAttribute(AuditFilters.REQUEST_USER_DETAILS_KEY)?.userId
+            if (userId) {
+                def settings = userSettingsService.getUserSettings(userId)
+                profile.opus.florulaListId = settings.allFlorulaSettings[profile.opus.uuid]?.drUid
             }
 
             render profile as JSON

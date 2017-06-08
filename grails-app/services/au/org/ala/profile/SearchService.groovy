@@ -50,7 +50,7 @@ class SearchService extends BaseDataAccessService {
         List<Vocab> vocabs = Vocab.findAllByUuidInList(opusList*.attributeVocabUuid)
         String[] summaryTerms = Term.findAllByVocabInListAndSummary(vocabs, true)*.uuid
         String[] nameTerms = Term.findAllByVocabInListAndContainsName(vocabs, true)*.uuid
-        Map<String, List<String>> masterLists = opusList.findAll { it.masterListUid }.collectEntries { [(it.uuid) : masterListService.getMasterList(it)*.name ]}
+        Map<String, List<String>> masterLists = opusList.findAll { it.masterListUid }.collectEntries { [(it.uuid) : masterListService.getMasterListForUser(it)*.name ]}
 
         Map results = [:]
         if (accessibleCollections) {
@@ -459,7 +459,7 @@ class SearchService extends BaseDataAccessService {
                 def opusIdFilter = [opus: opus.id]
                 def filter
                 if (opus.masterListUid) {
-                    def masterList = masterListService.getMasterList(opus)
+                    def masterList = masterListService.getMasterListForUser(opus)
                     filter = ['$and': [
                             opusIdFilter,
                             [scientificName: [$in: masterList*.name]]
@@ -474,7 +474,7 @@ class SearchService extends BaseDataAccessService {
             if (opuses) {
                 def orCrit = [ [opus: [$nin: opuses*.id]] ] // default to allow any opus that doesn't have a master list
                 orCrit += opuses.collect { opus ->
-                    def masterList = masterListService.getMasterList(opus)
+                    def masterList = masterListService.getMasterListForUser(opus)
                     ['$and': [
                             [opus: opus.id],
                             [scientificName: [$in: masterList*.name]]
@@ -533,7 +533,7 @@ class SearchService extends BaseDataAccessService {
 
         def masterList = null
         if  (opus.masterListUid) {
-            masterList = masterListService.getMasterList(opus)*.name
+            masterList = masterListService.getMasterListForUser(opus)*.name
         }
 
         try {
@@ -666,7 +666,7 @@ class SearchService extends BaseDataAccessService {
             }
 
             if (opus.masterListUid) {
-                def masterList = masterListService.getMasterList(opus)*.name
+                def masterList = masterListService.getMasterListForUser(opus)*.name
                 groupedRanks[UNKNOWN_RANK] = Profile.countByOpusAndScientificNameInListAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus, masterList)
             } else {
                 groupedRanks[UNKNOWN_RANK] = Profile.countByOpusAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus)
@@ -688,7 +688,7 @@ class SearchService extends BaseDataAccessService {
         if (opus) {
             if (!taxon || UNKNOWN_RANK.equalsIgnoreCase(taxon)) {
                 if (opus.masterListUid) {
-                    def masterList = masterListService.getMasterList(opus)*.name
+                    def masterList = masterListService.getMasterListForUser(opus)*.name
                     groupedTaxa[UNKNOWN_RANK] = Profile.countByOpusAndScientificNameInListAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus, masterList)
                 } else {
                     groupedTaxa[UNKNOWN_RANK] = Profile.countByOpusAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus)
@@ -715,7 +715,7 @@ class SearchService extends BaseDataAccessService {
     private matchForOpus(Opus opus) {
         def match
         if (opus.masterListUid) {
-            def masterList = masterListService.getMasterList(opus)*.name
+            def masterList = masterListService.getMasterListForUser(opus)*.name
             match = [opus: opus.id, archivedDate: null, scientificName: ['$in': masterList ]]
         } else {
             match = [opus: opus.id, archivedDate: null]
@@ -871,7 +871,7 @@ class SearchService extends BaseDataAccessService {
     List findProfilesForImmediateChildren(Opus opus, List immediateChildren) {
         def masterList = null
         if (opus.masterListUid) {
-            masterList = masterListService.getMasterList(opus)*.name
+            masterList = masterListService.getMasterListForUser(opus)*.name
         }
 
         List<Profile> profiles = Profile.withCriteria {

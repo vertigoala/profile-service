@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.CloneAndDraftUtil
 import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
 import au.org.ala.profile.util.Utils
 import com.google.common.collect.Sets
@@ -505,10 +506,17 @@ class ImportService extends BaseDataAccessService {
                     log.info("Sync Master List for ${colId} Name: ${match.listItem.name} Results: $results")
                 }
                 allResults[match.listItem.name] = results
+
+                if (collection.autoDraftProfiles) {
+                    emptyProfile.draft = CloneAndDraftUtil.createDraft(emptyProfile)
+                    emptyProfile.draft.createdBy = emptyProfile.createdBy
+                }
+
                 emptyProfile
             }
 
             inserts*.save(flush: true, validate: true)
+
 
             def ids = inserts*.id.findAll { it }
             def errors = inserts.findAll { it.hasErrors() }
@@ -542,8 +550,10 @@ class ImportService extends BaseDataAccessService {
             results.warnings << "ALA - Provided with name ${listItem.name}, but was matched with name ${fullName} in the ALA."
         }
 
+        // pregenerate uuids so that we can create drafts before saving.
+
         // Always assign the name as the list name, because the list is the source of truth
-        Profile profile = new Profile(scientificName: listItem.name, nameAuthor: nameAuthor, fullName: fullName, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: [], bibliography: [], profileStatus: Profile.STATUS_EMPTY, emptyProfileVersion: EMPTY_PROFILE_VERSION)
+        Profile profile = new Profile(uuid: UUID.randomUUID().toString(), scientificName: listItem.name, nameAuthor: nameAuthor, fullName: fullName, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: [], bibliography: [], profileStatus: Profile.STATUS_EMPTY, emptyProfileVersion: EMPTY_PROFILE_VERSION)
 
         if (matchedName) {
             profile.matchedName = new Name(matchedName)

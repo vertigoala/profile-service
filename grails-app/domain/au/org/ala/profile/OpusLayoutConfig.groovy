@@ -14,6 +14,7 @@ class OpusLayoutConfig {
     Double gradientWidth
     String helpTextSearch
     String helpTextIdentify
+    String helpTextFilter
     String helpTextBrowse
     String helpTextDocuments
     static constraints = {
@@ -22,6 +23,7 @@ class OpusLayoutConfig {
         updatesSection nullable: true
         helpTextSearch nullable: true
         helpTextIdentify nullable: true
+        helpTextFilter nullable: true
         helpTextBrowse nullable: true
         helpTextDocuments nullable: true
         gradient nullable: true
