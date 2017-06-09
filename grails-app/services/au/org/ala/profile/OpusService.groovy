@@ -1,11 +1,7 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.security.Role
-import au.org.ala.profile.util.DataResourceOption
-import au.org.ala.profile.util.ImageOption
-import au.org.ala.profile.util.ShareRequestAction
-import au.org.ala.profile.util.ShareRequestStatus
-import au.org.ala.profile.util.Utils
+import au.org.ala.profile.util.*
 import au.org.ala.web.AuthService
 import com.mongodb.DBObject
 import org.grails.datastore.mapping.mongo.query.MongoQuery
@@ -18,7 +14,6 @@ import java.text.SimpleDateFormat
 
 import static au.org.ala.profile.util.Utils.toBooleanWithDefault
 import static grails.async.Promises.*
-
 @Transactional
 class OpusService extends BaseDataAccessService {
 
@@ -185,7 +180,12 @@ class OpusService extends BaseDataAccessService {
             opus.opusLayoutConfig.helpTextIdentify = json.opusLayoutConfig.helpTextIdentify ?: null
             opus.opusLayoutConfig.helpTextBrowse = json.opusLayoutConfig.helpTextBrowse ?: null
             opus.opusLayoutConfig.helpTextDocuments = json.opusLayoutConfig.helpTextDocuments ?: null
+            opus.opusLayoutConfig.bannerOverlayText = json.opusLayoutConfig.bannerOverlayText ?: null
             opus.opusLayoutConfig.opusLogoUrl = json.opusLayoutConfig.opusLogoUrl
+        }
+
+        if (json.theme) {
+            opus.theme = new Theme(json.theme)
         }
 
         if (json.profileLayoutConfig) {

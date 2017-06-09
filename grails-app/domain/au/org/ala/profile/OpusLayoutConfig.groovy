@@ -17,6 +17,8 @@ class OpusLayoutConfig {
     String helpTextFilter
     String helpTextBrowse
     String helpTextDocuments
+    @SanitizedHtml
+    String bannerOverlayText
     static constraints = {
         opusLogoUrl nullable: true
         explanatoryText nullable: true
@@ -28,6 +30,7 @@ class OpusLayoutConfig {
         helpTextDocuments nullable: true
         gradient nullable: true
         gradientWidth nullable: true, min: 0.0d, max: 100.0d
+        bannerOverlayText nullable: true
     }
 
     static embedded = ['images']
