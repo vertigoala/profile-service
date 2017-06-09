@@ -36,6 +36,7 @@ class Opus {
     MapConfig mapConfig
     DataResourceConfig dataResourceConfig
     OpusLayoutConfig opusLayoutConfig
+    Theme theme
 
     String attributeVocabUuid
     String authorshipVocabUuid
@@ -81,7 +82,7 @@ class Opus {
 
     static transients = ['profileCount', 'florulaListId']
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, tags: Tag]
-    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig', 'profileLayoutConfig', 'dataResourceConfig', 'opusLayoutConfig']
+    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig', 'profileLayoutConfig', 'dataResourceConfig', 'opusLayoutConfig', 'theme']
 
     static constraints = {
         shortName nullable: true
@@ -92,6 +93,7 @@ class Opus {
         mapConfig nullable: true
         dataResourceConfig nullable: true
         opusLayoutConfig nullable: true
+        theme nullable: true
         attributeVocabUuid nullable: true
         authorshipVocabUuid nullable: true
         enablePhyloUpload nullable: true

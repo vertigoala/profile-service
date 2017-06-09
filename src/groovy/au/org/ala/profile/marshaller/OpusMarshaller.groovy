@@ -3,6 +3,7 @@ package au.org.ala.profile.marshaller
 import au.org.ala.profile.DataResourceConfig
 import au.org.ala.profile.Opus
 import au.org.ala.profile.OpusLayoutConfig
+import au.org.ala.profile.Theme
 import au.org.ala.profile.util.DataResourceOption
 import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.ShareRequestStatus
@@ -27,6 +28,7 @@ class OpusMarshaller {
                     brandingConfig             : opus.brandingConfig ?: [:],
                     profileLayoutConfig        : opus.profileLayoutConfig ?: [:],
                     opusLayoutConfig           : opus.opusLayoutConfig ?: new OpusLayoutConfig(),
+                    theme                      : opus.theme ?: new Theme(),
                     keybaseProjectId           : opus.keybaseProjectId,
                     keybaseKeyId               : opus.keybaseKeyId,
                     attributeVocabUuid         : opus.attributeVocabUuid,
