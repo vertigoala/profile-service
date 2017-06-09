@@ -1,9 +1,11 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.util.DataResourceOption
+import au.org.ala.web.UserDetails
 import au.org.ala.ws.controller.BasicWSController
 import com.google.common.base.Stopwatch
 
+import static au.org.ala.profile.AuditFilters.REQUEST_USER_DETAILS_KEY
 import static au.org.ala.profile.util.Utils.isUuid
 import static au.org.ala.profile.util.Utils.enc
 
@@ -115,5 +117,9 @@ class BaseController extends BasicWSController {
             log.trace("getOpus() - Get opus by short name ${params.opusId}: $sw")
         }
         opus
+    }
+
+    UserDetails currentUser() {
+        return (UserDetails) request.getAttribute(REQUEST_USER_DETAILS_KEY)
     }
 }

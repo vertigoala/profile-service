@@ -17,6 +17,9 @@ class SearchServiceSpec extends BaseIntegrationSpec {
                         ['name': 'name2', 'scientificName': 'name2']
                 ]
         ]
+        mls.getMasterListForUser(_) >> { Opus opus ->
+            masterLists[opus.masterListUid]
+        }
         mls.getMasterList(_) >> { Opus opus ->
             masterLists[opus.masterListUid]
         }

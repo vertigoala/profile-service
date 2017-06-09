@@ -1,5 +1,8 @@
 package au.org.ala.profile.util
 
+import com.google.common.base.Charsets
+import org.apache.http.client.utils.URLEncodedUtils
+
 import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
 import static org.apache.http.HttpStatus.SC_OK
 
@@ -89,21 +92,9 @@ class Utils {
         parsedQuery.collectMany { k, vs -> vs.collect { v -> "${enc(k)}=${enc(v)}" } }.join('&')
     }
 
-    static Map parseQueryString(String query) {
-        Map result = [:]
-        List params = query.split('&')
-        params?.each { param ->
-            List pair = param.split('=')
-            if (pair.size() == 2) {
-                if(!result[pair[0]]){
-                    result[pair[0]] = []
-                }
-
-                result[pair[0]] << decode(pair[1])
-            }
-        }
-
-        result
+    static Map<String, List<String>> parseQueryString(String query) {
+        def result = URLEncodedUtils.parse(query, Charsets.UTF_8)
+        return result.groupBy { nvp -> nvp.name }.collectEntries { [(it.key): it.value*.value ] }
     }
 
     static boolean toBooleanWithDefault(value, boolean defaultValue) {

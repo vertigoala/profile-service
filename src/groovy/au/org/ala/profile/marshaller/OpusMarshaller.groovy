@@ -12,7 +12,7 @@ class OpusMarshaller {
 
     void register() {
         JSON.registerObjectMarshaller(Opus) { Opus opus ->
-            return [
+            def value = [
                     uuid                       : opus.uuid,
                     dataResourceUid            : opus.dataResourceUid,
                     title                      : opus.title,
@@ -63,6 +63,7 @@ class OpusMarshaller {
                                                   facebook: opus.facebook],
                     hasAboutPage               : opus.aboutHtml != null,
                     profileCount               : opus.profileCount,
+                    florulaListId              : opus.florulaListId ?: '',
                     citationHtml               : opus.citationHtml,
                     citationProfile            : opus.citationProfile,
                     accessToken                : opus.accessToken,
@@ -71,6 +72,7 @@ class OpusMarshaller {
                     } ?: [],
                     additionalStatuses         : opus.additionalStatuses ?: []
             ]
+            return value
         }
     }
 

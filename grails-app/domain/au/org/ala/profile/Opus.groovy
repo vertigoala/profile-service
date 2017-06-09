@@ -74,9 +74,12 @@ class Opus {
 
     @Transient
     int profileCount
+    @Transient
+    String florulaListId
 
     List<String> additionalStatuses = ['In Review', 'Complete']
 
+    static transients = ['profileCount', 'florulaListId']
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, tags: Tag]
     static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig', 'profileLayoutConfig', 'dataResourceConfig', 'opusLayoutConfig']
 
