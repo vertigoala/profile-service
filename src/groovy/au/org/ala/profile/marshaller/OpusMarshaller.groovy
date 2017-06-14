@@ -72,7 +72,9 @@ class OpusMarshaller {
                     tags                       : opus.tags?.collect {
                         [uuid: it.uuid, colour: it.colour, name: it.name, abbrev: it.abbrev]
                     } ?: [],
-                    additionalStatuses         : opus.additionalStatuses ?: []
+                    additionalStatuses         : opus.additionalStatuses ?: [],
+                    dateCreated                : opus.dateCreated?.time,
+                    lastUpdated                : opus.lastUpdated?.time
             ]
             return value
         }

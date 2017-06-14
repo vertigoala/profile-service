@@ -73,6 +73,9 @@ class Opus {
 
     boolean autoDraftProfiles = false // automatically lock profiles for draft when they are created
 
+    Date dateCreated
+    Date lastUpdated
+
     @Transient
     int profileCount
     @Transient
@@ -122,6 +125,7 @@ class Opus {
     }
 
     static mapping = {
+        autoTimestamp true
         glossary cascade: "all-delete-orphan"
         authorities cascade: "all-delete-orphan"
         shortName index: true
