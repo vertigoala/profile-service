@@ -76,14 +76,16 @@ class MasterListService {
     }
 
     private void logUri() {
-        try {
-            def request = WebUtils.retrieveGrailsWebRequest().request
-            def uri = request.forwardURI
-            def method = request.method
-            def protocol = request.protocol
-            log.debug("!!! GET MASTER LIST FOR USER !!! ($method $uri $protocol)")
-        } catch (e) {
-            log.debug("!!! GET MASTER LIST FOR USER !!!", new RuntimeException())
+        if (log.isTraceEnabled()) {
+            try {
+                def request = WebUtils.retrieveGrailsWebRequest().request
+                def uri = request.forwardURI
+                def method = request.method
+                def protocol = request.protocol
+                log.trace("!!! GET MASTER LIST FOR USER !!! ($method $uri $protocol)")
+            } catch (e) {
+                log.trace("!!! GET MASTER LIST FOR USER !!!", new RuntimeException())
+            }
         }
     }
 
