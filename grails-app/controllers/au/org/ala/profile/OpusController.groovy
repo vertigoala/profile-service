@@ -473,7 +473,11 @@ class OpusController extends BaseController {
                 notFound "Ain't no opus"
             } else if (opus.masterListUid) {
                 def result = opusService.getMasterListKeybaseItems(opus)
-                render(result as JSON)
+                if (result != null) {
+                    render(result as JSON)
+                } else {
+                    response.sendError(SC_NO_CONTENT)
+                }
             } else {
                 badRequest "Opus ain't got no master list"
             }

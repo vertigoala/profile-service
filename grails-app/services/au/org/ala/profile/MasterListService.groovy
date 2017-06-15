@@ -51,11 +51,34 @@ class MasterListService {
         }
     }
 
+    /**
+     * Preserves null responses (which indicates no filter) when converting from a list
+     * to a list of just names.
+     * @param opus The opus to get lists for
+     * @return The list of names or null if no filter applies
+     */
     // TODO replace use of this method with extracting the user and override id from all
     // relevant controller actions and service calls
     @Timed
     @Metered
-    List<Map<String,String>> getMasterListForUser(Opus opus) {
+    List<String> getCombinedNamesListForUser(Opus opus) {
+        def list = getCombinedListForUser(opus)
+        if (list == null) return null
+        else return list*.name
+    }
+
+    /**
+     * Gets a filter list from the combination of an Opus's master list and from the user's
+     * florula setting for that opus.
+     *
+     * @param opus The opus to get lists for
+     * @return The combined filter list or null if no filter applies
+     */
+    // TODO replace use of this method with extracting the user and override id from all
+    // relevant controller actions and service calls
+    @Timed
+    @Metered
+    List<Map<String,String>> getCombinedListForUser(Opus opus) {
         String florulaId
         def userid = userService.currentUserDetails?.userId
         if (!userid) {
@@ -63,7 +86,7 @@ class MasterListService {
                 def wr = WebUtils.retrieveGrailsWebRequest()
                 def request = wr.getRequest()
                 def query = Utils.parseQueryString(request.queryString)
-                florulaId = query['florulaOverrideId']?.first()
+                florulaId = query[MASTER_LIST_OVERRIDE_PARAM]?.first()
             } catch (e) {
                 log.error("Not in a request context", e)
                 florulaId = null
@@ -72,7 +95,7 @@ class MasterListService {
             florulaId = userSettingsService.getUserSettings(userid)?.allFlorulaSettings?.get(opus.uuid)?.drUid
         }
         logUri() // Get an idea which urls this is called from
-        return getMasterListForUser(opus, florulaId)
+        return getCombinedListForUser(opus, florulaId)
     }
 
     private void logUri() {
@@ -91,7 +114,7 @@ class MasterListService {
 
     @Timed
     @Metered
-    List<Map<String,String>> getMasterListForUser(Opus opus, String florulaId) {
+    List<Map<String,String>> getCombinedListForUser(Opus opus, String florulaId) {
         def florulaListItems = florulaId ? getProfileList(florulaId) : null
         def masterListItems = opus?.masterListUid ?  getProfileList(opus?.masterListUid) : null
         def result

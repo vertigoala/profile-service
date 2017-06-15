@@ -13,7 +13,7 @@ import org.springframework.web.multipart.commons.CommonsMultipartFile
 import java.text.SimpleDateFormat
 
 import static au.org.ala.profile.util.Utils.toBooleanWithDefault
-import static grails.async.Promises.*
+
 @Transactional
 class OpusService extends BaseDataAccessService {
 
@@ -709,16 +709,20 @@ class OpusService extends BaseDataAccessService {
     boolean isProfileOnMasterList(Opus opus, profile) {
         if (!opus.masterListUid || !profile) return true
 
-        def masterList = masterListService.getMasterListForUser(opus)
+        def masterList = masterListService.getCombinedListForUser(opus)
         def exists = masterList.find { it.name.toLowerCase() == (profile.scientificNameLower ?: profile.scientificName?.toLowerCase()) }
         return exists != null
     }
 
     def getMasterListKeybaseItems(Opus opus) {
-        def ml = masterListService.getMasterListForUser(opus)
+        def ml = masterListService.getCombinedListForUser(opus)
+        if (ml == null) {
+            return null
+        }
+        def mlNames = ml*.name
         MongoQuery.AggregatedResultList ps = Profile.withCriteria {
             eq('opus', opus)
-            'in'('scientificName', ml*.name)
+            'in'('scientificName', mlNames)
             projections {
                 property('matchedName') // TODO use matchedName.scientificName after GORM 6.1+ upgrade
                 property('guid')
@@ -748,7 +752,7 @@ class OpusService extends BaseDataAccessService {
 
         }
 
-        def names = (ml*.name + pnames).findAll { it }.unique()
+        def names = (mlNames + pnames).findAll { it }.unique()
         def guids = pguids.findAll { it }.unique()
         return [ names: names, guids: guids ]
     }
