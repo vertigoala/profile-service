@@ -14,25 +14,24 @@ addons:
       - mongodb-3.2-precise
     packages:
       - mongodb-org-server
+cache:
+  directories:
+    - ~/.m2/repository
+    - ~/.grails/wrapper
 before_install:
 - export TZ=Australia/Canberra
 - date
-- rm -rf ~/.sdkman
-- curl -s get.sdkman.io > ~/install_sdkman.sh
-- chmod 775 ~/install_sdkman.sh
-- ~/install_sdkman.sh
-- echo "sdkman_auto_answer=true" > ~/.sdkman/etc/config
-- source ~/.sdkman/bin/sdkman-init.sh
-- GRAILS_VERSION=`grep '^app\.grails\.version=' ./application.properties | sed -e
-  's/^app\.grails\.version=//g'`
-- sdk install grails $GRAILS_VERSION || true
 before_script:
 - mkdir -p ~/.grails; wget -q -O ~/.grails/settings.groovy https://raw.githubusercontent.com/AtlasOfLivingAustralia/travis-build-configuration/master/travis_grails_settings_new.groovy
 - MAVEN_REPO="ala-repo-snapshot"; grep '^app\.version=' ./application.properties |
   grep -q "\-SNAPSHOT"; if [ "$?" = "1" ]; then MAVEN_REPO="ala-repo-release"; fi;
 - echo "MAVEN_REPO:$MAVEN_REPO"
 script:
-- grails clean && grails refresh-dependencies --non-interactive && grails test-app --non-interactive && grails prod war --non-interactive && grails prod maven-deploy --repository=$MAVEN_REPO --non-interactive --stacktrace
+ - ./grailsw refresh-dependencies --non-interactive
+ - ./grailsw test-app --non-interactive
+ - ./grails prod war --non-interactive
+after_script:
+ - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && travis_retry ./grailsw prod maven-deploy --repository=$MAVEN_REPO --non-interactive --stacktrace'
 env:
   global:
   - secure: afqIu7SQ/GoytD1WjbYDBok8+8YPEYIwOGWM2jtx5JW5qVD+qRZIWL5CY0MWZix28MVGjafbta3TRhM7SWPVpm+O9fnaKmW5BP3ywex/Imu9t4MSXbMY0FTXk5HArMSHXB78pfTjqVpsUey8m8gC64kecN+c+cpcNCT+MRkHL7Q=
