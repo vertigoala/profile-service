@@ -17,6 +17,10 @@ class SearchServiceSpec extends BaseIntegrationSpec {
                         ['name': 'name2', 'scientificName': 'name2']
                 ]
         ]
+        mls.getCombinedNamesListForUser(_) >> { Opus opus ->
+            def ml = masterLists[opus.masterListUid]
+            return ml == null ? null : ml*.name
+        }
         mls.getCombinedListForUser(_) >> { Opus opus ->
             masterLists[opus.masterListUid]
         }
