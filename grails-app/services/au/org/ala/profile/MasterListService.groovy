@@ -1,6 +1,5 @@
 package au.org.ala.profile
 
-import au.org.ala.profile.util.Utils
 import com.google.common.collect.Sets
 import org.codehaus.groovy.grails.web.util.WebUtils
 import org.grails.plugins.metrics.groovy.Metered
@@ -85,8 +84,7 @@ class MasterListService {
             try {
                 def wr = WebUtils.retrieveGrailsWebRequest()
                 def request = wr.getRequest()
-                def query = Utils.parseQueryString(request.queryString)
-                florulaId = query[MASTER_LIST_OVERRIDE_PARAM]?.first()
+                florulaId = request.parameterMap[MASTER_LIST_OVERRIDE_PARAM + '-' + opus.uuid]?.first()
             } catch (e) {
                 log.error("Not in a request context", e)
                 florulaId = null
