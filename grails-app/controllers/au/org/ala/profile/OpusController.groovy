@@ -464,22 +464,19 @@ class OpusController extends BaseController {
     }
 
     def getMasterListKeybaseItems() {
-        log.info("Get the master list items plox ${params.opusId}")
         if (!params.opusId) {
             badRequest "opusId is required"
         } else {
             Opus opus = getOpus()
             if (!opus) {
                 notFound "Ain't no opus"
-            } else if (opus.masterListUid) {
+            } else {
                 def result = opusService.getMasterListKeybaseItems(opus)
                 if (result != null) {
                     render(result as JSON)
                 } else {
                     response.sendError(SC_NO_CONTENT)
                 }
-            } else {
-                badRequest "Opus ain't got no master list"
             }
         }
     }
