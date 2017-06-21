@@ -50,7 +50,7 @@ class SearchService extends BaseDataAccessService {
         List<Vocab> vocabs = Vocab.findAllByUuidInList(opusList*.attributeVocabUuid)
         String[] summaryTerms = Term.findAllByVocabInListAndSummary(vocabs, true)*.uuid
         String[] nameTerms = Term.findAllByVocabInListAndContainsName(vocabs, true)*.uuid
-        Map<String, List<String>> filterLists = opusList.collectEntries { [(it.uuid) : masterListService.getCombinedNamesListForUser(it) ]}
+        Map<String, List<String>> filterLists = opusList.collectEntries { [(it.uuid) : masterListService.getCombinedLowerCaseNamesListForUser(it) ]}
 
         Map results = [:]
         if (accessibleCollections) {
@@ -234,7 +234,7 @@ class SearchService extends BaseDataAccessService {
 
                     def filterList = filterLists[uuid]
                     if (filterList != null) {
-                        masterListFilter.must(termsFilter("scientificNameLower", filterList*.toLowerCase()))
+                        masterListFilter.must(termsFilter("scientificNameLower", filterList))
                     }
                     masterListFilter
                 })
@@ -369,7 +369,7 @@ class SearchService extends BaseDataAccessService {
      * @param immediateChildrenOnly True if only children who list the rank:sciName as a direct parent should be returned.
      * @return List of descendant taxa of the specified Rank/ScientificName
      */
-    List<Map> findByClassificationNameAndRank(String rank, String scientificName, List<String> opusIds, ProfileSortOption sortBy = ProfileSortOption.getDefault(), int max = -1, int startFrom = 0, boolean immediateChildrenOnly = false) {
+    List<Map>   findByClassificationNameAndRank(String rank, String scientificName, List<String> opusIds, ProfileSortOption sortBy = ProfileSortOption.getDefault(), int max = -1, int startFrom = 0, boolean immediateChildrenOnly = false) {
 
         List<Opus> opusList = opusIds?.findResults { Opus.findByUuidOrShortName(it, it) }
         Map<Long, Opus> opusMap = opusList?.collectEntries { [(it.id): it] }
@@ -459,11 +459,11 @@ class SearchService extends BaseDataAccessService {
         preMatchCriteria << ['$or': opuses.collect { opus ->
             def opusIdFilter = [opus: opus.id]
             def filter
-            def filterList = masterListService.getCombinedListForUser(opus)
+            def filterList = masterListService.getCombinedNamesListForUser(opus)
             if (filterList != null) {
                 filter = ['$and': [
                         opusIdFilter,
-                        [scientificName: [$in: filterList*.name]]
+                        [scientificNameLower: [$in: filterList*.toLowerCase()]]
                 ]]
             } else {
                 filter = opusIdFilter
@@ -518,7 +518,7 @@ class SearchService extends BaseDataAccessService {
         List results = []
         MapReduceOutput hierarchyView = null
 
-        def filterList = masterListService.getCombinedNamesListForUser(opus)
+        def filterList = masterListService.getCombinedLowerCaseNamesListForUser(opus)
 
         try {
             // Find all the classification item that is exactly 1 item below the specified topRank.
@@ -526,7 +526,7 @@ class SearchService extends BaseDataAccessService {
             // children, or of whether there is a corresponding profile for the child.
             // Only consider the classifications of profiles that are on the master list
             String mapFunction = """function map() {
-                           if (filterList != null && filterList.indexOf(this.scientificName) == -1) {
+                           if (filterList != null && filterList.indexOf(this.scientificNameLower) == -1) {
                                return
                            }
                            var filter = '${filter ?: ''}';
@@ -641,7 +641,7 @@ class SearchService extends BaseDataAccessService {
         Map groupedRanks = [:]
 
         if (opus) {
-            def filterList = masterListService.getCombinedNamesListForUser(opus)
+            def filterList = masterListService.getCombinedLowerCaseNamesListForUser(opus)
             groupedRanks = Profile.collection.aggregate([[$match: matchForOpus(opus, filterList)],
                                                          [$unwind: '$classification'],
                                                          [$group: [_id: [rank: '$classification.rank', name: '$classification.name'], cnt: [$sum: 1]]],
@@ -651,7 +651,7 @@ class SearchService extends BaseDataAccessService {
             }
 
             if (filterList != null) {
-                groupedRanks[UNKNOWN_RANK] = Profile.countByOpusAndScientificNameInListAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus, filterList)
+                groupedRanks[UNKNOWN_RANK] = Profile.countByOpusAndScientificNameLowerInListAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus, filterList)
             } else {
                 groupedRanks[UNKNOWN_RANK] = Profile.countByOpusAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus)
             }
@@ -670,10 +670,10 @@ class SearchService extends BaseDataAccessService {
 
         Map groupedTaxa = [:]
         if (opus) {
-            def filterList = masterListService.getCombinedNamesListForUser(opus)
+            def filterList = masterListService.getCombinedLowerCaseNamesListForUser(opus)
             if (!taxon || UNKNOWN_RANK.equalsIgnoreCase(taxon)) {
                 if (filterList != null) {
-                    groupedTaxa[UNKNOWN_RANK] = Profile.countByOpusAndScientificNameInListAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus, filterList)
+                    groupedTaxa[UNKNOWN_RANK] = Profile.countByOpusAndScientificNameLowerInListAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus, filterList)
                 } else {
                     groupedTaxa[UNKNOWN_RANK] = Profile.countByOpusAndArchivedDateIsNullAndRankIsNullAndClassificationIsNull(opus)
                 }
@@ -699,7 +699,7 @@ class SearchService extends BaseDataAccessService {
     private matchForOpus(Opus opus, List<String> filterList) {
         def match
         if (filterList != null) {
-            match = [opus: opus.id, archivedDate: null, scientificName: ['$in': filterList ]]
+            match = [opus: opus.id, archivedDate: null, scientificNameLower: ['$in': filterList ]]
         } else {
             match = [opus: opus.id, archivedDate: null]
         }
@@ -852,7 +852,7 @@ class SearchService extends BaseDataAccessService {
     }
 
     List findProfilesForImmediateChildren(Opus opus, List immediateChildren) {
-        def filterList = masterListService.getCombinedNamesListForUser(opus)
+        def filterList = masterListService.getCombinedLowerCaseNamesListForUser(opus)
 
         List<Profile> profiles = Profile.withCriteria {
             eq "opus", opus
@@ -861,7 +861,7 @@ class SearchService extends BaseDataAccessService {
                 inList "scientificName", immediateChildren*.name
             }
             if (filterList != null) {
-                inList "scientificName", filterList
+                inList "scientificNameLower", filterList
             }
         }
         def byGuid = profiles.findAll { it.guid }.collectEntries { [(it.guid): it ]}

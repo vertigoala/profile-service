@@ -1,8 +1,15 @@
 package au.org.ala.profile.util
 
 import com.google.common.base.Charsets
+import com.google.common.base.Supplier
+import com.google.common.cache.CacheLoader
+import com.google.common.escape.Escapers
+import com.google.common.net.UrlEscapers
+import groovy.transform.stc.ClosureParams
+import groovy.transform.stc.FirstParam
 import org.apache.http.client.utils.URLEncodedUtils
 
+import static com.google.common.net.UrlEscapers.urlPathSegmentEscaper
 import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
 import static org.apache.http.HttpStatus.SC_OK
 
@@ -42,6 +49,10 @@ class Utils {
             str = str.replaceAll(/<p\/?>|<br\/?>/, "\n").replaceAll(/<.+?>/, "").replaceAll(" +", " ").trim()
         }
         return str
+    }
+
+    static String encPath(String str) {
+        urlPathSegmentEscaper().escape(str)
     }
 
     static String enc(String str) {
@@ -100,5 +111,19 @@ class Utils {
     static boolean toBooleanWithDefault(value, boolean defaultValue) {
         Boolean b = value?.toBoolean()
         return b != null ? b : defaultValue
+    }
+
+    static <T> Supplier<T> closureSupplier(Closure<T> closure) {
+        return closure as Supplier<T>
+    }
+
+    static <K, T> CacheLoader<K, T> closureCacheLoader(Class<K> argType, @ClosureParams(FirstParam.FirstGenericType) Closure<T> listClosure) {
+        // groovy compiler doesn't like adding type parameters to the CacheLoader :(
+        return new CacheLoader() {
+            @Override
+            Object load(Object key) throws Exception {
+                listClosure(key)
+            }
+        }
     }
 }

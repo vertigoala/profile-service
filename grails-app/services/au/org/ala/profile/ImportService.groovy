@@ -375,7 +375,7 @@ class ImportService extends BaseDataAccessService {
         link
     }
 
-    final static int EMPTY_PROFILE_VERSION = 2
+    final static int EMPTY_PROFILE_VERSION = 3
 
     /**
      * Syncronise the master list for the given Opus UUID and wait for the result before returning.
@@ -386,7 +386,7 @@ class ImportService extends BaseDataAccessService {
      */
     SyncResponse syncroniseMasterList(String uuid, boolean forceStubRegeneration = false) {
         def result = syncActor.sendAndWait(new SyncActorMessage.SyncMessage(uuid: uuid, forceRegenStubs: forceStubRegeneration))
-        switch(result) {
+        switch (result) {
             case SyncResponse.SyncFailed:
                 log.error("syncroniseMasterList for $uuid failed", result.exception)
                 break
@@ -443,9 +443,9 @@ class ImportService extends BaseDataAccessService {
             }
             log.info("Sync Master List for ${colId} matched ${matches.inject(0) { s, m -> s + (m.match ? 1 : 0) } } records")
 
-            def matchesMap = matches.collectEntries { [(it.listItem.name): it] }
+            def matchesMap = matches.collectEntries { [(it.listItem.name?.toLowerCase()): it] }
 
-            def namesSet = masterList*.name.toSet()
+            def namesSet = masterList.collect { it.name?.toLowerCase() }.toSet()
             def names = namesSet.toList()
 
             // Load all profiles from mongo so that we can run a GORM delete on them, this should trigger
@@ -462,7 +462,7 @@ class ImportService extends BaseDataAccessService {
                 def toDelete = Profile.withCriteria {
                     eq('opus', collection.id)
                     eq('profileStatus', Profile.STATUS_EMPTY)
-                    not { 'in'('scientificName', names) } // need to use a withCriteria because the GORM dynamic finder ScientificNameNotInList doesn't apply the not part
+                    not { 'in'('scientificNameLower', names) } // need to use a withCriteria because the GORM dynamic finder ScientificNameNotInList doesn't apply the not part
                 }
 
                 Profile.deleteAll(toDelete)
@@ -488,10 +488,10 @@ class ImportService extends BaseDataAccessService {
 
             def existingProfileNames = Profile.withCriteria {
                 eq('opus', collection.id)
-                'in'('scientificName', names)
+                'in'('scientificNameLower', names)
 
                 projections {
-                    property('scientificName')
+                    property('scientificNameLower')
                 }
             }
             log.info("Sync Master List for ${colId} found ${existingProfileNames?.size() ?: 0} existing non-empty records")

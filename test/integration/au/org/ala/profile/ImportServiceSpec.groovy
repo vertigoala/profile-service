@@ -16,7 +16,7 @@ class ImportServiceSpec extends BaseIntegrationSpec {
         importService.nameService = nameService
         importService.profileService = profileService
 
-        masterListService.getMasterList(_) >> { opus -> [['name': 'a', 'scientificName': 'a'], ['name': 'b', 'scientificName': 'b'], ['name': 'c', 'scientificName': 'c']]}
+        masterListService.getMasterList(_) >> { opus -> [['name': 'a', 'scientificName': 'a'], ['name': 'b', 'scientificName': 'b'], ['name': 'C', 'scientificName': 'C']]}
 
         def nsldump = [
                 [scientificName    : 'a',
@@ -53,7 +53,7 @@ class ImportServiceSpec extends BaseIntegrationSpec {
         importService.syncroniseMasterList(opus.uuid)
         def a1 = Profile.findAllByOpusAndScientificName(opus,'a')
         def b1 = Profile.findAllByOpusAndScientificName(opus, 'b')
-        def c1 = Profile.findAllByOpusAndScientificName(opus, 'c')
+        def c1 = Profile.findAllByOpusAndScientificName(opus, 'C')
         def d1 = Profile.findAllByOpusAndScientificName(opus, 'd')
         def e1 = Profile.findAllByOpusAndScientificName(opus, 'e')
 
@@ -138,6 +138,32 @@ class ImportServiceSpec extends BaseIntegrationSpec {
         a1.size() == 1
         a1[0].nslNameIdentifier != null
         a1[0].nslNomenclatureIdentifier != null
+    }
+
+    def 'test case sensitive sync master list'() {
+        given:
+        def opus = save new Opus(title: "opus", shortName: 'opus', dataResourceUid: "123", glossary: new Glossary(), masterListUid: 'a')
+        def a = save new Profile(opus: opus, scientificName: 'A', profileStatus: Profile.STATUS_PARTIAL)
+        def b = save new Profile(opus: opus, scientificName: 'b', profileStatus: Profile.STATUS_PARTIAL)
+
+        when:
+        importService.syncroniseMasterList(opus.uuid)
+        def a1 = Profile.findAllByOpusAndScientificName(opus,'A')
+        def a2 = Profile.findAllByOpusAndScientificName(opus,'a')
+        def b1 = Profile.findAllByOpusAndScientificName(opus, 'b')
+        def c1 = Profile.findAllByOpusAndScientificName(opus, 'C')
+
+        then:
+        a1.size() == 1
+        a1[0].profileStatus == Profile.STATUS_PARTIAL
+
+        a2.size() == 0
+
+        b1.size() == 1
+        b1[0].profileStatus == Profile.STATUS_PARTIAL
+
+        c1.size() == 1
+        c1[0].profileStatus == Profile.STATUS_EMPTY
     }
 
 }

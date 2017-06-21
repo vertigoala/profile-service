@@ -715,14 +715,13 @@ class OpusService extends BaseDataAccessService {
     }
 
     def getMasterListKeybaseItems(Opus opus) {
-        def ml = masterListService.getCombinedListForUser(opus)
-        if (ml == null) {
+        def filterList = masterListService.getCombinedLowerCaseNamesListForUser(opus)
+        if (filterList == null) {
             return null
         }
-        def mlNames = ml*.name
         MongoQuery.AggregatedResultList ps = Profile.withCriteria {
             eq('opus', opus)
-            'in'('scientificName', mlNames)
+            'in'('scientificNameLower', filterList)
             projections {
                 property('matchedName') // TODO use matchedName.scientificName after GORM 6.1+ upgrade
                 property('guid')
@@ -735,7 +734,7 @@ class OpusService extends BaseDataAccessService {
         // XXX Trying to run a .collect or .each on ps results in a NPE from running ps.size()
         // so white box the $#!? out of this to find a way to get results without running ps.initializeFully
         // TODO replace with
-        //   def names = (ml*.name + ps.collect { it[0]?.scientificName }).findAll { it }.unique()
+        //   def names = (filterList + ps.collect { it[0]?.scientificName }).findAll { it }.unique()
         //   def guids = ps.collect { it[1] }.findAll { it }.unique()
         // after upgrading GORM?
         // NOTE placing a debug point around here will attempt to load all the ps properties which will trigger

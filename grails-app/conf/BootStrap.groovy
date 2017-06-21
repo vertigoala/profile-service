@@ -31,6 +31,8 @@ class BootStrap {
         addStatusToProfiles()
 
         addTimestampToOpera()
+
+        addScientificNameLowerToProfiles()
     }
     def destroy = {
     }
@@ -121,6 +123,26 @@ class BootStrap {
             myColl.save(profile)
         }
         log.info("Updated $count profiles")
+    }
+
+    def addScientificNameLowerToProfiles() {
+        log.info("Adding dateCreated and lastUpdated to opera")
+
+        DBCollection myColl = mongo.getDB(grailsApplication.config.grails.mongo.databaseName).getCollection("profile")
+        BasicDBList list = new BasicDBList()
+        list.add(new BasicDBObject('scientificNameLower', new BasicDBObject('$exists', false)))
+        list.add(new BasicDBObject('scientificNameLower', new BasicDBObject('$type', 10))) // $type: 10 is null
+        BasicDBObject condition = new BasicDBObject('$or', list)
+
+        // Find all docs missing a lastUpdated and set it to the dateCreated
+        final cursor = myColl.find(condition)
+        final count = cursor.size()
+        cursor.each { DBObject profile ->
+            profile.scientificNameLower = profile.scientificName?.toLowerCase()
+            myColl.save(profile)
+        }
+
+        log.info("Updated $count profiles with scientificNameLower")
     }
 
     // TODO Remove this once all opera have dates set

@@ -1,11 +1,16 @@
 package au.org.ala.profile
 
+import com.google.common.cache.CacheBuilder
 import com.google.common.collect.Sets
 import org.codehaus.groovy.grails.web.util.WebUtils
 import org.grails.plugins.metrics.groovy.Metered
 import org.grails.plugins.metrics.groovy.Timed
 
-import static au.org.ala.profile.util.Utils.enc
+import javax.servlet.http.HttpServletRequest
+
+import static au.org.ala.profile.util.Utils.closureCacheLoader
+import static au.org.ala.profile.util.Utils.encPath
+import static java.util.concurrent.TimeUnit.MINUTES
 
 class MasterListService {
 
@@ -17,6 +22,9 @@ class MasterListService {
     def webService
     def userService
     def userSettingsService
+
+    // 100 cached lists ought to be enough for anyone
+    def listCache = CacheBuilder.newBuilder().expireAfterWrite(1, MINUTES).maximumSize(100).build(closureCacheLoader(String.class, this.&_getProfileList))
 
     /**
      * Return the master list for a given collection or null if no master list is set.
@@ -38,8 +46,12 @@ class MasterListService {
     }
 
     private List<Map<String, String>> getProfileList(String listId) {
+        listCache.get(listId)
+    }
+
+    private List<Map<String, String>> _getProfileList(String listId) {
         def baseUrl = grailsApplication.config.lists.base.url ?: 'https://lists.ala.org.au'
-        def response = webService.get("$baseUrl/ws/speciesListItems/${enc(listId)}")
+        def response = webService.get("$baseUrl/ws/speciesListItems/${encPath(listId)}")
         if (response.statusCode >= 400) {
             log.error("Can't get master list for ${listId}")
             throw new MasterListUnavailableException()
@@ -48,6 +60,22 @@ class MasterListService {
                 if (entry.name) entry.name = entry.name.trim()
             }
         }
+    }
+
+    /**
+     * Preserves null responses (which indicates no filter) when converting from a list
+     * to a list of lower case names.
+     * @param opus The opus to get lists for
+     * @return The list of lower case names or null if no filter applies
+     */
+    // TODO replace use of this method with extracting the user and override id from all
+    // relevant controller actions and service calls
+    @Timed
+    @Metered
+    List<String> getCombinedLowerCaseNamesListForUser(Opus opus) {
+        def list = getCombinedListForUser(opus)
+        if (list == null) return null
+        else return list.collect { it.name.toLowerCase() }
     }
 
     /**
@@ -78,22 +106,31 @@ class MasterListService {
     @Timed
     @Metered
     List<Map<String,String>> getCombinedListForUser(Opus opus) {
+        String florulaId = getFlorulaListIdForUser(opus.uuid)
+        logUri() // Get an idea which urls this is called from
+        return getCombinedListForUser(opus, florulaId)
+    }
+
+    String getFlorulaListIdForUser(String opusUuid) {
+        def wr = WebUtils.retrieveGrailsWebRequest()
+        def request = wr.getRequest()
+        getFlorulaListIdForUser(request, opusUuid)
+    }
+
+    String getFlorulaListIdForUser(HttpServletRequest request, String opusUuid) {
         String florulaId
         def userid = userService.currentUserDetails?.userId
         if (!userid) {
             try {
-                def wr = WebUtils.retrieveGrailsWebRequest()
-                def request = wr.getRequest()
-                florulaId = request.parameterMap[MASTER_LIST_OVERRIDE_PARAM + '-' + opus.uuid]?.first()
+                florulaId = request.parameterMap[MASTER_LIST_OVERRIDE_PARAM + '-' + opusUuid]?.first()
             } catch (e) {
                 log.error("Not in a request context", e)
                 florulaId = null
             }
         } else {
-            florulaId = userSettingsService.getUserSettings(userid)?.allFlorulaSettings?.get(opus.uuid)?.drUid
+            florulaId = userSettingsService.getUserSettings(userid)?.allFlorulaSettings?.get(opusUuid)?.drUid
         }
-        logUri() // Get an idea which urls this is called from
-        return getCombinedListForUser(opus, florulaId)
+        return florulaId
     }
 
     private void logUri() {
