@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # For backing up, run this script like this:
-# sh backup.sh -b /data/profile-service/backup/db masterlist [1,2]
+# sh backup.sh -b profiles /data/profile-service/backup/db masterlist ["5547200f-94ee-4725-b5d1-08daeeb33ad4", "bf6bf7f5-56d4-438b-84ec-045870115200"]
 
 # For restore collection, run the script like this:
-# sh backup.sh -r /data/profile-service/backup/db masterlist
+# sh backup.sh -r profiles /data/profile-service/backup/db ["masterlist"] profiles-new
 
 option="$1"
 currentDB="$2"
@@ -24,11 +24,7 @@ backupCollections() {
 
   mongodump -d $currentDB -c profile --query "{opus: {\$in : ${opusIds}}}" -o $backupPath
 
-  #echo "${opusUuids}" > $backupPath/opusUuids.txt
   printf "$opusUuids" | sed 's/[][]//g' > $backupPath/opusUuids.txt
-  #printf $opusUuids | egrep -o "A-Za-z0-9,+" > $backupPath/opusUuids.txt
-  # printf $opusUuids > $backupPath/opusUuids.txt
-  # printf $opusIds > $backupPath/opusIds.txt
 }
 
 restoreCollections() {
@@ -75,18 +71,18 @@ restoreCollections() {
 
 echo "You selected ${option}\n"
 
-if [ $option == "-b" ]
+if [ "$option" = "-b" ]
 then
     backupName="$4"
     opusUuids="$5"
     backupCollections
-elif [ $option == "-r" ]
+elif [ "$option" = "-r" ]
 then
     backupNames="$4"
     restoreDB="$5"
     restoreCollections
 else
-    echo "Please enter first parameter b for backup and r for restore. eg: sh backup.sh -b profiles /data/profile-service/backup/db masterlist [1]"
+    echo "Please enter first parameter b for backup and r for restore. eg: sh backup.sh -b profiles /data/profile-service/backup/db masterlist [""5547200f-94ee-4725-b5d1-08daeeb33ad4""]"
 fi
 
 # mongodump -d profiles -c profile --query '{opus: {$in : [1]} }' -o /data/profile-service/backup/db/testme
