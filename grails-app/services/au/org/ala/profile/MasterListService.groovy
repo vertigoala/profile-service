@@ -2,11 +2,13 @@ package au.org.ala.profile
 
 import com.google.common.cache.CacheBuilder
 import com.google.common.collect.Sets
+import com.google.common.util.concurrent.UncheckedExecutionException
 import org.codehaus.groovy.grails.web.util.WebUtils
 import org.grails.plugins.metrics.groovy.Metered
 import org.grails.plugins.metrics.groovy.Timed
 
 import javax.servlet.http.HttpServletRequest
+import java.util.concurrent.ExecutionException
 
 import static au.org.ala.profile.util.Utils.closureCacheLoader
 import static au.org.ala.profile.util.Utils.encPath
@@ -30,11 +32,11 @@ class MasterListService {
      * Return the master list for a given collection or null if no master list is set.
      * @param opus The collection to get the master list for
      * @return A list of objects that probably have name and scientificName properties.
-     * @throws MasterListUnavailableException
+     * @throws ProfileListUnavailableException
      */
     @Timed
     @Metered
-    List<Map<String, String>> getMasterList(Opus opus) throws MasterListUnavailableException {
+    List<Map<String, String>> getMasterList(Opus opus) throws ProfileListUnavailableException {
         if (!opus.masterListUid) return null
         def listId = opus.masterListUid
         try {
@@ -45,16 +47,22 @@ class MasterListService {
         }
     }
 
-    private List<Map<String, String>> getProfileList(String listId) {
-        listCache.get(listId)
+    private List<Map<String, String>> getProfileList(String listId) throws ProfileListUnavailableException {
+        try {
+            listCache.get(listId)
+        } catch (ExecutionException e) {
+            throw e.cause
+        } catch (UncheckedExecutionException e) {
+            throw e.cause
+        }
     }
 
-    private List<Map<String, String>> _getProfileList(String listId) {
+    private List<Map<String, String>> _getProfileList(String listId) throws ProfileListUnavailableException {
         def baseUrl = grailsApplication.config.lists.base.url ?: 'https://lists.ala.org.au'
         def response = webService.get("$baseUrl/ws/speciesListItems/${encPath(listId)}")
         if (response.statusCode >= 400) {
             log.error("Can't get master list for ${listId}")
-            throw new MasterListUnavailableException()
+            throw new ProfileListUnavailableException()
         } else {
             return response.resp?.each { entry ->
                 if (entry.name) entry.name = entry.name.trim()
@@ -149,7 +157,7 @@ class MasterListService {
 
     @Timed
     @Metered
-    List<Map<String,String>> getCombinedListForUser(Opus opus, String florulaId) {
+    List<Map<String,String>> getCombinedListForUser(Opus opus, String florulaId) throws ProfileListUnavailableException {
         def florulaListItems = florulaId ? getProfileList(florulaId) : null
         def masterListItems = opus?.masterListUid ?  getProfileList(opus?.masterListUid) : null
         def result
@@ -168,7 +176,7 @@ class MasterListService {
         return result
     }
 
-    class MasterListUnavailableException extends IOException {
+    class ProfileListUnavailableException extends IOException {
         @Override synchronized Throwable fillInStackTrace() {
             return this
         }
