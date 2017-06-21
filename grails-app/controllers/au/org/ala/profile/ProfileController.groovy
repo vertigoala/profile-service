@@ -18,6 +18,7 @@ class ProfileController extends BaseController {
     BieService bieService
     AttachmentService attachmentService
     UserSettingsService userSettingsService
+    MasterListService masterListService
 
     def saveBHLLinks() {
         def json = request.getJSON()
@@ -439,11 +440,8 @@ class ProfileController extends BaseController {
                 profile.privateMode = true
             }
 
-            def userId = request.getAttribute(AuditFilters.REQUEST_USER_DETAILS_KEY)?.userId
-            if (userId) {
-                def settings = userSettingsService.getUserSettings(userId)
-                profile.opus.florulaListId = settings.allFlorulaSettings[profile.opus.uuid]?.drUid
-            }
+            def florulaListId = masterListService.getFlorulaListIdForUser(request, profile.opus.uuid)
+            profile.opus.florulaListId = florulaListId
 
             render profile as JSON
         } else {

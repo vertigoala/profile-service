@@ -10,6 +10,7 @@ class UrlMappings {
 
         // 'Internal' ALA API
         "/admin/search/reindex" controller: "search", action: [POST: "reindex"]
+        "/admin/names/clearCache" controller: "name", action: [POST: "clearCache"]
         "/admin/rematchNames" controller: "admin", action: [POST: "rematchNames"]
         "/admin/tag/$tagId?" controller: "admin", action: [GET: "getTag", PUT: "createTag", POST: "updateTag", DELETE: "deleteTag"]
         "/admin/backupCollections" controller: "admin", action: [POST: "backupCollections"]

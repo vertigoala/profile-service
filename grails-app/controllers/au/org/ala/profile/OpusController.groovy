@@ -11,6 +11,7 @@ import groovy.json.JsonSlurper
 import org.springframework.web.multipart.MultipartHttpServletRequest
 import org.springframework.web.multipart.commons.CommonsMultipartFile
 
+import static au.org.ala.profile.ImportService.SyncResponse.*
 import static javax.servlet.http.HttpServletResponse.SC_NO_CONTENT
 
 @RequireApiKey
@@ -35,11 +36,8 @@ class OpusController extends BaseController {
         if (result) {
             int profiles = Profile.countByOpus(result)
             result.profileCount = profiles
-            def userId = request.getAttribute(AuditFilters.REQUEST_USER_DETAILS_KEY)?.userId
-            if (userId) {
-                def settings = userSettingsService.getUserSettings(userId)
-                result.florulaListId = settings.allFlorulaSettings[result.uuid]?.drUid
-            }
+            def florulaListId = masterListService.getFlorulaListIdForUser(request, result.uuid)
+            result.florulaListId = florulaListId
             render result as JSON
         } else {
             notFound()
@@ -455,8 +453,21 @@ class OpusController extends BaseController {
             Opus opus = getOpus()
             if (opus) {
                 def regen = params.boolean('regenerateStubs', false)
-                def response = importService.syncroniseMasterList(opus.uuid, regen)
-                render(response as JSON)
+                def result = importService.syncroniseMasterList(opus.uuid, regen)
+                def statusCode
+                switch (result) {
+                    case OpusNotFound:
+                        statusCode = 404
+                        break
+                    case SyncComplete:
+                        statusCode = 200
+                        break
+                    case SyncFailed:
+                    default:
+                        statusCode = 500
+                }
+                response.status = statusCode
+                render(result as JSON)
             } else {
                 notFound 'opus not found'
             }

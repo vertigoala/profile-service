@@ -49,6 +49,7 @@ class BaseController extends BasicWSController {
             return null
         } else if (!opusService.isProfileOnMasterList(opus, profile)) {
             log.debug("${opus.shortName ?: opus.uuid}: ${profile.scientificName} was found but is filtered out")
+            return null
         }
 
         // if occurrenceQuery is not custom configured by user, then use default occurrenceQuery for opus/profile combo.
