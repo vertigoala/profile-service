@@ -2,17 +2,9 @@ package au.org.ala.profile
 
 import au.org.ala.names.search.HomonymException
 import au.org.ala.names.search.SearchResultException
-import au.org.ala.profile.util.Utils
 import au.org.ala.ws.service.WebService
-import com.google.common.base.Supplier
-import com.google.common.base.Suppliers
-import com.google.common.cache.CacheBuilder
-import com.google.common.cache.CacheLoader
 import grails.converters.JSON
-import grails.plugin.cache.Cacheable
 import org.apache.commons.lang3.StringUtils
-
-import java.util.concurrent.TimeUnit
 
 import static au.org.ala.profile.util.Utils.closureSupplier
 import static com.google.common.base.Suppliers.memoizeWithExpiration
