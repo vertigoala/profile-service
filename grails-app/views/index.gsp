@@ -61,6 +61,7 @@
         <div class="col-md-12">
             <h1>Admin Tools</h1>
             <g:form url="admin/search/reindex" method="post"><g:submitButton class="btn btn-warning" name="Reindex"/></g:form>
+            <g:form uri="admin/names/clearCache" method="post"><g:submitButton class="btn btn-warning" name="Clear NSL Name Dump cache"/></g:form>
         </div>
     </div>
 </div>

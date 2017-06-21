@@ -100,8 +100,8 @@ class Profile {
     String archivedBy
     String archivedWithName
 
-    @Transient
-    String getScientificNameLower() { scientificName?.toLowerCase() }
+    String scientificNameLower
+
     @Transient
     String getFullNameLower() { fullName?.toLowerCase() }
     @Transient
@@ -149,6 +149,7 @@ class Profile {
     static mapping = {
         attributes cascade: "all-delete-orphan"
         scientificName index: true
+        scientificNameLower index: true
         guid index: true
         rank index: true
         uuid index: true
@@ -157,9 +158,19 @@ class Profile {
         profileStatus defaultValue: STATUS_PARTIAL
     }
 
+    def beforeUpdate() {
+        if (scientificName && !scientificNameLower) {
+            scientificNameLower = scientificName?.toLowerCase()
+        }
+    }
+
     def beforeValidate() {
         if (uuid == null) {
             uuid = UUID.randomUUID().toString()
+        }
+
+        if (scientificName && !scientificNameLower) {
+            scientificNameLower = scientificName?.toLowerCase()
         }
 
 

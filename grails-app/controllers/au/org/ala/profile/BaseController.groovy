@@ -1,9 +1,11 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.util.DataResourceOption
+import au.org.ala.web.UserDetails
 import au.org.ala.ws.controller.BasicWSController
 import com.google.common.base.Stopwatch
 
+import static au.org.ala.profile.AuditFilters.REQUEST_USER_DETAILS_KEY
 import static au.org.ala.profile.util.Utils.isUuid
 import static au.org.ala.profile.util.Utils.enc
 
@@ -43,7 +45,10 @@ class BaseController extends BasicWSController {
             }
         }
 
-        if (!profile || !opusService.isProfileOnMasterList(opus, profile)) {
+        if (!profile) {
+            return null
+        } else if (!opusService.isProfileOnMasterList(opus, profile)) {
+            log.debug("${opus.shortName ?: opus.uuid}: ${profile.scientificName} was found but is filtered out")
             return null
         }
 
@@ -115,5 +120,9 @@ class BaseController extends BasicWSController {
             log.trace("getOpus() - Get opus by short name ${params.opusId}: $sw")
         }
         opus
+    }
+
+    UserDetails currentUser() {
+        return (UserDetails) request.getAttribute(REQUEST_USER_DETAILS_KEY)
     }
 }

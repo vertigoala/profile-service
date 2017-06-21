@@ -6,6 +6,9 @@ import au.org.ala.ws.service.WebService
 import grails.converters.JSON
 import org.apache.commons.lang3.StringUtils
 
+import static au.org.ala.profile.util.Utils.closureSupplier
+import static com.google.common.base.Suppliers.memoizeWithExpiration
+import static com.google.common.base.Suppliers.synchronizedSupplier
 import static com.xlson.groovycsv.CsvParser.parseCsv
 import static au.org.ala.profile.util.Utils.enc
 import static au.org.ala.profile.util.Utils.isSuccessful
@@ -19,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional
 
 import javax.annotation.PostConstruct
 
+import static java.util.concurrent.TimeUnit.HOURS
 import static org.springframework.web.util.UriUtils.encodeQueryParam
 
 @Transactional
@@ -413,7 +417,20 @@ class NameService extends BaseDataAccessService {
         concept
     }
 
+    private def supplier() {
+        synchronizedSupplier(memoizeWithExpiration(closureSupplier(this.&_loadNSLSimpleNameDump), 24, HOURS))
+    }
+    private def nslNameDumpSupplier = supplier()
+
     Map loadNSLSimpleNameDump() {
+        return nslNameDumpSupplier.get()
+    }
+
+    void clearNSLNameDumpCache() {
+        nslNameDumpSupplier = supplier()
+    }
+
+    private Map _loadNSLSimpleNameDump() {
         log.info "Loading NSL Simple Name dump into memory...."
         long start = System.currentTimeMillis()
 

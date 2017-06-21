@@ -10,6 +10,7 @@ class UrlMappings {
 
         // 'Internal' ALA API
         "/admin/search/reindex" controller: "search", action: [POST: "reindex"]
+        "/admin/names/clearCache" controller: "name", action: [POST: "clearCache"]
         "/admin/rematchNames" controller: "admin", action: [POST: "rematchNames"]
         "/admin/tag/$tagId?" controller: "admin", action: [GET: "getTag", PUT: "createTag", POST: "updateTag", DELETE: "deleteTag"]
         "/admin/backupCollections" controller: "admin", action: [POST: "backupCollections"]
@@ -30,7 +31,9 @@ class UrlMappings {
         "/opus/$opusId/additionalStatuses" controller: "opus", action: [POST: 'updateAdditionalStatuses']
         "/opus/$opusId/about" controller: "opus", action: [GET: "about", PUT: "updateAbout"]
         "/opus/$opusId/masterList" controller: "opus", action: [POST: 'updateMasterList']
+        "/opus/$opusId/masterList/keybaseItems" controller: "opus", action: 'getMasterListKeybaseItems'
         "/opus/$opusId/masterList/sync" controller: "opus", action: [POST: 'syncMasterList']
+        "/opus/$opusId/florulaList" controller: "opus", action: [POST: 'updateFlorulaListForUser']
         "/opus/$opusId/vocab/" controller: "vocab", action: "index"
         "/opus/$opusId/vocab/$vocabId" controller: "vocab", action: [GET: "show", POST: "update"]
         "/opus/$opusId/vocab/usages/find" controller: "vocab", action: "findUsagesOfTerm"

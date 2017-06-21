@@ -29,10 +29,13 @@ class ProfileService extends BaseDataAccessService {
     DoiService doiService
     AttachmentService attachmentService
     SearchService searchService
+    MasterListService masterListService
     def grailsApplication
 
     Profile decorateProfile(Profile profile, boolean latest, boolean checkForChildren) {
         Stopwatch sw = new Stopwatch().start()
+
+        def set = masterListService.getCombinedLowerCaseNamesListForUser(profile.opus)?.toSet()
 
         if (profile.classification) {
             def classifications = profile.draft && latest ? profile.draft.classification : profile.classification
@@ -46,8 +49,14 @@ class ProfileService extends BaseDataAccessService {
                 if (!relatedProfile) {
                     relatedProfile = Profile.findByScientificNameAndOpusAndArchivedDateIsNull(cl.name, profile.opus)
                 }
-                cl.profileId = relatedProfile?.uuid
-                cl.profileName = relatedProfile?.scientificName
+
+                if (set == null || (relatedProfile && set.contains(relatedProfile.scientificNameLower))) {
+                    cl.profileId = relatedProfile?.uuid
+                    cl.profileName = relatedProfile?.scientificName
+                } else {
+                    cl.profileId = null
+                    cl.profileName = null
+                }
 
             }
 

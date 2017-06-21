@@ -3,6 +3,7 @@ package au.org.ala.profile.marshaller
 import au.org.ala.profile.DataResourceConfig
 import au.org.ala.profile.Opus
 import au.org.ala.profile.OpusLayoutConfig
+import au.org.ala.profile.Theme
 import au.org.ala.profile.util.DataResourceOption
 import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.ShareRequestStatus
@@ -12,7 +13,7 @@ class OpusMarshaller {
 
     void register() {
         JSON.registerObjectMarshaller(Opus) { Opus opus ->
-            return [
+            def value = [
                     uuid                       : opus.uuid,
                     dataResourceUid            : opus.dataResourceUid,
                     title                      : opus.title,
@@ -27,6 +28,7 @@ class OpusMarshaller {
                     brandingConfig             : opus.brandingConfig ?: [:],
                     profileLayoutConfig        : opus.profileLayoutConfig ?: [:],
                     opusLayoutConfig           : opus.opusLayoutConfig ?: new OpusLayoutConfig(),
+                    theme                      : opus.theme ?: new Theme(),
                     keybaseProjectId           : opus.keybaseProjectId,
                     keybaseKeyId               : opus.keybaseKeyId,
                     attributeVocabUuid         : opus.attributeVocabUuid,
@@ -63,14 +65,18 @@ class OpusMarshaller {
                                                   facebook: opus.facebook],
                     hasAboutPage               : opus.aboutHtml != null,
                     profileCount               : opus.profileCount,
+                    florulaListId              : opus.florulaListId ?: '',
                     citationHtml               : opus.citationHtml,
                     citationProfile            : opus.citationProfile,
                     accessToken                : opus.accessToken,
                     tags                       : opus.tags?.collect {
                         [uuid: it.uuid, colour: it.colour, name: it.name, abbrev: it.abbrev]
                     } ?: [],
-                    additionalStatuses         : opus.additionalStatuses ?: []
+                    additionalStatuses         : opus.additionalStatuses ?: [],
+                    dateCreated                : opus.dateCreated?.time,
+                    lastUpdated                : opus.lastUpdated?.time
             ]
+            return value
         }
     }
 

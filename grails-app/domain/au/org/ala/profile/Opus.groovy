@@ -36,6 +36,7 @@ class Opus {
     MapConfig mapConfig
     DataResourceConfig dataResourceConfig
     OpusLayoutConfig opusLayoutConfig
+    Theme theme
 
     String attributeVocabUuid
     String authorshipVocabUuid
@@ -72,13 +73,19 @@ class Opus {
 
     boolean autoDraftProfiles = false // automatically lock profiles for draft when they are created
 
+    Date dateCreated
+    Date lastUpdated
+
     @Transient
     int profileCount
+    @Transient
+    String florulaListId
 
     List<String> additionalStatuses = ['In Review', 'Complete']
 
+    static transients = ['profileCount', 'florulaListId']
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, tags: Tag]
-    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig', 'profileLayoutConfig', 'dataResourceConfig', 'opusLayoutConfig']
+    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig', 'profileLayoutConfig', 'dataResourceConfig', 'opusLayoutConfig', 'theme']
 
     static constraints = {
         shortName nullable: true
@@ -89,6 +96,7 @@ class Opus {
         mapConfig nullable: true
         dataResourceConfig nullable: true
         opusLayoutConfig nullable: true
+        theme nullable: true
         attributeVocabUuid nullable: true
         authorshipVocabUuid nullable: true
         enablePhyloUpload nullable: true
@@ -117,6 +125,7 @@ class Opus {
     }
 
     static mapping = {
+        autoTimestamp true
         glossary cascade: "all-delete-orphan"
         authorities cascade: "all-delete-orphan"
         shortName index: true

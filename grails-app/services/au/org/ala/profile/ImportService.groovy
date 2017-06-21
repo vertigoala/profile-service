@@ -1,5 +1,6 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.CloneAndDraftUtil
 import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
 import au.org.ala.profile.util.Utils
 import com.google.common.collect.Sets
@@ -374,7 +375,7 @@ class ImportService extends BaseDataAccessService {
         link
     }
 
-    final static int EMPTY_PROFILE_VERSION = 2
+    final static int EMPTY_PROFILE_VERSION = 3
 
     /**
      * Syncronise the master list for the given Opus UUID and wait for the result before returning.
@@ -385,7 +386,7 @@ class ImportService extends BaseDataAccessService {
      */
     SyncResponse syncroniseMasterList(String uuid, boolean forceStubRegeneration = false) {
         def result = syncActor.sendAndWait(new SyncActorMessage.SyncMessage(uuid: uuid, forceRegenStubs: forceStubRegeneration))
-        switch(result) {
+        switch (result) {
             case SyncResponse.SyncFailed:
                 log.error("syncroniseMasterList for $uuid failed", result.exception)
                 break
@@ -442,9 +443,9 @@ class ImportService extends BaseDataAccessService {
             }
             log.info("Sync Master List for ${colId} matched ${matches.inject(0) { s, m -> s + (m.match ? 1 : 0) } } records")
 
-            def matchesMap = matches.collectEntries { [(it.listItem.name): it] }
+            def matchesMap = matches.collectEntries { [(it.listItem.name?.toLowerCase()): it] }
 
-            def namesSet = masterList*.name.toSet()
+            def namesSet = masterList.collect { it.name?.toLowerCase() }.toSet()
             def names = namesSet.toList()
 
             // Load all profiles from mongo so that we can run a GORM delete on them, this should trigger
@@ -461,7 +462,7 @@ class ImportService extends BaseDataAccessService {
                 def toDelete = Profile.withCriteria {
                     eq('opus', collection.id)
                     eq('profileStatus', Profile.STATUS_EMPTY)
-                    not { 'in'('scientificName', names) } // need to use a withCriteria because the GORM dynamic finder ScientificNameNotInList doesn't apply the not part
+                    not { 'in'('scientificNameLower', names) } // need to use a withCriteria because the GORM dynamic finder ScientificNameNotInList doesn't apply the not part
                 }
 
                 Profile.deleteAll(toDelete)
@@ -487,10 +488,10 @@ class ImportService extends BaseDataAccessService {
 
             def existingProfileNames = Profile.withCriteria {
                 eq('opus', collection.id)
-                'in'('scientificName', names)
+                'in'('scientificNameLower', names)
 
                 projections {
-                    property('scientificName')
+                    property('scientificNameLower')
                 }
             }
             log.info("Sync Master List for ${colId} found ${existingProfileNames?.size() ?: 0} existing non-empty records")
@@ -505,10 +506,17 @@ class ImportService extends BaseDataAccessService {
                     log.info("Sync Master List for ${colId} Name: ${match.listItem.name} Results: $results")
                 }
                 allResults[match.listItem.name] = results
+
+//                if (collection.autoDraftProfiles) {
+//                    emptyProfile.draft = CloneAndDraftUtil.createDraft(emptyProfile)
+//                    emptyProfile.draft.createdBy = emptyProfile.createdBy
+//                }
+
                 emptyProfile
             }
 
             inserts*.save(flush: true, validate: true)
+
 
             def ids = inserts*.id.findAll { it }
             def errors = inserts.findAll { it.hasErrors() }
@@ -542,8 +550,10 @@ class ImportService extends BaseDataAccessService {
             results.warnings << "ALA - Provided with name ${listItem.name}, but was matched with name ${fullName} in the ALA."
         }
 
+        // pregenerate uuids so that we can create drafts before saving.
+
         // Always assign the name as the list name, because the list is the source of truth
-        Profile profile = new Profile(scientificName: listItem.name, nameAuthor: nameAuthor, fullName: fullName, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: [], bibliography: [], profileStatus: Profile.STATUS_EMPTY, emptyProfileVersion: EMPTY_PROFILE_VERSION)
+        Profile profile = new Profile(uuid: UUID.randomUUID().toString(), scientificName: listItem.name, nameAuthor: nameAuthor, fullName: fullName, opus: opus, guid: guid, attributes: [], links: [], bhlLinks: [], bibliography: [], profileStatus: Profile.STATUS_EMPTY, emptyProfileVersion: EMPTY_PROFILE_VERSION)
 
         if (matchedName) {
             profile.matchedName = new Name(matchedName)
