@@ -751,7 +751,7 @@ class OpusService extends BaseDataAccessService {
 
         }
 
-        def names = (mlNames + pnames).findAll { it }.unique()
+        def names = (filterList + pnames).findAll { it }.unique()
         def guids = pguids.findAll { it }.unique()
         return [ names: names, guids: guids ]
     }
