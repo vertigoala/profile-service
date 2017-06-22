@@ -26,7 +26,7 @@ class MasterListService {
     def userSettingsService
 
     // 100 cached lists ought to be enough for anyone
-    def listCache = CacheBuilder.newBuilder().expireAfterWrite(1, MINUTES).maximumSize(100).build(closureCacheLoader(String.class, this.&_getProfileList))
+    def listCache = CacheBuilder.newBuilder().expireAfterWrite(1, MINUTES).maximumSize(100).build(closureCacheLoader(String, this.&_getProfileList))
 
     /**
      * Return the master list for a given collection or null if no master list is set.

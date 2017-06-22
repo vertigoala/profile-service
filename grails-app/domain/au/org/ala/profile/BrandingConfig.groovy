@@ -6,14 +6,10 @@ import au.org.ala.profile.sanitizer.SanitizedHtml
  * Embedded entity to encapsulate the configuration items that control the branding on the UI (banners, logos, etc)
  */
 class BrandingConfig {
-    static final int DEFAULT_OPUS_BANNER_HEIGHT_PX = 300
-    static final int DEFAULT_PROFILE_BANNER_HEIGHT_PX = 100
 
     String opusBannerUrl // banner image for non-profile pages
-    int opusBannerHeight = DEFAULT_OPUS_BANNER_HEIGHT_PX
 
     String profileBannerUrl // banner image for profile pages
-    int profileBannerHeight = DEFAULT_PROFILE_BANNER_HEIGHT_PX
 
     List<Logo> logos = []
     String thumbnailUrl
@@ -32,11 +28,6 @@ class BrandingConfig {
         issn nullable: true, maxSize: 8, minSize: 8
         shortLicense nullable: true
         pdfLicense nullable: true, maxSize: 500
-    }
-
-    static mapping = {
-        opusBannerHeight defaultValue: DEFAULT_OPUS_BANNER_HEIGHT_PX
-        profileBannerHeight defaultValue: DEFAULT_PROFILE_BANNER_HEIGHT_PX
     }
 
     static embedded = ["logos"]

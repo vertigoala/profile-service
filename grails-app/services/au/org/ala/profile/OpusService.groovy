@@ -142,12 +142,8 @@ class OpusService extends BaseDataAccessService {
 
             opus.brandingConfig.thumbnailUrl = json.brandingConfig.thumbnailUrl ?
                     json.brandingConfig.thumbnailUrl : null
-            opus.brandingConfig.opusBannerHeight = json.brandingConfig.opusBannerHeight ?
-                    json.brandingConfig.opusBannerHeight : BrandingConfig.DEFAULT_OPUS_BANNER_HEIGHT_PX
             opus.brandingConfig.opusBannerUrl = json.brandingConfig.opusBannerUrl ?
                     json.brandingConfig.opusBannerUrl : null
-            opus.brandingConfig.profileBannerHeight = json.brandingConfig.profileBannerHeight ?
-                    json.brandingConfig.profileBannerHeight : BrandingConfig.DEFAULT_PROFILE_BANNER_HEIGHT_PX
             opus.brandingConfig.profileBannerUrl = json.brandingConfig.profileBannerUrl ?
                     json.brandingConfig.profileBannerUrl : null
             opus.brandingConfig.colourTheme = json.brandingConfig.colourTheme ? json.brandingConfig.colourTheme : null
@@ -174,14 +170,11 @@ class OpusService extends BaseDataAccessService {
             opus.opusLayoutConfig.updatesSection = json.opusLayoutConfig.updatesSection as String
             opus.opusLayoutConfig.explanatoryText = json.opusLayoutConfig.explanatoryText as String
             opus.opusLayoutConfig.duration = json.opusLayoutConfig.duration ?: opus.opusLayoutConfig.duration
-            opus.opusLayoutConfig.gradient = json.opusLayoutConfig.gradient
-            opus.opusLayoutConfig.gradientWidth = json.opusLayoutConfig.gradientWidth?.toDouble()
             opus.opusLayoutConfig.helpTextSearch = json.opusLayoutConfig.helpTextSearch ?: null
             opus.opusLayoutConfig.helpTextIdentify = json.opusLayoutConfig.helpTextIdentify ?: null
             opus.opusLayoutConfig.helpTextBrowse = json.opusLayoutConfig.helpTextBrowse ?: null
             opus.opusLayoutConfig.helpTextDocuments = json.opusLayoutConfig.helpTextDocuments ?: null
             opus.opusLayoutConfig.bannerOverlayText = json.opusLayoutConfig.bannerOverlayText ?: null
-            opus.opusLayoutConfig.opusLogoUrl = json.opusLayoutConfig.opusLogoUrl
         }
 
         if (json.theme) {

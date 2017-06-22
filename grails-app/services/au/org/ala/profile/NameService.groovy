@@ -8,7 +8,6 @@ import org.apache.commons.lang3.StringUtils
 
 import static au.org.ala.profile.util.Utils.closureSupplier
 import static com.google.common.base.Suppliers.memoizeWithExpiration
-import static com.google.common.base.Suppliers.synchronizedSupplier
 import static com.xlson.groovycsv.CsvParser.parseCsv
 import static au.org.ala.profile.util.Utils.enc
 import static au.org.ala.profile.util.Utils.isSuccessful
@@ -417,17 +416,17 @@ class NameService extends BaseDataAccessService {
         concept
     }
 
-    private def supplier() {
-        synchronizedSupplier(memoizeWithExpiration(closureSupplier(this.&_loadNSLSimpleNameDump), 24, HOURS))
+    private def createSimpleNameDumpSupplier() {
+        memoizeWithExpiration(closureSupplier(this.&_loadNSLSimpleNameDump), 24, HOURS)
     }
-    private def nslNameDumpSupplier = supplier()
+    private def nslNameDumpSupplier = createSimpleNameDumpSupplier()
 
     Map loadNSLSimpleNameDump() {
         return nslNameDumpSupplier.get()
     }
 
     void clearNSLNameDumpCache() {
-        nslNameDumpSupplier = supplier()
+        nslNameDumpSupplier = createSimpleNameDumpSupplier()
     }
 
     private Map _loadNSLSimpleNameDump() {
