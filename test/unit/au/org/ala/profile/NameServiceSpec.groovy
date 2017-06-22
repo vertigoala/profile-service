@@ -1,11 +1,10 @@
 package au.org.ala.profile
 
-/**
- * Created by cha693 on 13/08/15.
- */
-class NameServiceSpec extends BaseIntegrationSpec {
+import grails.test.mixin.TestFor
+import spock.lang.Specification
 
-    NameService service = new NameService()
+@TestFor(NameService)
+class NameServiceSpec extends Specification {
 
     def "extractAuthorsFromNameHtml should extract the author name from the html"() {
         when:

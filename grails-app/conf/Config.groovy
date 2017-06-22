@@ -97,6 +97,9 @@ grails.cache.config = {
     }
 }
 
+nsl.name.export.cacheTime = 86400 // seconds
+lists.items.cacheSpec = 'maximumSize=100,expireAfterWrite=1m'
+
 security {
     cas {
         uriExclusionFilterPattern='/images.*,/css.*,/js.*,/less.*'
@@ -191,6 +194,8 @@ log4j = {
     debug   "grails.app",
 //            "org.grails.plugins.elasticsearch",
             "au.org.ala"
+
+    trace   "grails.app.services.au.org.ala.profile.MasterListService"
 }
 
 elasticSearch {

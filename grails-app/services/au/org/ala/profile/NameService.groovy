@@ -3,6 +3,7 @@ package au.org.ala.profile
 import au.org.ala.names.search.HomonymException
 import au.org.ala.names.search.SearchResultException
 import au.org.ala.ws.service.WebService
+import com.google.common.base.Supplier
 import grails.converters.JSON
 import org.apache.commons.lang3.StringUtils
 
@@ -21,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional
 
 import javax.annotation.PostConstruct
 
-import static java.util.concurrent.TimeUnit.HOURS
+import static java.util.concurrent.TimeUnit.SECONDS
 import static org.springframework.web.util.UriUtils.encodeQueryParam
 
 @Transactional
@@ -33,10 +34,12 @@ class NameService extends BaseDataAccessService {
 
     def grailsApplication
     ALANameSearcher nameSearcher
+    private Supplier<Map<String, Map>> nslNameDumpSupplier = createSimpleNameDumpSupplier()
 
     @PostConstruct
     def init() {
         nameSearcher = new ALANameSearcher("${grailsApplication.config.name.index.location}")
+        nslNameDumpSupplier = createSimpleNameDumpSupplier()
     }
 
     Map matchName(String name, Map<String, String> classification = [:], String manuallyMatchedGuid = null) throws SearchResultException {
@@ -417,9 +420,9 @@ class NameService extends BaseDataAccessService {
     }
 
     private def createSimpleNameDumpSupplier() {
-        memoizeWithExpiration(closureSupplier(this.&_loadNSLSimpleNameDump), 24, HOURS)
+        def seconds = grailsApplication?.config?.nsl?.name?.export?.cacheTime as Integer ?: 86400
+        memoizeWithExpiration(closureSupplier(this.&_loadNSLSimpleNameDump), seconds, SECONDS)
     }
-    private def nslNameDumpSupplier = createSimpleNameDumpSupplier()
 
     Map loadNSLSimpleNameDump() {
         return nslNameDumpSupplier.get()

@@ -1,24 +1,26 @@
 package au.org.ala.profile
 
 import com.google.common.cache.CacheBuilder
+import com.google.common.cache.LoadingCache
 import com.google.common.collect.Sets
 import com.google.common.util.concurrent.UncheckedExecutionException
 import org.codehaus.groovy.grails.web.util.WebUtils
 import org.grails.plugins.metrics.groovy.Metered
 import org.grails.plugins.metrics.groovy.Timed
 
+import javax.annotation.PostConstruct
 import javax.servlet.http.HttpServletRequest
 import java.util.concurrent.ExecutionException
 
 import static au.org.ala.profile.util.Utils.closureCacheLoader
 import static au.org.ala.profile.util.Utils.encPath
-import static java.util.concurrent.TimeUnit.MINUTES
 
 class MasterListService {
 
     static transactional = false
 
     static final String MASTER_LIST_OVERRIDE_PARAM = 'florulaOverrideId'
+    static final String DEFAULT_CACHE_CONFIG = 'maximumSize=100,expireAfterWrite=1m'
 
     def grailsApplication
     def webService
@@ -26,7 +28,12 @@ class MasterListService {
     def userSettingsService
 
     // 100 cached lists ought to be enough for anyone
-    def listCache = CacheBuilder.newBuilder().expireAfterWrite(1, MINUTES).maximumSize(100).build(closureCacheLoader(String, this.&_getProfileList))
+    private LoadingCache<String, List<Map<String,String>>> listCache
+
+    @PostConstruct
+    def init() {
+        listCache = CacheBuilder.from(grailsApplication.config.lists.items.cacheSpec ?: DEFAULT_CACHE_CONFIG).build(closureCacheLoader(String, this.&_getProfileList))
+    }
 
     /**
      * Return the master list for a given collection or null if no master list is set.
