@@ -107,7 +107,7 @@ class BootStrap {
 
     // TODO Remove this once all profiles have a status set
     def addStatusToProfiles() {
-        log.info("Updating lastUpdated field on comments")
+        log.info("Adding status to profiles")
         // Bypass GORM to set the last updated field directly
         DBCollection myColl = mongo.getDB(grailsApplication.config.grails.mongo.databaseName).getCollection("profile")
         BasicDBList list = new BasicDBList()
@@ -126,7 +126,7 @@ class BootStrap {
     }
 
     def addScientificNameLowerToProfiles() {
-        log.info("Adding dateCreated and lastUpdated to opera")
+        log.info("Adding scientificNameLower to profiles")
 
         DBCollection myColl = mongo.getDB(grailsApplication.config.grails.mongo.databaseName).getCollection("profile")
         BasicDBList list = new BasicDBList()

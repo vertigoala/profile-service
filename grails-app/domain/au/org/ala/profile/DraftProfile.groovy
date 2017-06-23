@@ -10,6 +10,7 @@ class DraftProfile {
     String uuid
     String guid                 //taxon GUID / LSID
     String scientificName
+    String scientificNameLower
     String nameAuthor
     String fullName
     Name matchedName

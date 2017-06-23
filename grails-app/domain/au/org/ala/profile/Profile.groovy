@@ -158,10 +158,23 @@ class Profile {
         profileStatus defaultValue: STATUS_PARTIAL
     }
 
-    def beforeUpdate() {
-        if (scientificName && !scientificNameLower) {
-            scientificNameLower = scientificName?.toLowerCase()
+    private def updateScientificNameLower() {
+        if (scientificName) {
+            def lower = scientificName.toLowerCase()
+            if (lower != scientificNameLower) {
+                scientificNameLower = lower
+            }
         }
+        if (draft?.scientificName) {
+            def lower = draft.scientificName.toLowerCase()
+            if (lower != draft.scientificNameLower) {
+                draft.scientificNameLower = lower
+            }
+        }
+    }
+
+    def beforeUpdate() {
+        updateScientificNameLower()
     }
 
     def beforeValidate() {
@@ -169,10 +182,7 @@ class Profile {
             uuid = UUID.randomUUID().toString()
         }
 
-        if (scientificName && !scientificNameLower) {
-            scientificNameLower = scientificName?.toLowerCase()
-        }
-
+        updateScientificNameLower()
 
         // draft nullness is not enough to know if the profile or the draft has been edited
         // we need to play with the dirty properties to check for additional conditions
