@@ -22,6 +22,7 @@ class CloneAndDraftUtil {
 
         profile.uuid = profile.draft.uuid
         profile.scientificName = profile.draft.scientificName
+        profile.scientificNameLower = profile.draft.scientificNameLower
         profile.nameAuthor = profile.draft.nameAuthor
         profile.fullName = profile.draft.fullName
         profile.taxonomyTree = profile.draft.taxonomyTree
@@ -69,6 +70,7 @@ class CloneAndDraftUtil {
         clone.draftDate = new Date()
         clone.uuid = profile.uuid
         clone.scientificName = profile.scientificName
+        clone.scientificNameLower = profile.scientificNameLower
         clone.nameAuthor = profile.nameAuthor
         clone.fullName = profile.fullName
         clone.matchedName = cloneName(profile.matchedName)
