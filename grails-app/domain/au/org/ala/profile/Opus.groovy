@@ -37,6 +37,7 @@ class Opus {
     DataResourceConfig dataResourceConfig
     OpusLayoutConfig opusLayoutConfig
     Theme theme
+    HelpLink help
 
     String attributeVocabUuid
     String authorshipVocabUuid
@@ -85,7 +86,7 @@ class Opus {
 
     static transients = ['profileCount', 'florulaListId']
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, tags: Tag]
-    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig', 'profileLayoutConfig', 'dataResourceConfig', 'opusLayoutConfig', 'theme']
+    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig', 'profileLayoutConfig', 'dataResourceConfig', 'opusLayoutConfig', 'theme', 'help']
 
     static constraints = {
         shortName nullable: true

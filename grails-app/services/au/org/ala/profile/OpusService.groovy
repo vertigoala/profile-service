@@ -181,6 +181,10 @@ class OpusService extends BaseDataAccessService {
             opus.theme = new Theme(json.theme)
         }
 
+        if (json.help) {
+            opus.help= new HelpLink(json.help)
+        }
+
         if (json.profileLayoutConfig) {
             if (!opus.profileLayoutConfig) {
                 opus.profileLayoutConfig = new ProfileLayoutConfig()

@@ -1,6 +1,7 @@
 package au.org.ala.profile.marshaller
 
 import au.org.ala.profile.DataResourceConfig
+import au.org.ala.profile.HelpLink
 import au.org.ala.profile.Opus
 import au.org.ala.profile.OpusLayoutConfig
 import au.org.ala.profile.Theme
@@ -29,6 +30,7 @@ class OpusMarshaller {
                     profileLayoutConfig        : opus.profileLayoutConfig ?: [:],
                     opusLayoutConfig           : opus.opusLayoutConfig ?: new OpusLayoutConfig(),
                     theme                      : opus.theme ?: new Theme(),
+                    help                      : opus.help ?: new HelpLink(),
                     keybaseProjectId           : opus.keybaseProjectId,
                     keybaseKeyId               : opus.keybaseKeyId,
                     attributeVocabUuid         : opus.attributeVocabUuid,
