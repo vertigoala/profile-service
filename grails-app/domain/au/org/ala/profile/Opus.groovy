@@ -98,6 +98,7 @@ class Opus {
         dataResourceConfig nullable: true
         opusLayoutConfig nullable: true
         theme nullable: true
+        help nullable: true
         attributeVocabUuid nullable: true
         authorshipVocabUuid nullable: true
         enablePhyloUpload nullable: true
