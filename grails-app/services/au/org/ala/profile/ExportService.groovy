@@ -117,8 +117,7 @@ class ExportService extends BaseDataAccessService {
                         id       : opus.uuid,
                         title    : opus.title,
                         shortName: opus.shortName,
-                        url      : "${grailsApplication.config.profile.hub.base.url}opus/${opus.shortName ?: opus.uuid}".toString(),
-                        logos     : opus.brandingConfig?.logos
+                        url      : "${grailsApplication.config.profile.hub.base.url}opus/${opus.shortName ?: opus.uuid}".toString()
                 ]
 
                 if (!summary) {
