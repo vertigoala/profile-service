@@ -4,7 +4,6 @@ class UserSettings {
 
     // user id
     String id
-    String uuid
 
     // Opus.uuid -> FlorulaSettings
     Map<String, FlorulaSettings> allFlorulaSettings = [:]
@@ -25,11 +24,5 @@ class UserSettings {
 
     static mapping = {
         id generator: 'assigned', unique: true
-    }
-
-    def beforeValidate() {
-        if (uuid == null) {
-            uuid = UUID.randomUUID().toString()
-        }
     }
 }

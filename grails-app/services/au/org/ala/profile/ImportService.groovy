@@ -502,11 +502,6 @@ class ImportService extends BaseDataAccessService {
                 }
                 allResults[match.listItem.name] = results
 
-//                if (collection.autoDraftProfiles) {
-//                    emptyProfile.draft = CloneAndDraftUtil.createDraft(emptyProfile)
-//                    emptyProfile.draft.createdBy = emptyProfile.createdBy
-//                }
-
                 emptyProfile
             }
 

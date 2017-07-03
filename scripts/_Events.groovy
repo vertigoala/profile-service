@@ -18,12 +18,10 @@ eventConfigureTomcat = { Tomcat tomcat ->
         ajpConnector.redirectPort = 8443
         ajpConnector.enableLookups = false
         ajpConnector.URIEncoding = 'UTF-8'
-//        ajpConnector.useBodyEncodingForURI = true
         ajpConnector.setProperty('redirectPort', '8443')
         ajpConnector.setProperty('protocol', 'AJP/1.3')
         ajpConnector.setProperty('enableLookups', 'false')
         ajpConnector.setProperty('URIEncoding', 'UTF-8')
-//        ajpConnector.setProperty('useBodyEncodingForURI', 'true')
         tomcat.service.addConnector ajpConnector
 
         println ajpConnector.toString()
@@ -43,12 +41,10 @@ eventConfigureTomcat = { Tomcat tomcat ->
         httpConnector.port = 8008
         httpConnector.maxPostSize = 0 // Unlimited
         httpConnector.URIEncoding = 'UTF-8'
-//        httpConnector.useBodyEncodingForURI = true
         httpConnector.setProperty('redirectPort', '8443')
         httpConnector.setProperty('protocol', 'HTTP/1.1')
         httpConnector.setProperty("maxPostSize", "0") // Unlimited
         httpConnector.setProperty('URIEncoding', 'UTF-8')
-//        httpConnector.setProperty('useBodyEncodingForURI', 'true')
         tomcat.service.addConnector httpConnector
 
         println httpConnector.toString()
