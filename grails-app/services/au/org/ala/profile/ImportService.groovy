@@ -419,12 +419,7 @@ class ImportService extends BaseDataAccessService {
 
         def colId = collection.shortName ?: collection.uuid
 
-        def masterList
-        if (collection.masterListUid) {
-            masterList = masterListService.getMasterList(collection)
-        } else {
-            masterList = []
-        }
+        def masterList = collection.masterListUid ? masterListService.getMasterList(collection) : Collections.<Map<String, String>>emptyList()
 
         log.info("Syncing Master List for ${colId} with ${masterList.size()} entries")
         boolean enableNSLMatching = true
