@@ -3,11 +3,10 @@ grails.project.class.dir = "target/classes"
 grails.project.test.class.dir = "target/test-classes"
 grails.project.test.reports.dir = "target/test-reports"
 grails.project.work.dir = "target/work"
-grails.project.target.level = 1.6
-grails.project.source.level = 1.6
+grails.project.target.level = 1.7
+grails.project.source.level = 1.7
 grails.reload.enabled = true
 //grails.project.war.file = "target/${appName}-${appVersion}.war"
-//grails.plugin.location.'ala-web-theme' = "../ala-web-theme"
 
 grails.project.fork = [
     // configure settings for compilation JVM, note that if you alter the Groovy version forked compilation is required
@@ -64,7 +63,7 @@ grails.project.dependency.resolution = {
 
     plugins {
         build ":release:3.0.1"
-        build ":tomcat:7.0.55"
+        build ":tomcat:7.0.70"
         runtime ":ala-auth:2.1.3"
         runtime ":ala-ws-security:1.4"
         runtime ":ala-ws-plugin:1.6.1"
