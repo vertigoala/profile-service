@@ -10,6 +10,28 @@ class SearchServiceSpec extends BaseIntegrationSpec {
     def "setup"() {
         service.authService = Mock(AuthService)
         service.userService = Mock(UserService)
+        def mls = Stub(MasterListService)
+        def masterLists = [
+                'test': [
+                        ['name': 'name1', 'scientificName': 'name1'],
+                        ['name': 'name2', 'scientificName': 'name2']
+                ]
+        ]
+        mls.getCombinedLowerCaseNamesListForUser(_) >> { Opus opus ->
+            def ml = masterLists[opus.masterListUid]
+            return ml == null ? null : ml.collect { it.name.toLowerCase() }
+        }
+        mls.getCombinedNamesListForUser(_) >> { Opus opus ->
+            def ml = masterLists[opus.masterListUid]
+            return ml == null ? null : ml*.name
+        }
+        mls.getCombinedListForUser(_) >> { Opus opus ->
+            masterLists[opus.masterListUid]
+        }
+        mls.getMasterList(_) >> { Opus opus ->
+            masterLists[opus.masterListUid]
+        }
+        service.masterListService = mls
     }
 
     def "findByScientificName should fail when no scientific name is provided"() {
@@ -397,6 +419,32 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result.find { it.scientificName == profile3.scientificName } != null
     }
 
+    def "findByClassificationNameAndRank should respect all master lists when no opusId list is provided"() {
+        given:
+
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1", masterListUid: 'test')
+        Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
+
+        Profile opus1name1 = save new Profile(scientificName: "name1", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile opus1name2 = save new Profile(scientificName: "name2", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile opus1name3 = save new Profile(scientificName: "name3", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")]) // name3 not on test masterlist
+        Profile opus2name1 = save new Profile(scientificName: "name1", opus: opus2, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile opus2name2 = save new Profile(scientificName: "name2", opus: opus2, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile opus2name3 = save new Profile(scientificName: "name3", opus: opus2, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+
+        when:
+        List result = service.findByClassificationNameAndRank("kingdom", "plantae", null)
+
+        then:
+        result.size() == 5
+        result.find { it.scientificName == opus1name1.scientificName && it.opus.uuid == opus1.uuid } != null
+        result.find { it.scientificName == opus1name2.scientificName && it.opus.uuid == opus1.uuid } != null
+        result.find { it.scientificName == opus1name3.scientificName && it.opus.uuid == opus1.uuid } == null
+        result.find { it.scientificName == opus2name1.scientificName && it.opus.uuid == opus2.uuid } != null
+        result.find { it.scientificName == opus2name2.scientificName && it.opus.uuid == opus2.uuid } != null
+        result.find { it.scientificName == opus2name3.scientificName && it.opus.uuid == opus2.uuid } != null
+    }
+
     def "findByClassificationNameAndRank should exclude archived profiles"() {
         given:
         Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1")
@@ -455,6 +503,36 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result.find { it.scientificName == profile1.scientificName } != null
         result.find { it.scientificName == profile2.scientificName } == null
         result.find { it.scientificName == profile3.scientificName } != null
+    }
+
+    def "findByClassificationNameAndRank should respect a master list when an opus id is provided"() {
+        given:
+
+        Opus opus1 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1", title: "title1", masterListUid: 'test')
+        Opus opus2 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
+        Opus opus3 = save new Opus(glossary: new Glossary(), dataResourceUid: "dr2", title: "title2")
+
+        Profile opus1name1 = save new Profile(scientificName: "name1", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile opus1name2 = save new Profile(scientificName: "name2", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile opus1name3 = save new Profile(scientificName: "name3", opus: opus1, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")]) // name3 not on test masterlist
+        Profile opus2name1 = save new Profile(scientificName: "name1", opus: opus2, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile opus2name2 = save new Profile(scientificName: "name2", opus: opus2, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile opus2name3 = save new Profile(scientificName: "name3", opus: opus2, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile opus3name1 = save new Profile(scientificName: "name1", opus: opus3, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile opus3name2 = save new Profile(scientificName: "name2", opus: opus3, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+        Profile opus3name3 = save new Profile(scientificName: "name3", opus: opus3, rank: "kingdom", classification: [new Classification(rank: "kingdom", name: "plantae")])
+
+        when:
+        List result = service.findByClassificationNameAndRank("kingdom", "plantae", [opus1.uuid, opus2.uuid])
+
+        then:
+        result.size() == 5
+        result.find { it.scientificName == opus1name1.scientificName && it.opus.uuid == opus1.uuid } != null
+        result.find { it.scientificName == opus1name2.scientificName && it.opus.uuid == opus1.uuid } != null
+        result.find { it.scientificName == opus1name3.scientificName && it.opus.uuid == opus1.uuid } == null
+        result.find { it.scientificName == opus2name1.scientificName && it.opus.uuid == opus2.uuid } != null
+        result.find { it.scientificName == opus2name2.scientificName && it.opus.uuid == opus2.uuid } != null
+        result.find { it.scientificName == opus2name3.scientificName && it.opus.uuid == opus2.uuid } != null
     }
 
     def "findByClassificationNameAndRank should recognise 'unknown' classifications"() {
@@ -1463,5 +1541,99 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         result[0].name == "Asteranae"
         result[1].name == "Austrobaileyanae"
         result[2].name == "Lilianae"
+    }
+
+    def "findProfilesForImmediateChildren should return a count of children, excluding the profile itself - zero count"() {
+        given:
+        Opus opus = save new Opus(uuid: "opusId", shortName: "opusid", title: "opusName", glossary: new Glossary(), dataResourceUid: "dr1")
+        save new Profile(opus: opus, uuid: "profile1", scientificName: "Bleasdalea", rank: "genus", guid: "name1", classification: [
+                new Classification(rank: "genus", name: "Bleasdalea")
+        ])
+        save new Profile(opus: opus, uuid: "profile2", scientificName: "Bleasdalea bleasdalei", rank: "species", guid: "name2", classification: [
+                new Classification(rank: "genus", name: "Bleasdalea"),
+                new Classification(rank: "species", name: "Bleasdalea bleasdalei")
+        ])
+
+        def list = [[name: "Bleasdalea bleasdalei", rank: "species", guid: "name2"]]
+
+        when: "asked for the children of a genus where there is one species with no subspecies"
+        def result = service.findProfilesForImmediateChildren(opus, list)
+
+        then: "the result list should contain one profile (the species), and the child count of that profile should be 0 (no subsp.)"
+        result.size() == 1
+        result[0].childCount == 0
+    }
+
+    def "findProfilesForImmediateChildren should return a count of children, excluding the profile itself - non-zero count"() {
+        given:
+        Opus opus = save new Opus(uuid: "opusId", shortName: "opusid", title: "opusName", glossary: new Glossary(), dataResourceUid: "dr1")
+        save new Profile(opus: opus, uuid: "profile3", scientificName: "Acacia", rank: "genus", guid: "name3", classification: [
+                new Classification(rank: "genus", name: "Acacia")
+        ])
+        save new Profile(opus: opus, uuid: "profile4", scientificName: "Acacia dealbata", rank: "species", guid: "name4", classification: [
+                new Classification(rank: "genus", name: "Acacia"),
+                new Classification(rank: "species", name: "Acacia dealbata")
+        ])
+        save new Profile(opus: opus, uuid: "profile5", scientificName: "Acacia dealbata subsp. subalpina", rank: "subspecies", guid: "name5", classification: [
+                new Classification(rank: "genus", name: "Acacia"),
+                new Classification(rank: "species", name: "Acacia dealbata"),
+                new Classification(rank: "subspecies", name: "Acacia dealbata subsp. subalpina")
+        ])
+
+        def list = [[name: "Acacia dealbata", rank: "species", guid: "name4"]]
+
+        when: "asked for the children of a genus where there is one species with a subspecies"
+        def result = service.findProfilesForImmediateChildren(opus, list)
+
+        then: "the result list should contain one profile (the species), and the child count of that profile should be 1 (for the subsp.)"
+        result.size() == 1
+        result[0].childCount == 1
+    }
+
+    def "findProfilesForImmediateChildren should return a count of children, excluding the profile itself even when the taxonomy name != the profile name - zero count"() {
+        given:
+        Opus opus = save new Opus(uuid: "opusId", shortName: "opusid", title: "opusName", glossary: new Glossary(), dataResourceUid: "dr1")
+        save new Profile(opus: opus, uuid: "profile1", scientificName: "Bleasdalea", rank: "genus", guid: "name1", classification: [
+                new Classification(rank: "genus", name: "Bleasdalea")
+        ])
+        save new Profile(opus: opus, uuid: "profile2", scientificName: "Gevuina bleasdalei", rank: "species", guid: "name2", classification: [
+                new Classification(rank: "genus", name: "Bleasdalea"),
+                new Classification(rank: "species", name: "Bleasdalea bleasdalei")
+        ])
+
+        def list = [[name: "Bleasdalea bleasdalei", rank: "species", guid: "name2"]]
+
+        when: "asked for the children of a genus where the taxonomy name (Bleasdalea bleasdalei) does not match the profile name (Gevuina bleasdalei)"
+        def result = service.findProfilesForImmediateChildren(opus, list)
+
+        then: "the result list should contain one profile (the species), and the child count of that profile should be 0 (no subsp.)"
+        result.size() == 1
+        result[0].childCount == 0
+    }
+
+    def "findProfilesForImmediateChildren should return a count of children, excluding the profile itself even when the taxonomy name != the profile name - non-zero count"() {
+        given:
+        Opus opus = save new Opus(uuid: "opusId", shortName: "opusid", title: "opusName", glossary: new Glossary(), dataResourceUid: "dr1")
+        save new Profile(opus: opus, uuid: "profile3", scientificName: "Acacia", rank: "genus", guid: "name3", classification: [
+                new Classification(rank: "genus", name: "Acacia")
+        ])
+        save new Profile(opus: opus, uuid: "profile4", scientificName: "Acacia dealbata", rank: "species", guid: "name4", classification: [
+                new Classification(rank: "genus", name: "Acacia"),
+                new Classification(rank: "species", name: "Acacia dealbata")
+        ])
+        save new Profile(opus: opus, uuid: "profile5", scientificName: "Racosperma dealbata subsp. subalpina", rank: "subspecies", guid: "name5", classification: [
+                new Classification(rank: "genus", name: "Acacia"),
+                new Classification(rank: "species", name: "Acacia dealbata"),
+                new Classification(rank: "subspecies", name: "Acacia dealbata subsp. subalpina")
+        ])
+
+        def list = [[name: "Acacia dealbata", rank: "species", guid: "name4"]]
+
+        when: "asked for the children of a genus where there is one species with a subspecies"
+        def result = service.findProfilesForImmediateChildren(opus, list)
+
+        then: "the result list should contain one profile (the species), and the child count of that profile should be 1 (for the subsp.)"
+        result.size() == 1
+        result[0].childCount == 1
     }
 }

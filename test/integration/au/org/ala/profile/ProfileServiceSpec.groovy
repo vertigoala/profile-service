@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.util.ImageOption
+import au.org.ala.web.UserDetails
 import spock.lang.Unroll
 
 import static au.org.ala.profile.util.ImageOption.*
@@ -18,7 +19,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         service.nameService.matchName(_) >> [scientificName: "sciName", author: "fred", guid: "ABC"]
         service.authService = Mock(AuthService)
         service.authService.getUserId() >> "fred"
-        service.authService.getUserForUserId(_) >> [displayName: "Fred Bloggs"]
+        service.authService.getUserForUserId(_) >> new UserDetails(userId: "1234", firstName: "fred", lastName: "fred")
         bieService = Mock(BieService)
         bieService.getClassification(_) >> null
         service.bieService = bieService
@@ -77,7 +78,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         then:
         profile.authorship.size() == 1
         profile.authorship[0].category.name == "Author"
-        profile.authorship[0].text == "Fred Bloggs"
+        profile.authorship[0].text == "fred fred"
     }
 
     def "createProfile should fail if the primary image is excluded"() {

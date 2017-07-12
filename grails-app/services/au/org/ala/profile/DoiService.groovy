@@ -4,7 +4,7 @@ import au.org.ala.web.AuthService
 import groovy.xml.MarkupBuilder
 import groovyx.net.http.ContentType
 import groovyx.net.http.RESTClient
-import org.apache.commons.httpclient.HttpStatus
+import org.springframework.http.HttpStatus
 
 import java.text.SimpleDateFormat
 
@@ -26,12 +26,18 @@ class DoiService {
         Map status = [:]
         try {
             def response = new RESTClient(andsUrl).get(requestContentType: ContentType.JSON, contentType: ContentType.JSON)
-            if ((response.status as int) == HttpStatus.SC_OK) {
+            if ((response.status as int) == HttpStatus.OK.value()) {
                 status.statusCode = response?.data?.response.responsecode
                 status.message = "${response?.data?.response.message} - ${response?.data?.response.verbosemessage}"
             } else {
                 status.statusCode = response.status
-                status.message = HttpStatus.getStatusText(response.status)
+                def httpStatus
+                try {
+                    httpStatus = HttpStatus.valueOf(response.status)
+                } catch (IllegalArgumentException e) {
+                    httpStatus = HttpStatus.BAD_REQUEST
+                }
+                status.message = httpStatus.reasonPhrase
             }
         } catch (Exception e) {
             status.statusCode = "E001"
@@ -75,7 +81,7 @@ class DoiService {
                     body: [xml: requestXml])
 
 
-            if (response.status as int == HttpStatus.SC_OK) {
+            if (response.status as int == HttpStatus.OK.value()) {
                 def json = response.data
                 log.debug "DOI response = ${json}"
 
@@ -93,7 +99,13 @@ class DoiService {
             } else {
                 result.status = "error"
                 result.errorCode = response.status
-                result.error = HttpStatus.getStatusText(response.status)
+                def status
+                try {
+                    status = HttpStatus.valueOf(response.status)
+                } catch (IllegalArgumentException e) {
+                    status = HttpStatus.BAD_REQUEST
+                }
+                result.error = status.reasonPhrase
             }
         } else {
             result.status = "error"

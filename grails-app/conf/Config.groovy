@@ -97,6 +97,17 @@ grails.cache.config = {
     }
 }
 
+nsl.name.export.cacheTime = 86400 // seconds
+lists.items.cacheSpec = 'maximumSize=100,expireAfterWrite=1m'
+
+security {
+    cas {
+        uriExclusionFilterPattern='/images.*,/css.*,/js.*,/less.*'
+        uriFilterPattern=''
+        authenticateOnlyIfLoggedInFilterPattern=''
+    }
+}
+
 environments {
     development {
         grails.logging.jul.usebridge = true
@@ -111,6 +122,7 @@ environments {
         elasticSearch {
             client.mode = "transport"
         }
+        security.cas.appServerName='http://devt.ala.org.au:8081'
     }
     test {
         app.file.upload.path = "./target/archive"
@@ -122,6 +134,7 @@ environments {
             client.mode = 'local'
             index.store.type = 'memory' // store local node in memory and not on disk
         }
+        security.cas.appServerName='http://devt.ala.org.au:8082'
     }
     production {
         grails.logging.jul.usebridge = false
@@ -174,11 +187,15 @@ log4j = {
             'grails.app.taglib.org.grails.plugin.resource',
             'grails.app.resourceMappers.org.grails.plugin.resource'
 
-    info    'au.org.ala.ws.security'
+    info    'au.org.ala.ws.security',
+            'au.org.ala.cas',
+            'grails.app.filters.au.org.ala.ws.security'
 
     debug   "grails.app",
 //            "org.grails.plugins.elasticsearch",
             "au.org.ala"
+
+    trace   "grails.app.services.au.org.ala.profile.MasterListService"
 }
 
 elasticSearch {

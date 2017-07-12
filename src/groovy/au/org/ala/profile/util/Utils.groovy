@@ -1,5 +1,15 @@
 package au.org.ala.profile.util
 
+import com.google.common.base.Charsets
+import com.google.common.base.Supplier
+import com.google.common.cache.CacheLoader
+import com.google.common.escape.Escapers
+import com.google.common.net.UrlEscapers
+import groovy.transform.stc.ClosureParams
+import groovy.transform.stc.FirstParam
+import org.apache.http.client.utils.URLEncodedUtils
+
+import static com.google.common.net.UrlEscapers.urlPathSegmentEscaper
 import static org.apache.commons.lang3.StringEscapeUtils.unescapeHtml4
 import static org.apache.http.HttpStatus.SC_OK
 
@@ -41,8 +51,16 @@ class Utils {
         return str
     }
 
+    static String encPath(String str) {
+        urlPathSegmentEscaper().escape(str)
+    }
+
     static String enc(String str) {
         URLEncoder.encode(str, CHAR_ENCODING)
+    }
+
+    static String decode(String str) {
+        URLDecoder.decode(str, CHAR_ENCODING)
     }
 
     static boolean isUuid(String str) {
@@ -79,5 +97,33 @@ class Utils {
     /** Returns true for HTTP status codes from 200 to 299 */
     static  boolean isSuccessful(int statusCode) {
         return statusCode >= SC_OK && statusCode <= 299
+    }
+
+    static String createQueryString(Map parsedQuery) {
+        parsedQuery.collectMany { k, vs -> vs.collect { v -> "${enc(k)}=${enc(v)}" } }.join('&')
+    }
+
+    static Map<String, List<String>> parseQueryString(String query) {
+        def result = URLEncodedUtils.parse(query, Charsets.UTF_8)
+        return result.groupBy { nvp -> nvp.name }.collectEntries { [(it.key): it.value*.value ] }
+    }
+
+    static boolean toBooleanWithDefault(value, boolean defaultValue) {
+        Boolean b = value?.toBoolean()
+        return b != null ? b : defaultValue
+    }
+
+    static <T> Supplier<T> closureSupplier(Closure<T> closure) {
+        return closure as Supplier<T>
+    }
+
+    static <K, T> CacheLoader<K, T> closureCacheLoader(Class<K> argType, @ClosureParams(FirstParam.FirstGenericType) Closure<T> listClosure) {
+        // groovy compiler doesn't like adding type parameters to the CacheLoader :(
+        return new CacheLoader() {
+            @Override
+            Object load(Object key) throws Exception {
+                listClosure(key)
+            }
+        }
     }
 }

@@ -13,10 +13,16 @@ class Profile {
 
     private static final String NOT_ANALYZED_INDEX = "not_analyzed"
 
+    final static STATUS_EMPTY = 'Empty'
+    final static STATUS_PARTIAL = 'Partial'
+    final static STATUS_LEGACY = 'Legacy'
+//    static STATUS_COMPLETE = 'complete'
+//    static STATUS_IN_REVIEW = 'in_review'
+
     static searchable = {
         only = ["uuid", "guid", "scientificName", "fullName", "matchedName", "rank", "primaryImage", "opus",
                 "attributes", "lastUpdated", "archivedDate", "archivedWithName", "scientificNameLower",
-                "archivedNameLower", "matchedNameLower", "fullNameLower"]
+                "archivedNameLower", "matchedNameLower", "fullNameLower", "nameAuthor", 'profileStatus']
         scientificName multi_field: true, boost: 20
         archivedWithName multi_field: true, boost: 20
         matchedName component: true, boost: 10
@@ -32,6 +38,8 @@ class Profile {
         archivedNameLower index: NOT_ANALYZED_INDEX
         matchedNameLower index: NOT_ANALYZED_INDEX
         fullNameLower index: NOT_ANALYZED_INDEX
+        nameAuthor index: NOT_ANALYZED_INDEX
+        profileStatus index: NOT_ANALYZED_INDEX
     }
 
     ObjectId id
@@ -45,6 +53,10 @@ class Profile {
     String nslNomenclatureIdentifier
     String nslProtologue
     String occurrenceQuery
+    boolean isCustomMapConfig = false
+
+    String profileStatus = STATUS_PARTIAL
+    Integer emptyProfileVersion
 
     @Transient
     boolean privateMode = false
@@ -88,8 +100,8 @@ class Profile {
     String archivedBy
     String archivedWithName
 
-    @Transient
-    String getScientificNameLower() { scientificName?.toLowerCase() }
+    String scientificNameLower
+
     @Transient
     String getFullNameLower() { fullName?.toLowerCase() }
     @Transient
@@ -129,16 +141,40 @@ class Profile {
         archivedBy nullable: true
         archivedWithName nullable: true
         occurrenceQuery nullable: true
+        profileStatus nullable: true
+        emptyProfileVersion nullable: true
         lastPublished nullable: true
     }
 
     static mapping = {
         attributes cascade: "all-delete-orphan"
         scientificName index: true
+        scientificNameLower index: true
         guid index: true
         rank index: true
         uuid index: true
         opus index: true
+        nameAuthor index: true
+        profileStatus defaultValue: STATUS_PARTIAL
+    }
+
+    private def updateScientificNameLower() {
+        if (scientificName) {
+            def lower = scientificName.toLowerCase()
+            if (lower != scientificNameLower) {
+                scientificNameLower = lower
+            }
+        }
+        if (draft?.scientificName) {
+            def lower = draft.scientificName.toLowerCase()
+            if (lower != draft.scientificNameLower) {
+                draft.scientificNameLower = lower
+            }
+        }
+    }
+
+    def beforeUpdate() {
+        updateScientificNameLower()
     }
 
     def beforeValidate() {
@@ -146,6 +182,7 @@ class Profile {
             uuid = UUID.randomUUID().toString()
         }
 
+        updateScientificNameLower()
 
         // draft nullness is not enough to know if the profile or the draft has been edited
         // we need to play with the dirty properties to check for additional conditions

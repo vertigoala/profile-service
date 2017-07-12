@@ -1,27 +1,32 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.util.DataResourceOption
+import au.org.ala.web.UserDetails
 import au.org.ala.ws.controller.BasicWSController
 import com.google.common.base.Stopwatch
 
+import static au.org.ala.profile.AuditFilters.REQUEST_USER_DETAILS_KEY
 import static au.org.ala.profile.util.Utils.isUuid
 import static au.org.ala.profile.util.Utils.enc
 
 class BaseController extends BasicWSController {
 
     ProfileService profileService
+    OpusService opusService
 
     Profile getProfile() {
         Stopwatch sw = new Stopwatch().start()
 
         Profile profile
+        Opus opus
 
         if (isUuid(params.profileId)) {
             profile = Profile.findByUuid(params.profileId)
+            opus = profile?.opus
             log.trace("getProfile() - Get profile by UUID ${params.profileId}: $sw")
             sw.reset().start()
         } else {
-            Opus opus = getOpus()
+            opus = getOpus()
             profile = Profile.findByOpusAndScientificNameIlike(opus, params.profileId)
             log.trace("getProfile() - Get profile by opus ${opus.uuid} and sci name ${params.profileId}: $sw")
             sw.reset().start()
@@ -40,16 +45,20 @@ class BaseController extends BasicWSController {
             }
         }
 
-        // if the profile has no specific occurrence query then we just set it to the default for the collection,
-        // which limits the query to the LSID (or name if there is no LSID) and the selected data resources
-        if (!profile.occurrenceQuery) {
-            String query = createOccurrenceQuery(profile)
-            profile.occurrenceQuery = query
-            if (profile.draft) {
-                profile.draft.occurrenceQuery = query
-            }
-            log.trace("getProfile() - createOccurenceQuery: $sw")
-            sw.reset().start()
+        if (!profile) {
+            return null
+        } else if (!opusService.isProfileOnMasterList(opus, profile)) {
+            log.debug("${opus.shortName ?: opus.uuid}: ${profile.scientificName} was found but is filtered out")
+            return null
+        }
+
+        // if occurrenceQuery is not custom configured by user, then use default occurrenceQuery for opus/profile combo.
+        if(!profile.isCustomMapConfig){
+            profile.occurrenceQuery = createOccurrenceQuery(profile)
+        }
+
+        if(profile.draft?.isCustomMapConfig == false){
+            profile.draft?.occurrenceQuery = createOccurrenceQuery(profile)
         }
 
         profile
@@ -111,5 +120,9 @@ class BaseController extends BasicWSController {
             log.trace("getOpus() - Get opus by short name ${params.opusId}: $sw")
         }
         opus
+    }
+
+    UserDetails currentUser() {
+        return (UserDetails) request.getAttribute(REQUEST_USER_DETAILS_KEY)
     }
 }

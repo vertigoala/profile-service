@@ -17,11 +17,12 @@ class SearchController extends BaseController {
 
         SearchOptions options = new SearchOptions()
         options.nameOnly = params.nameOnly?.toBoolean()
-        options.includeArchived = params.includeArchived?.toBoolean()
+        options.includeArchived = params.boolean ('includeArchived', false)
         options.matchAll = params.matchAll?.toBoolean()
-        options.searchAla = params.searchAla?.toBoolean()
-        options.searchNsl = params.searchNsl?.toBoolean()
+        options.searchAla = params.boolean ('searchAla', false)
+        options.searchNsl = params.boolean ('searchNsl', false)
         options.includeNameAttributes = params.includeNameAttributes?.toBoolean()
+        options.hideStubs = params.boolean ('hideStubs', true)
 
         render searchService.search(opusIds, term, offset, pageSize, options) as JSON
     }
@@ -33,11 +34,12 @@ class SearchController extends BaseController {
             List<String> opusIds = params.opusId?.split(",") ?: []
 
             boolean useWildcard = params.useWildcard ? params.useWildcard.equalsIgnoreCase("true") : false
+            boolean autoCompleteScientificName = params.autoCompleteScientificName ? params.autoCompleteScientificName.equalsIgnoreCase("true") : false
             int max = params.max ? params.max as int : -1
             int startFrom = params.offset ? params.offset as int : 0
             ProfileSortOption sortBy = ProfileSortOption.byName(params.sortBy) ?: ProfileSortOption.getDefault()
 
-            List<Map> profiles = searchService.findByScientificName(params.scientificName, opusIds, sortBy, useWildcard, max, startFrom)
+            List<Map> profiles = searchService.findByScientificName(params.scientificName, opusIds, sortBy, useWildcard, max, startFrom, autoCompleteScientificName)
 
             response.setContentType("application/json")
             render profiles.collect {
@@ -146,53 +148,16 @@ class SearchController extends BaseController {
             String filter = params.filter ?: null
 
             List children = searchService.getImmediateChildren(opus, params.rank, params.name, filter, max, startFrom)
+            List enprofiledChildren = searchService.findProfilesForImmediateChildren(opus, children)
             response.setContentType("application/json")
-            render children.collect { profile ->
-                Profile relatedProfile
-                if (profile.guid) {
-                    relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(profile.guid, opus)
-                } else {
-                    relatedProfile = Profile.findByScientificNameAndOpusAndArchivedDateIsNull(profile.name, opus)
-                }
-
-                [
-                        profileId  : relatedProfile?.uuid,
-                        profileName: relatedProfile?.scientificName,
-                        guid       : profile.guid,
-                        name       : profile.name,
-                        rank       : profile.rank,
-                        opus       : [uuid: opus.uuid, title: opus.title, shortName: opus.shortName],
-                        childCount : Profile.withCriteria {
-                            eq "opus", opus
-                            isNull "archivedDate"
-                            if (relatedProfile) {
-                                ne "uuid", relatedProfile.uuid
-                            }
-
-                            "classification" {
-                                eq "rank", "${profile.rank.toLowerCase()}"
-                                ilike "name", "${profile.name}"
-                            }
-
-                            projections {
-                                count()
-                            }
-                        }[0]
-                ]
-            } as JSON
+            render enprofiledChildren as JSON
         }
     }
 
     @RequireApiKey
     def reindex() {
 
-        if (Status.count() == 0) {
-            Status status = new Status()
-            status.searchReindex = true
-            save status
-        }
-
-        searchService.reindexAll()
+       searchService.reindexAll()
 
        render (Status.first() as JSON)
     }

@@ -1,3 +1,4 @@
+import au.org.ala.profile.Profile
 import au.org.ala.profile.Tag
 import au.org.ala.profile.listener.AuditListener
 import au.org.ala.profile.listener.LastUpdateListener
@@ -26,6 +27,12 @@ class BootStrap {
         createDefaultTags()
 
         fixMultimedia()
+
+        addStatusToProfiles()
+
+        addTimestampToOpera()
+
+        addScientificNameLowerToProfiles()
     }
     def destroy = {
     }
@@ -96,5 +103,81 @@ class BootStrap {
                 log.error("Some sort of error happened fixing the multimedia", e)
             }
         }
+    }
+
+    // TODO Remove this once all profiles have a status set
+    def addStatusToProfiles() {
+        log.info("Adding status to profiles")
+        // Bypass GORM to set the last updated field directly
+        DBCollection myColl = mongo.getDB(grailsApplication.config.grails.mongo.databaseName).getCollection("profile")
+        BasicDBList list = new BasicDBList()
+        list.add(new BasicDBObject('profileStatus', new BasicDBObject('$exists', false)))
+        list.add(new BasicDBObject('profileStatus', new BasicDBObject('$type', 10))) // $type: 10 is null
+        BasicDBObject condition = new BasicDBObject('$or', list)
+
+        //Find all docs missing a lastUpdated and set it to the dateCreated
+        final cursor = myColl.find(condition)
+        final count = cursor.size()
+        cursor.each { DBObject profile ->
+            profile.profileStatus = Profile.STATUS_PARTIAL
+            myColl.save(profile)
+        }
+        log.info("Updated $count profiles")
+    }
+
+    def addScientificNameLowerToProfiles() {
+        log.info("Adding scientificNameLower to profiles")
+
+        DBCollection myColl = mongo.getDB(grailsApplication.config.grails.mongo.databaseName).getCollection("profile")
+        BasicDBList list = new BasicDBList()
+        list.add(new BasicDBObject('scientificNameLower', new BasicDBObject('$exists', false)))
+        list.add(new BasicDBObject('scientificNameLower', new BasicDBObject('$type', 10))) // $type: 10 is null
+        BasicDBObject condition = new BasicDBObject('$or', list)
+
+        // Find all docs missing a lastUpdated and set it to the dateCreated
+        final cursor = myColl.find(condition)
+        final count = cursor.size()
+        cursor.each { DBObject profile ->
+            profile.scientificNameLower = profile.scientificName?.toLowerCase()
+            myColl.save(profile)
+        }
+
+        log.info("Updated $count profiles with scientificNameLower")
+    }
+
+    // TODO Remove this once all opera have dates set
+    def addTimestampToOpera() {
+        log.info("Adding dateCreated and lastUpdated to opera")
+        // Bypass GORM to set the date created and last updated field directly
+        DBCollection myColl = mongo.getDB(grailsApplication.config.grails.mongo.databaseName).getCollection("opus")
+        BasicDBList list = new BasicDBList()
+        list.add(new BasicDBObject('lastUpdated', new BasicDBObject('$exists', false)))
+        list.add(new BasicDBObject('lastUpdated', new BasicDBObject('$type', 10))) // $type: 10 is null
+        BasicDBObject condition = new BasicDBObject('$or', list)
+
+        // Find all docs missing a lastUpdated and set it to the dateCreated
+        final cursor = myColl.find(condition)
+        final count = cursor.size()
+        cursor.each { DBObject opus ->
+            opus.lastUpdated = new Date()
+            myColl.save(opus)
+        }
+
+        log.info("Updated $count opera with last updated")
+
+        list = new BasicDBList()
+        list.add(new BasicDBObject('dateCreated', new BasicDBObject('$exists', false)))
+        list.add(new BasicDBObject('dateCreated', new BasicDBObject('$type', 10))) // $type: 10 is null
+        condition = new BasicDBObject('$or', list)
+
+        // Find all docs missing a lastUpdated and set it to the dateCreated
+        final cursor2 = myColl.find(condition)
+        final count2 = cursor2.size()
+        cursor2.each { DBObject opus ->
+            opus.dateCreated = new Date()
+            myColl.save(opus)
+        }
+
+        log.info("Updated $count2 opera with date created")
     }
 }

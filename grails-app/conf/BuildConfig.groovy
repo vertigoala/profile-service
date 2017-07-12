@@ -3,11 +3,10 @@ grails.project.class.dir = "target/classes"
 grails.project.test.class.dir = "target/test-classes"
 grails.project.test.reports.dir = "target/test-reports"
 grails.project.work.dir = "target/work"
-grails.project.target.level = 1.6
-grails.project.source.level = 1.6
+grails.project.target.level = 1.7
+grails.project.source.level = 1.7
 grails.reload.enabled = true
 //grails.project.war.file = "target/${appName}-${appVersion}.war"
-//grails.plugin.location.'ala-web-theme' = "../ala-web-theme"
 
 grails.project.fork = [
     // configure settings for compilation JVM, note that if you alter the Groovy version forked compilation is required
@@ -56,21 +55,26 @@ grails.project.dependency.resolution = {
         compile 'com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer:20160827.1'
         compile "com.itextpdf:itextpdf:5.5.1"
         compile "org.imgscalr:imgscalr-lib:4.2"
+        // use an updated elasticsearch library that matches server major.minor version
+        compile 'org.elasticsearch:elasticsearch-groovy:1.7.4', {
+            excludes 'groovy-all'
+        }
     }
 
     plugins {
         build ":release:3.0.1"
-        build ":tomcat:7.0.55"
-        runtime ":ala-auth:1.3.1"
+        build ":tomcat:7.0.70"
+        runtime ":ala-auth:2.1.3"
         runtime ":ala-ws-security:1.4"
-        runtime ":ala-ws-plugin:1.1"
+        runtime ":ala-ws-plugin:1.6.1"
         runtime ":mongodb:3.0.3"
-        runtime (":elasticsearch:0.0.4.6") {
-            excludes 'groovy-all' // elasticsearch:0.0.4.6 bundles groovy-all:2.4.3; Grails 2.5.2 uses groovy-all:2.4.4
+        compile (":elasticsearch:0.0.4.6") {
+            excludes 'groovy-all', 'elasticsearch-groovy' // elasticsearch:0.0.4.6 bundles groovy-all:2.4.3; Grails 2.5.5 uses groovy-all:2.4.4.  We provide our own ES client
         }
         runtime ":cors:1.1.6"
         compile ":asset-pipeline:2.9.1"
         compile ":quartz:1.0.2"
         compile ":mail:1.0.7"
+        compile ":yammer-metrics:3.0.1-2"
     }
 }

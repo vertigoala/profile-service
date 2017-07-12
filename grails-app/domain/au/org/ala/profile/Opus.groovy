@@ -2,7 +2,6 @@ package au.org.ala.profile
 
 import au.org.ala.profile.sanitizer.SanitizedHtml
 import au.org.ala.profile.util.ImageOption
-import au.org.ala.profile.util.Utils
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
@@ -27,6 +26,7 @@ class Opus {
     String description
     String dataResourceUid
 
+    String masterListUid
     List<String> approvedLists
     List<String> featureLists
     String featureListSectionName
@@ -35,6 +35,9 @@ class Opus {
     ProfileLayoutConfig profileLayoutConfig
     MapConfig mapConfig
     DataResourceConfig dataResourceConfig
+    OpusLayoutConfig opusLayoutConfig
+    Theme theme
+    HelpLink help
 
     String attributeVocabUuid
     String authorshipVocabUuid
@@ -53,6 +56,7 @@ class Opus {
     String aboutHtml
     @SanitizedHtml
     String citationHtml
+    String citationProfile
     String copyrightText
     String footerText
     String email
@@ -70,19 +74,31 @@ class Opus {
 
     boolean autoDraftProfiles = false // automatically lock profiles for draft when they are created
 
+    Date dateCreated
+    Date lastUpdated
+
     @Transient
     int profileCount
+    @Transient
+    String florulaListId
 
+    List<String> additionalStatuses = ['In Review', 'Complete']
+
+    static transients = ['profileCount', 'florulaListId']
     static hasMany = [additionalOccurrenceResources: OccurrenceResource, authorities: Authority, tags: Tag]
-    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig', 'profileLayoutConfig', 'dataResourceConfig']
+    static embedded = ['supportingOpuses', 'sharingDataWith', 'attachments', 'brandingConfig', 'mapConfig', 'profileLayoutConfig', 'dataResourceConfig', 'opusLayoutConfig', 'theme', 'help']
 
     static constraints = {
         shortName nullable: true
         description nullable: true
+        masterListUid nullable: true
         brandingConfig nullable: true
         profileLayoutConfig nullable: true
         mapConfig nullable: true
         dataResourceConfig nullable: true
+        opusLayoutConfig nullable: true
+        theme nullable: true
+        help nullable: true
         attributeVocabUuid nullable: true
         authorshipVocabUuid nullable: true
         enablePhyloUpload nullable: true
@@ -93,6 +109,7 @@ class Opus {
         keybaseKeyId nullable: true
         aboutHtml nullable: true
         citationHtml nullable: true
+        citationProfile nullable: true, maxSize: 500
         copyrightText nullable: true
         footerText nullable: true
         email nullable: true
@@ -110,6 +127,7 @@ class Opus {
     }
 
     static mapping = {
+        autoTimestamp true
         glossary cascade: "all-delete-orphan"
         authorities cascade: "all-delete-orphan"
         shortName index: true

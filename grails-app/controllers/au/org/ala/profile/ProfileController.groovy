@@ -5,7 +5,8 @@ import au.ala.org.ws.security.SkipApiKeyCheck
 import au.org.ala.profile.util.Utils
 import grails.converters.JSON
 import groovy.json.JsonSlurper
-import org.apache.commons.httpclient.HttpStatus
+import org.springframework.http.HttpStatus
+
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.MultipartHttpServletRequest
 import org.springframework.web.multipart.commons.CommonsMultipartFile
@@ -16,6 +17,8 @@ class ProfileController extends BaseController {
     ProfileService profileService
     BieService bieService
     AttachmentService attachmentService
+    UserSettingsService userSettingsService
+    MasterListService masterListService
 
     def saveBHLLinks() {
         def json = request.getJSON()
@@ -72,10 +75,13 @@ class ProfileController extends BaseController {
             } else {
                 def result = profileService.savePublication(profile.uuid, file)
                 if (result.error) {
-                    int code = HttpStatus.SC_BAD_REQUEST
-                    if (result.errorCode instanceof Integer && HttpStatus.getStatusText(result.errorCode)) {
-                        code = result.errorCode
+                    def status = HttpStatus.BAD_REQUEST
+                    if (result.errorCode instanceof Integer) {
+                        try {
+                            status = HttpStatus.valueOf(result.errorCode)
+                        } catch (IllegalArgumentException e) {}
                     }
+                    int code = status.value()
                     sendError code, result.error
                 }
 
@@ -434,6 +440,9 @@ class ProfileController extends BaseController {
                 profile.privateMode = true
             }
 
+            def florulaListId = masterListService.getFlorulaListIdForUser(request, profile.opus.uuid)
+            profile.opus.florulaListId = florulaListId
+
             render profile as JSON
         } else {
             notFound()
@@ -506,9 +515,13 @@ class ProfileController extends BaseController {
         } else {
             Profile profile = getProfile()
 
-            boolean success = profileService.recordPrivateImage(profile.uuid, json)
+            if (!profile) {
+                notFound()
+            } else {
+                boolean success = profileService.recordPrivateImage(profile.uuid, json)
 
-            render([success: success] as JSON)
+                render([success: success] as JSON)
+            }
         }
     }
 
@@ -605,6 +618,23 @@ class ProfileController extends BaseController {
                 response.sendError(204)
             } else {
                 log.error "Couldn't update $profile primary multimedia with $props"
+                response.sendError(500)
+            }
+        }
+    }
+
+    def setStatus() {
+        def props = request.JSON
+        Profile profile = this.profile
+        if (!profile) {
+            notFound()
+        } else {
+            def result = profileService.setStatus(profile, props)
+
+            if (result) {
+                response.sendError( 204 )
+            } else {
+                log.error "Couldn't update $profile status with $props"
                 response.sendError(500)
             }
         }

@@ -1,7 +1,10 @@
 package au.org.ala.profile.marshaller
 
 import au.org.ala.profile.DataResourceConfig
+import au.org.ala.profile.HelpLink
 import au.org.ala.profile.Opus
+import au.org.ala.profile.OpusLayoutConfig
+import au.org.ala.profile.Theme
 import au.org.ala.profile.util.DataResourceOption
 import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.ShareRequestStatus
@@ -11,12 +14,13 @@ class OpusMarshaller {
 
     void register() {
         JSON.registerObjectMarshaller(Opus) { Opus opus ->
-            return [
+            def value = [
                     uuid                       : opus.uuid,
                     dataResourceUid            : opus.dataResourceUid,
                     title                      : opus.title,
                     shortName                  : opus.shortName,
                     description                : opus.description,
+                    masterListUid              : opus.masterListUid,
                     dataResourceConfig         : marshalDataResourceConfig(opus.dataResourceConfig),
                     approvedImageOption        : opus.approvedImageOption?.name() ?: ImageOption.INCLUDE.name(),
                     approvedLists              : opus.approvedLists ?: [],
@@ -24,6 +28,9 @@ class OpusMarshaller {
                     featureListSectionName     : opus.featureListSectionName,
                     brandingConfig             : opus.brandingConfig ?: [:],
                     profileLayoutConfig        : opus.profileLayoutConfig ?: [:],
+                    opusLayoutConfig           : opus.opusLayoutConfig ?: new OpusLayoutConfig(),
+                    theme                      : opus.theme ?: new Theme(),
+                    help                      : opus.help ?: new HelpLink(),
                     keybaseProjectId           : opus.keybaseProjectId,
                     keybaseKeyId               : opus.keybaseKeyId,
                     attributeVocabUuid         : opus.attributeVocabUuid,
@@ -60,12 +67,18 @@ class OpusMarshaller {
                                                   facebook: opus.facebook],
                     hasAboutPage               : opus.aboutHtml != null,
                     profileCount               : opus.profileCount,
+                    florulaListId              : opus.florulaListId ?: '',
                     citationHtml               : opus.citationHtml,
+                    citationProfile            : opus.citationProfile,
                     accessToken                : opus.accessToken,
                     tags                       : opus.tags?.collect {
                         [uuid: it.uuid, colour: it.colour, name: it.name, abbrev: it.abbrev]
-                    } ?: []
+                    } ?: [],
+                    additionalStatuses         : opus.additionalStatuses ?: [],
+                    dateCreated                : opus.dateCreated?.time,
+                    lastUpdated                : opus.lastUpdated?.time
             ]
+            return value
         }
     }
 

@@ -22,6 +22,7 @@ class CloneAndDraftUtil {
 
         profile.uuid = profile.draft.uuid
         profile.scientificName = profile.draft.scientificName
+        profile.scientificNameLower = profile.draft.scientificNameLower
         profile.nameAuthor = profile.draft.nameAuthor
         profile.fullName = profile.draft.fullName
         profile.taxonomyTree = profile.draft.taxonomyTree
@@ -31,6 +32,7 @@ class CloneAndDraftUtil {
         profile.nslNameIdentifier = profile.draft.nslNameIdentifier
         profile.nslNomenclatureIdentifier = profile.draft.nslNomenclatureIdentifier
         profile.primaryImage = profile.draft.primaryImage
+        profile.showLinkedOpusAttributes = profile.draft.showLinkedOpusAttributes
         profile.occurrenceQuery = profile.draft.occurrenceQuery
         profile.imageSettings = profile.draft.imageSettings
         profile.specimenIds = profile.draft.specimenIds
@@ -44,6 +46,7 @@ class CloneAndDraftUtil {
         profile.privateImages = profile.draft.privateImages
         profile.attachments = profile.draft.attachments
         profile.manualClassification = profile.draft.manualClassification
+        profile.profileStatus = profile.draft.profileStatus
 
         // Update the existing record rather than replacing it with the draft object,
         // otherwise, the hibernate dirty check will fail (dirty check looks for changes since the entity
@@ -67,6 +70,7 @@ class CloneAndDraftUtil {
         clone.draftDate = new Date()
         clone.uuid = profile.uuid
         clone.scientificName = profile.scientificName
+        clone.scientificNameLower = profile.scientificNameLower
         clone.nameAuthor = profile.nameAuthor
         clone.fullName = profile.fullName
         clone.matchedName = cloneName(profile.matchedName)
@@ -77,12 +81,14 @@ class CloneAndDraftUtil {
         clone.nslNameIdentifier = profile.nslNameIdentifier
         clone.nslNomenclatureIdentifier = profile.nslNomenclatureIdentifier
         clone.primaryImage = profile.primaryImage
+        clone.showLinkedOpusAttributes = profile.showLinkedOpusAttributes
         clone.occurrenceQuery = profile.occurrenceQuery
         clone.imageSettings = profile.imageSettings?.clone()
         clone.specimenIds = profile.specimenIds?.collect()
         clone.authorship = profile.authorship?.collect { cloneAuthorship(it) }
         clone.classification = profile.classification?.collect { cloneClassification(it) }
         clone.manualClassification = profile.manualClassification
+        clone.profileStatus = profile.profileStatus
         clone.links = profile.links?.collect { cloneLink(it) }
         clone.bhlLinks = profile.bhlLinks?.collect { cloneLink(it) }
         clone.bibliography = profile.bibliography?.collect { cloneBibliography(it) }

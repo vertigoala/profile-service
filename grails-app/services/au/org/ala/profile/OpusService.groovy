@@ -1,16 +1,18 @@
 package au.org.ala.profile
 
 import au.org.ala.profile.security.Role
-import au.org.ala.profile.util.DataResourceOption
-import au.org.ala.profile.util.ImageOption
-import au.org.ala.profile.util.ShareRequestAction
-import au.org.ala.profile.util.ShareRequestStatus
-import au.org.ala.profile.util.Utils
+import au.org.ala.profile.util.*
 import au.org.ala.web.AuthService
+import com.mongodb.DBObject
+import org.grails.datastore.mapping.mongo.query.MongoQuery
+import org.grails.plugins.metrics.groovy.Metered
+import org.grails.plugins.metrics.groovy.Timed
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.commons.CommonsMultipartFile
 
 import java.text.SimpleDateFormat
+
+import static au.org.ala.profile.util.Utils.toBooleanWithDefault
 
 @Transactional
 class OpusService extends BaseDataAccessService {
@@ -18,6 +20,8 @@ class OpusService extends BaseDataAccessService {
     EmailService emailService
     AuthService authService
     AttachmentService attachmentService
+    ImportService importService
+    MasterListService masterListService
     def grailsApplication
     def groovyPageRenderer
 
@@ -125,18 +129,60 @@ class OpusService extends BaseDataAccessService {
             if (!opus.brandingConfig) {
                 opus.brandingConfig = new BrandingConfig()
             }
-            opus.brandingConfig.logoUrl = json.brandingConfig.logoUrl ? json.brandingConfig.logoUrl : null
+
+            if (opus.brandingConfig.logos) {
+                opus.brandingConfig.logos.clear()
+            } else {
+                opus.brandingConfig.logos = []
+            }
+
+            opus.brandingConfig.logos.addAll(json.brandingConfig.logos.collect { logo ->
+                new Logo(hyperlink: logo.hyperlink, logoUrl: logo.logoUrl)
+            })
+
             opus.brandingConfig.thumbnailUrl = json.brandingConfig.thumbnailUrl ?
                     json.brandingConfig.thumbnailUrl : null
-            opus.brandingConfig.opusBannerHeight = json.brandingConfig.opusBannerHeight ?
-                    json.brandingConfig.opusBannerHeight : BrandingConfig.DEFAULT_OPUS_BANNER_HEIGHT_PX
             opus.brandingConfig.opusBannerUrl = json.brandingConfig.opusBannerUrl ?
                     json.brandingConfig.opusBannerUrl : null
-            opus.brandingConfig.profileBannerHeight = json.brandingConfig.profileBannerHeight ?
-                    json.brandingConfig.profileBannerHeight : BrandingConfig.DEFAULT_PROFILE_BANNER_HEIGHT_PX
             opus.brandingConfig.profileBannerUrl = json.brandingConfig.profileBannerUrl ?
                     json.brandingConfig.profileBannerUrl : null
             opus.brandingConfig.colourTheme = json.brandingConfig.colourTheme ? json.brandingConfig.colourTheme : null
+            opus.brandingConfig.issn = json.brandingConfig.issn ?: null
+            opus.brandingConfig.pdfLicense = json.brandingConfig.pdfLicense ?: null
+            opus.brandingConfig.shortLicense = json.brandingConfig.shortLicense ?: null
+        }
+
+        if (json.opusLayoutConfig) {
+            if (!opus.opusLayoutConfig) {
+                opus.opusLayoutConfig = new OpusLayoutConfig()
+            }
+
+            if (opus.opusLayoutConfig.images) {
+                opus.opusLayoutConfig.images.clear()
+            } else {
+                opus.opusLayoutConfig.images = []
+            }
+
+            opus.opusLayoutConfig.images.addAll(json.opusLayoutConfig.images.collect { image ->
+                new Image(imageUrl: image.imageUrl, credit: image.credit)
+            })
+
+            opus.opusLayoutConfig.updatesSection = json.opusLayoutConfig.updatesSection as String
+            opus.opusLayoutConfig.explanatoryText = json.opusLayoutConfig.explanatoryText as String
+            opus.opusLayoutConfig.duration = json.opusLayoutConfig.duration ?: opus.opusLayoutConfig.duration
+            opus.opusLayoutConfig.helpTextSearch = json.opusLayoutConfig.helpTextSearch ?: null
+            opus.opusLayoutConfig.helpTextIdentify = json.opusLayoutConfig.helpTextIdentify ?: null
+            opus.opusLayoutConfig.helpTextBrowse = json.opusLayoutConfig.helpTextBrowse ?: null
+            opus.opusLayoutConfig.helpTextDocuments = json.opusLayoutConfig.helpTextDocuments ?: null
+            opus.opusLayoutConfig.bannerOverlayText = json.opusLayoutConfig.bannerOverlayText ?: null
+        }
+
+        if (json.theme) {
+            opus.theme = new Theme(json.theme)
+        }
+
+        if (json.help) {
+            opus.help= new HelpLink(json.help)
         }
 
         if (json.profileLayoutConfig) {
@@ -181,6 +227,7 @@ class OpusService extends BaseDataAccessService {
         opus.showLinkedOpusAttributes = json.showLinkedOpusAttributes?.toBoolean() ?: false
         opus.keepImagesPrivate = json.keepImagesPrivate?.toBoolean() ?: false
         opus.usePrivateRecordData = json.usePrivateRecordData?.toBoolean() ?: false
+        opus.citationProfile = json.citationProfile ?: null
 
         opus.privateCollection = json.privateCollection?.toBoolean() ?: false
         // if we are changing from public to private, then all other collections that have been granted access to
@@ -190,8 +237,10 @@ class OpusService extends BaseDataAccessService {
         }
 
         opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus?.toBoolean() ?: false
-        opus.allowFineGrainedAttribution = json.allowFineGrainedAttribution?.toBoolean() ?: true
-        opus.autoApproveShareRequests = json.autoApproveShareRequests?.toBoolean() ?: true
+        opus.allowFineGrainedAttribution = toBooleanWithDefault(json.allowFineGrainedAttribution, true)
+
+        opus.autoApproveShareRequests = toBooleanWithDefault(json.autoApproveShareRequests, true)
+
         opus.autoDraftProfiles = json.autoDraftProfiles?.toBoolean() ?: false
         if (json.tags) {
             opus.tags = []
@@ -402,7 +451,7 @@ class OpusService extends BaseDataAccessService {
         }
 
         opus.showLinkedOpusAttributes = json.showLinkedOpusAttributes?.toBoolean() ?: false
-        opus.autoApproveShareRequests = json.autoApproveShareRequests?.toBoolean() ?: true
+        opus.autoApproveShareRequests = toBooleanWithDefault(json.autoApproveShareRequests, true)
         opus.allowCopyFromLinkedOpus = json.allowCopyFromLinkedOpus?.toBoolean() ?: false
 
         save opus
@@ -638,5 +687,69 @@ class OpusService extends BaseDataAccessService {
         save opus
 
         opus.attachments
+    }
+
+    void updateAdditionalStatuses(Opus opus, List<String> additionalStatuses) {
+        opus.additionalStatuses = additionalStatuses
+        save opus
+    }
+
+    def updateMasterList(Opus opus, String masterListUid) {
+        opus.masterListUid = masterListUid
+        save opus
+        log.info("Queueing sync of opus master list")
+        importService.asyncSyncroniseMasterList(opus.uuid, true)
+    }
+
+    @Timed
+    @Metered
+    boolean isProfileOnMasterList(Opus opus, profile) {
+        if (!opus.masterListUid || !profile) return true
+
+        def masterList = masterListService.getCombinedListForUser(opus)
+        def exists = masterList.find { it.name.toLowerCase() == (profile.scientificNameLower ?: profile.scientificName?.toLowerCase()) }
+        return exists != null
+    }
+
+    def getMasterListKeybaseItems(Opus opus) {
+        def filterList = masterListService.getCombinedLowerCaseNamesListForUser(opus)
+        if (filterList == null) {
+            return null
+        }
+        MongoQuery.AggregatedResultList ps = Profile.withCriteria {
+            eq('opus', opus)
+            'in'('scientificNameLower', filterList)
+            projections {
+                property('matchedName') // TODO use matchedName.scientificName after GORM 6.1+ upgrade
+                property('guid')
+            }
+        }
+
+        // If you see this and think the following sucks and the mongo plugin is > 3.0.3 then please feel free to try
+        // replacing it.
+
+        // XXX Trying to run a .collect or .each on ps results in a NPE from running ps.size()
+        // so white box the $#!? out of this to find a way to get results without running ps.initializeFully
+        // TODO replace with
+        //   def names = (filterList + ps.collect { it[0]?.scientificName }).findAll { it }.unique()
+        //   def guids = ps.collect { it[1] }.findAll { it }.unique()
+        // after upgrading GORM?
+        // NOTE placing a debug point around here will attempt to load all the ps properties which will trigger
+        // the consumption of the cursor and then this method doesn't work
+        def pnames = []
+        def pguids = []
+        ps.withCloseable {
+            def cursor = ps.cursor // this is a private property, whoops
+            while (cursor.hasNext()) {
+                DBObject obj = cursor.next()
+                pnames << obj[0]?.scientificName
+                pguids << obj[1]
+            }
+
+        }
+
+        def names = (filterList + pnames).findAll { it }.unique()
+        def guids = pguids.findAll { it }.unique()
+        return [ names: names, guids: guids ]
     }
 }

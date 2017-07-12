@@ -1,6 +1,7 @@
 package au.org.ala.profile
 
 import au.org.ala.web.AuthService
+import au.org.ala.web.UserDetails
 
 class CommentServiceSpec extends BaseIntegrationSpec {
 
@@ -8,7 +9,7 @@ class CommentServiceSpec extends BaseIntegrationSpec {
 
     def setup() {
         service.authService = Mock(AuthService)
-        service.authService.getUserForUserId(_) >> [displayName: "fred"]
+        service.authService.getUserForUserId(_) >> new UserDetails(userId: '1234', firstName: 'fred', lastName: 'fred')
         service.authService.getUserId() >> "1234"
     }
 
@@ -62,7 +63,7 @@ class CommentServiceSpec extends BaseIntegrationSpec {
 
         then:
         comment.author.userId == "1234"
-        comment.author.name == "fred"
+        comment.author.name == "fred fred"
     }
 
     def "createComment should fail it a parent comment id has been provided but no matching comment exists"() {

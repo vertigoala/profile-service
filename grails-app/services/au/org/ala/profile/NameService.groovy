@@ -3,9 +3,12 @@ package au.org.ala.profile
 import au.org.ala.names.search.HomonymException
 import au.org.ala.names.search.SearchResultException
 import au.org.ala.ws.service.WebService
+import com.google.common.base.Supplier
 import grails.converters.JSON
 import org.apache.commons.lang3.StringUtils
 
+import static au.org.ala.profile.util.Utils.closureSupplier
+import static com.google.common.base.Suppliers.memoizeWithExpiration
 import static com.xlson.groovycsv.CsvParser.parseCsv
 import static au.org.ala.profile.util.Utils.enc
 import static au.org.ala.profile.util.Utils.isSuccessful
@@ -19,19 +22,24 @@ import org.springframework.transaction.annotation.Transactional
 
 import javax.annotation.PostConstruct
 
+import static java.util.concurrent.TimeUnit.SECONDS
+import static org.springframework.web.util.UriUtils.encodeQueryParam
+
 @Transactional
 class NameService extends BaseDataAccessService {
 
-    static final String NSL_APC_PRODUCT = "AOC"
+    static final String NSL_APC_PRODUCT = "APC"
 
     WebService webService
 
     def grailsApplication
     ALANameSearcher nameSearcher
+    private Supplier<Map<String, Map>> nslNameDumpSupplier = createSimpleNameDumpSupplier()
 
     @PostConstruct
     def init() {
         nameSearcher = new ALANameSearcher("${grailsApplication.config.name.index.location}")
+        nslNameDumpSupplier = createSimpleNameDumpSupplier()
     }
 
     Map matchName(String name, Map<String, String> classification = [:], String manuallyMatchedGuid = null) throws SearchResultException {
@@ -153,29 +161,44 @@ class NameService extends BaseDataAccessService {
         }
     }
 
-    Map matchNSLName(String name) {
-        Map match = [:]
+    Map matchNSLName(String name, String rank = '') {
+        Map match
         try {
-            log.debug("GET request to ${grailsApplication.config.nsl.name.match.url.prefix}\"${enc(name)}\"")
-            String resp = new URL("${grailsApplication.config.nsl.name.match.url.prefix}\"${enc(name)}\"").text
-            def json = new JsonSlurper().parseText(resp)
+            String url = grailsApplication.config.nsl.name.match.url.prefix + encodeQueryParam(name, 'UTF-8')
+            log.debug("GET request to $url")
+            def json = new JsonSlurper().parse(url.toURL(), 'UTF-8')
             if (json.count == 1) {
-                match.scientificName = json.names[0].simpleName
-                match.scientificNameHtml = json.names[0].simpleNameHtml
-                match.fullName = json.names[0].fullName
-                match.fullNameHtml = json.names[0].fullNameHtml
-                match.nameAuthor = extractAuthorsFromNameHtml(match.fullNameHtml)
-                String linkUrl = json.names[0]._links.permalink.link
-                match.nslIdentifier = linkUrl.substring(linkUrl.lastIndexOf("/") + 1)
-                match.nslProtologue = json.names[0].primaryInstance[0]?.citationHtml
+                match = extractFromNSLNameMatchJson(json.names[0] )
+            } else if (json.count > 1 && rank) {
+                def nameJsons = json.names.findAll { rank.trim().equalsIgnoreCase(it.nameRank?.trim()) }
+                if (nameJsons.size() == 1) {
+                    match = extractFromNSLNameMatchJson(nameJsons[0])
+                } else if (nameJsons.size() > 1) {
+                    log.warn("NSL matches for $name contained multiple of rank $rank")
+                } else {
+                    log.warn("NSL provided ${json.count} results for $name but none matched rank $rank")
+                }
             } else {
-                log.warn("${json.count} NSL matches for ${name}")
+                log.warn("${json.count} NSL matches for ${name} and no rank provided")
             }
         } catch (Exception e) {
             log.error(e)
         }
 
-        match
+        return match ?: [:]
+    }
+
+    private Map extractFromNSLNameMatchJson(json) {
+        String linkUrl = json._links.permalink.link
+        [
+                scientificName: json.simpleName,
+                scientificNameHtml: json.simpleNameHtml,
+                fullName: json.fullName,
+                fullNameHtml: json.fullNameHtml,
+                nameAuthor: extractAuthorsFromNameHtml(json.fullNameHtml),
+                nslIdentifier: linkUrl.substring(linkUrl.lastIndexOf("/") + 1),
+                nslProtologue: json.primaryInstance[0]?.citationHtml
+        ]
     }
 
     /**
@@ -183,10 +206,10 @@ class NameService extends BaseDataAccessService {
      * synonyms, etc) with the taxonomic status for each name.
      *
      * @param name The name to search for
-     * @return Map containing [alternateName : taxonomicStatus]
+     * @return Map containing [alternateName in lowercase : nslInfoMap consisting of canonical name, authorName and taxonomy Status]
      */
-    Map<String, String> searchNSLName(String name) {
-        Map<String, String> matches = [:]
+    Map<String, Map> searchNSLName(String name) {
+        Map<String, Map> matches = [:]
 
         String url = "${grailsApplication.config.nsl.search.service.url.prefix}?tree=${NSL_APC_PRODUCT}&q=${enc(StringUtils.capitalize(name))}"
         Map result = webService.get(url)
@@ -207,18 +230,16 @@ class NameService extends BaseDataAccessService {
             //     }
             // }
             result.resp.records.synonyms?.each { Map synonym ->
-                matches.put(synonym.canonicalName, synonym.taxonomicStatus)
+                matches.put(synonym.canonicalName?.toLowerCase(), ["canonicalName": synonym.canonicalName, "scientificNameAuthorship": synonym.scientificNameAuthorship, "taxonomicStatus": synonym.taxonomicStatus])
+
                 if (synonym.acceptedNameUsage) {
-                    matches.put(synonym.acceptedNameUsage, synonym.taxonomicStatus)
+                    matches.put(synonym.acceptedNameUsage?.toLowerCase(), ["canonicalName": synonym.canonicalName, "scientificNameAuthorship": synonym.scientificNameAuthorship, "taxonomicStatus": synonym.taxonomicStatus])
                 }
             }
 
-            result.resp.records.acceptedNames?.each { String nameId, Map nslName ->
-                matches.put(nslName.canonicalName, nslName.taxonomicStatus)
-
-                nslName.synonyms?.each { Map synonym ->
-                    matches.put(synonym.canonicalName, synonym.taxonomicStatus)
-                }
+            // Synonyms under acceptedNames are ignored as part of the change from https://github.com/AtlasOfLivingAustralia/profile-hub/issues/380
+            result.resp.records?.acceptedNames?.each { String nameId, Map nslName ->
+                matches.put(nslName.canonicalName?.toLowerCase(), ["canonicalName": nslName.canonicalName, "scientificNameAuthorship": nslName.scientificNameAuthorship, "taxonomicStatus": nslName.taxonomicStatus])
             }
         } else {
             matches = [:]
@@ -398,11 +419,22 @@ class NameService extends BaseDataAccessService {
         concept
     }
 
+    private def createSimpleNameDumpSupplier() {
+        def seconds = grailsApplication?.config?.nsl?.name?.export?.cacheTime as Integer ?: 86400
+        memoizeWithExpiration(closureSupplier(this.&_loadNSLSimpleNameDump), seconds, SECONDS)
+    }
+
     Map loadNSLSimpleNameDump() {
+        return nslNameDumpSupplier.get()
+    }
+
+    void clearNSLNameDumpCache() {
+        nslNameDumpSupplier = createSimpleNameDumpSupplier()
+    }
+
+    private Map _loadNSLSimpleNameDump() {
         log.info "Loading NSL Simple Name dump into memory...."
         long start = System.currentTimeMillis()
-
-        Map result = [bySimpleName: [:].withDefault { [] }, byFullName: [:].withDefault { [] }]
 
         // Names with these statuses are considered to be 'acceptable' names in the NSL. We do not want to match to any
         // unacceptable names
@@ -412,8 +444,15 @@ class NameService extends BaseDataAccessService {
         try {
             URL url = new URL("${grailsApplication.config.nsl.name.export.url}")
 
-            url.withReader { reader ->
+            return url.withReader { reader ->
                 def csv = parseCsv(reader)
+
+                if (csv.columns.size() == 0) {
+                    log.error("NSL Name Export returned 0 columns!  Aborting...")
+                    return [:]
+                }
+
+                Map result = [bySimpleName: [:].withDefault { [] }, byFullName: [:].withDefault { [] }]
 
                 csv.each { fields ->
                     Map name = [scientificName    : fields.canonicalName,
@@ -431,13 +470,13 @@ class NameService extends BaseDataAccessService {
                     result.bySimpleName[fields.canonicalName] << name
                     result.byFullName[fields.scientificName] << name
                 }
+                return result // returns from url.withReader
             }
-
         } catch (Exception e) {
             log.error "Failed to load NSL simple name dump", e
+            return [:]
+        } finally {
+            log.info "... finished loading NSL Simple Name dump in ${System.currentTimeMillis() - start} ms"
         }
-
-        log.info "... finished loading NSL Simple Name dump in ${System.currentTimeMillis() - start} ms"
-        result
     }
 }

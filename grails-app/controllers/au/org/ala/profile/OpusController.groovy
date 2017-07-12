@@ -5,17 +5,26 @@ import au.org.ala.profile.security.Role
 import au.org.ala.profile.util.ShareRequestAction
 import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
+import au.org.ala.web.UserDetails
 import grails.converters.JSON
 import groovy.json.JsonSlurper
 import org.springframework.web.multipart.MultipartHttpServletRequest
 import org.springframework.web.multipart.commons.CommonsMultipartFile
+
+import static au.org.ala.profile.ImportService.SyncResponse.*
+import static javax.servlet.http.HttpServletResponse.SC_NO_CONTENT
 
 @RequireApiKey
 class OpusController extends BaseController {
 
     OpusService opusService
     AuthService authService
+    ImportService importService
     AttachmentService attachmentService
+    SearchService searchService
+    MasterListService masterListService
+    UserSettingsService userSettingsService
+
 
     def index() {
         def opuses = Opus.findAll()
@@ -27,7 +36,8 @@ class OpusController extends BaseController {
         if (result) {
             int profiles = Profile.countByOpus(result)
             result.profileCount = profiles
-
+            def florulaListId = masterListService.getFlorulaListIdForUser(request, result.uuid)
+            result.florulaListId = florulaListId
             render result as JSON
         } else {
             notFound()
@@ -192,7 +202,7 @@ class OpusController extends BaseController {
         if (!glossary) {
             notFound()
         } else {
-            List<GlossaryItem> items = GlossaryItem.findAllByGlossaryAndTermLike(glossary, "${params.prefix ?: ''}%")
+            List<GlossaryItem> items = GlossaryItem.findAllByGlossaryAndTermIlike(glossary, "${params.prefix ?: ''}%")
 
             glossary.items = items
         }
@@ -276,17 +286,15 @@ class OpusController extends BaseController {
             if (!opus) {
                 notFound()
             } else {
-                render ([opus: [title: opus.title,
-                                opusId: opus.uuid,
-                                aboutHtml: opus.aboutHtml,
-                                citationHtml: opus.citationHtml,
-                                copyright: opus.copyrightText,
-                                administrators: opus.authorities.collect {
-                                    if (it.role == Role.ROLE_PROFILE_ADMIN) {
-                                        [email: authService.getUserForUserId(it.user.userId, false)?.userName,
-                                         name: it.user.name]
-                                    }
-                                }]] as JSON)
+                render ([
+                        opus: opus,
+                        opusId: opus.uuid,
+                        administrators: opus.authorities.collect {
+                            if (it.role == Role.ROLE_PROFILE_ADMIN) {
+                                [email: authService.getUserForUserId(it.user.userId, false)?.userName,
+                                 name: it.user.name]
+                            }
+                        }] as JSON)
             }
         }
     }
@@ -303,7 +311,7 @@ class OpusController extends BaseController {
             } else {
                 opus = opusService.updateAbout(opus.uuid, json)
 
-                render ([opus: [title: opus.title, opusId: opus.uuid, aboutHtml: opus.aboutHtml]] as JSON)
+                render ([opus: [title: opus.title, opusId: opus.uuid, shortName: opus.shortName, aboutHtml: opus.aboutHtml]] as JSON)
             }
         }
     }
@@ -411,5 +419,112 @@ class OpusController extends BaseController {
 
     def getTags() {
         render([tags: Tag.list()] as JSON)
+    }
+
+    def updateAdditionalStatuses() {
+        if (!params.opusId) {
+            badRequest "opusId is required"
+        } else {
+            Opus opus = getOpus()
+
+            if (!opus) {
+                notFound()
+            } else {
+                opusService.updateAdditionalStatuses(opus, request.JSON.addtionalStatuses)
+                render([success: true] as JSON)
+            }
+        }
+    }
+
+    def updateMasterList() {
+        if (!params.opusId) {
+            badRequest "opusId is required"
+        } else {
+            Opus opus = getOpus()
+            opusService.updateMasterList(opus, request.JSON.masterListUid)
+            render([success: true] as JSON)
+        }
+    }
+
+    def syncMasterList() {
+        if (!params.opusId) {
+            badRequest "opusId is required"
+        } else {
+            Opus opus = getOpus()
+            if (opus) {
+                def regen = params.boolean('regenerateStubs', false)
+                def result = importService.syncroniseMasterList(opus.uuid, regen)
+                def statusCode
+                switch (result) {
+                    case OpusNotFound:
+                        statusCode = 404
+                        break
+                    case SyncComplete:
+                        statusCode = 200
+                        break
+                    case SyncFailed:
+                    default:
+                        statusCode = 500
+                }
+                response.status = statusCode
+                render(result as JSON)
+            } else {
+                notFound 'opus not found'
+            }
+        }
+    }
+
+    def getMasterListKeybaseItems() {
+        if (!params.opusId) {
+            badRequest "opusId is required"
+        } else {
+            Opus opus = getOpus()
+            if (!opus) {
+                notFound "Ain't no opus"
+            } else {
+                def result = opusService.getMasterListKeybaseItems(opus)
+                if (result != null) {
+                    render(result as JSON)
+                } else {
+                    response.sendError(SC_NO_CONTENT)
+                }
+            }
+        }
+    }
+
+    def updateFlorulaListForUser() {
+        if (!params.opusId) {
+            badRequest "opusId is required"
+        } else {
+            Opus opus = getOpus()
+            if (!opus) {
+                notFound "Ain't no opus"
+            } else {
+                def json = request.getJSON()
+                def listId = json.florulaListId
+                UserDetails userDetails = (UserDetails) request.getAttribute(AuditFilters.REQUEST_USER_DETAILS_KEY)
+                if (!userDetails.userId) {
+                    badRequest "Ain't no user"
+                }
+                userSettingsService.setFlorulaList(userSettingsService.getUserSettings(userDetails?.userId), opus.uuid, listId)
+                response.sendError(SC_NO_CONTENT)
+            }
+        }
+    }
+
+    def reindex() {
+        if (!params.opusId) {
+            badRequest "opusId is required"
+        } else {
+            if (Status.count() == 0) {
+                Status status = new Status()
+                status.searchReindex = true
+                status.save()
+            }
+
+            searchService.reindex(opus)
+
+            render (Status.first() as JSON)
+        }
     }
 }

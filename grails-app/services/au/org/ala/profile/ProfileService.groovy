@@ -1,10 +1,10 @@
 package au.org.ala.profile
 
 import au.org.ala.names.search.HomonymException
-import au.org.ala.profile.util.Utils
 import au.org.ala.profile.util.CloneAndDraftUtil
 import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.StorageExtension
+import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
 import com.google.common.base.Stopwatch
 import groovy.transform.stc.ClosureParams
@@ -16,10 +16,8 @@ import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.commons.CommonsMultipartFile
 
 import java.text.SimpleDateFormat
-
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
-
 
 @Transactional
 class ProfileService extends BaseDataAccessService {
@@ -31,10 +29,13 @@ class ProfileService extends BaseDataAccessService {
     DoiService doiService
     AttachmentService attachmentService
     SearchService searchService
+    MasterListService masterListService
     def grailsApplication
 
     Profile decorateProfile(Profile profile, boolean latest, boolean checkForChildren) {
         Stopwatch sw = new Stopwatch().start()
+
+        def set = masterListService.getCombinedLowerCaseNamesListForUser(profile.opus)?.toSet()
 
         if (profile.classification) {
             def classifications = profile.draft && latest ? profile.draft.classification : profile.classification
@@ -44,12 +45,18 @@ class ProfileService extends BaseDataAccessService {
                     cl.hasChildren = searchService.hasDescendantsByClassificationAndRank(cl.rank?.toLowerCase(), cl.name, profile.opus, true)
                 }
 
-                Profile relatedProfile = Profile.findByGuidAndOpusAndArchivedDateIsNull(cl.guid, profile.opus)
+                Profile relatedProfile = cl.guid? Profile.findByGuidAndOpusAndArchivedDateIsNull(cl.guid, profile.opus) : null
                 if (!relatedProfile) {
                     relatedProfile = Profile.findByScientificNameAndOpusAndArchivedDateIsNull(cl.name, profile.opus)
                 }
-                cl.profileId = relatedProfile?.uuid
-                cl.profileName = relatedProfile?.scientificName
+
+                if (set == null || (relatedProfile && set.contains(relatedProfile.scientificNameLower))) {
+                    cl.profileId = relatedProfile?.uuid
+                    cl.profileName = relatedProfile?.scientificName
+                } else {
+                    cl.profileId = null
+                    cl.profileName = null
+                }
 
             }
 
@@ -79,7 +86,7 @@ class ProfileService extends BaseDataAccessService {
         try {
             Map matchedName = nameService.matchName(name)
             if (matchedName) {
-                result.matchedName = [scientificName: matchedName.scientificName, fullName: matchedName.fullName, nameAuthor: matchedName.author, guid: matchedName.guid, rank: matchedName.rank]
+                result.matchedName = [scientificName: matchedName.scientificName, fullName: matchedName.fullName, nameAuthor: matchedName.nameAuthor, guid: matchedName.guid, rank: matchedName.rank]
 
                 List matchedScientificNameDuplicates = findByName(result.matchedName.scientificName, opus)
                 if (matchedScientificNameDuplicates) {
@@ -125,7 +132,11 @@ class ProfileService extends BaseDataAccessService {
     }
 
     Profile createProfile(String opusId, Map json) {
-        createProfile(opusId, json, null)
+        createProfile(opusId, json) { profile ->
+            if (!profile.profileStatus) {
+                profile.profileStatus = Profile.STATUS_PARTIAL
+            }
+        }
     }
 
     /**
@@ -237,7 +248,7 @@ class ProfileService extends BaseDataAccessService {
         populateTaxonHierarchy(profile, manualHierarchy)
 
         // try to match the name against the NSL. If we get a match, and there is currently no name author, use the author from the NSL match
-        Map matchedNSLName = nameService.matchNSLName(providedName)
+        Map matchedNSLName = nameService.matchNSLName(providedName, profile.rank)
         if (matchedNSLName) {
             profile.nslNameIdentifier = matchedNSLName.nslIdentifier
             profile.nslProtologue = matchedNSLName.nslProtologue
@@ -469,17 +480,24 @@ class ProfileService extends BaseDataAccessService {
         Profile profile = Profile.findByUuid(profileId)
         checkState profile
 
-        if (json.containsKey("nslNomenclatureIdentifier")
-                && json.nslNomenclatureIdentifier != profileOrDraft(profile).nslNomenclatureIdentifier) {
-            profileOrDraft(profile).nslNomenclatureIdentifier = json.nslNomenclatureIdentifier
+        if (json.containsKey("nslNomenclatureIdentifier")) {
+            profileOrDraft(profile).nslNomenclatureIdentifier = json.nslNomenclatureIdentifier ?: null
         }
 
         if (json.containsKey("showLinkedOpusAttributes")) {
             profileOrDraft(profile).showLinkedOpusAttributes = json.showLinkedOpusAttributes as Boolean
         }
 
-        if (json.containsKey("occurrenceQuery") && json.occurrenceQuery != profile.occurrenceQuery) {
-            profileOrDraft(profile).occurrenceQuery = json.occurrenceQuery
+        if (json.containsKey("occurrenceQuery")) {
+            profileOrDraft(profile).occurrenceQuery = json.occurrenceQuery ?: null
+        }
+
+        if (json.containsKey("isCustomMapConfig") && json.isCustomMapConfig) {
+            profileOrDraft(profile).isCustomMapConfig = true
+            profileOrDraft(profile).occurrenceQuery = json.occurrenceQuery ?: null
+        } else {
+            profileOrDraft(profile).isCustomMapConfig = false;
+            profileOrDraft(profile).occurrenceQuery = null
         }
 
         saveImages(profile, json, true)
@@ -503,13 +521,11 @@ class ProfileService extends BaseDataAccessService {
         checkArgument profile
         checkArgument json
 
-        if (json.containsKey("specimenIds") && json.specimenIds != profileOrDraft(profile).specimenIds) {
-            if (profileOrDraft(profile).specimenIds) {
-                profileOrDraft(profile).specimenIds.clear()
-            } else {
-                profileOrDraft(profile).specimenIds = []
+        if (json.containsKey("specimenIds")) {
+            profileOrDraft(profile).specimenIds = []
+            if (json.specimenIds) {
+                profileOrDraft(profile).specimenIds.addAll(json.specimenIds)
             }
-            profileOrDraft(profile).specimenIds.addAll(json.specimenIds ?: [])
 
             if (!deferSave) {
                 save profile
@@ -518,16 +534,14 @@ class ProfileService extends BaseDataAccessService {
     }
 
     boolean saveAuthorship(Profile profile, Map json, boolean deferSave = false) {
-        if (json.containsKey('authorship')) {
-            if (profileOrDraft(profile).authorship) {
-                profileOrDraft(profile).authorship.clear()
-            } else {
-                profileOrDraft(profile).authorship = []
-            }
-
-            json.authorship.each {
-                Term term = vocabService.getOrCreateTerm(it.category, profile.opus.authorshipVocabUuid)
-                profileOrDraft(profile).authorship << new Authorship(category: term, text: it.text)
+        if (json.containsKey("authorship")) {
+            profileOrDraft(profile).authorship = []
+            if (json.authorship) {
+                profileOrDraft(profile).authorship = json.authorship.collect {
+                    Term term = vocabService.getOrCreateTerm(it.category,
+                            profile.opus.authorshipVocabUuid)
+                    new Authorship(category: term, text: it.text)
+                }
             }
 
             if (!deferSave) {
@@ -552,23 +566,23 @@ class ProfileService extends BaseDataAccessService {
 
         def profileOrDraft = profileOrDraft(profile)
 
-        if (json.containsKey("primaryImage") && json.primaryImage != profileOrDraft.primaryImage) {
-            profileOrDraft.primaryImage = json.primaryImage
+        if (json.containsKey('primaryImage')) {
+            profileOrDraft.primaryImage = json.primaryImage ?: null
         }
 
-        if (json.containsKey("imageSettings") && json.imageSettings != profileOrDraft.imageSettings) {
-            if (profileOrDraft.imageSettings) {
-                profileOrDraft.imageSettings.clear()
-            } else {
-                profileOrDraft.imageSettings = [:]
-            }
+        if (json.containsKey("imageSettings")) {
+            profileOrDraft.imageSettings = [:]
+            if (json.imageSettings) {
+                profileOrDraft.imageSettings = json.imageSettings.collectEntries {
+                    ImageOption imageDisplayOption = it.displayOption ?
+                            ImageOption.byName(it.displayOption, profile.opus.approvedImageOption) :
+                            profile.opus.approvedImageOption
+                    if (imageDisplayOption == profile.opus.approvedImageOption) {
+                        imageDisplayOption = null
+                    }
 
-            json.imageSettings?.each {
-                ImageOption imageDisplayOption = it.displayOption ? ImageOption.byName(it.displayOption, profile.opus.approvedImageOption) : profile.opus.approvedImageOption
-                if (imageDisplayOption == profile.opus.approvedImageOption) {
-                    imageDisplayOption = null
+                    [(it.imageId): new ImageSettings(imageDisplayOption: imageDisplayOption, caption: it.caption ?: '')]
                 }
-                profileOrDraft.imageSettings << [(it.imageId): new ImageSettings(imageDisplayOption: imageDisplayOption, caption: it.caption ?: '')]
             }
         }
 
@@ -650,9 +664,15 @@ class ProfileService extends BaseDataAccessService {
         checkArgument profile
         checkArgument json
 
-        if (json.containsKey("bibliography") && json.bibliography != profileOrDraft(profile).bibliography) {
-            profileOrDraft(profile).bibliography = json.bibliography.collect {
-                new Bibliography(text: it.text, uuid: UUID.randomUUID().toString(), order: it.order)
+        if (json.containsKey('bibliography')) {
+            profileOrDraft(profile).bibliography = []
+            if (json.bibliography) {
+                profileOrDraft(profile).bibliography = json.bibliography.collect {
+                    new Bibliography(
+                            uuid: it.uuid ?: UUID.randomUUID().toString(),
+                            text: it.text,
+                            order: it.order)
+                }
             }
 
             if (!deferSave) {
@@ -735,17 +755,20 @@ class ProfileService extends BaseDataAccessService {
         Profile profile = Profile.findByUuid(profileId)
         checkState profile
 
-        if (json.containsKey("links") && json.links != profileOrDraft(profile).bhlLinks) {
-            profileOrDraft(profile).bhlLinks = json.links.collect {
-                Link link = new Link(uuid: UUID.randomUUID().toString())
-                link.url = it.url
-                link.title = it.title
-                link.description = it.description
-                link.fullTitle = it.fullTitle
-                link.edition = it.edition
-                link.publisherName = it.publisherName
-                link.doi = it.doi
-                link
+        if (json.containsKey("links")) {
+            profileOrDraft(profile).bhlLinks = []
+            if (json.links) {
+                profileOrDraft(profile).bhlLinks = json.links.collect {
+                    Link link = new Link(uuid: it.uuid ?: UUID.randomUUID().toString())
+                    link.url = it.url
+                    link.title = it.title
+                    link.description = it.description
+                    link.fullTitle = it.fullTitle
+                    link.edition = it.edition
+                    link.publisherName = it.publisherName
+                    link.doi = it.doi
+                    link
+                }
             }
 
             if (!deferSave) {
@@ -761,13 +784,16 @@ class ProfileService extends BaseDataAccessService {
         Profile profile = Profile.findByUuid(profileId)
         checkState profile
 
-        if (json.containsKey("links") && json.links != profileOrDraft(profile).links) {
-            profileOrDraft(profile).links = json.links.collect {
-                Link link = new Link(uuid: UUID.randomUUID().toString())
-                link.url = it.url
-                link.title = it.title
-                link.description = it.description
-                link
+        if (json.containsKey("links")) {
+            profileOrDraft(profile).links = []
+            if (json.links) {
+                profileOrDraft(profile).links = json.links.collect {
+                    Link link = new Link(uuid: it.uuid ?: UUID.randomUUID().toString())
+                    link.url = it.url
+                    link.title = it.title
+                    link.description = it.description
+                    link
+                }
             }
 
             if (!deferSave) {
@@ -1277,5 +1303,27 @@ class ProfileService extends BaseDataAccessService {
         originalProfile.save(true)
 
         return !originalProfile.hasErrors()
+    }
+
+    def setStatus(Profile originalProfile, json) {
+        checkArgument originalProfile
+        checkArgument json?.status
+        def profile = profileOrDraft(originalProfile)
+
+        profile.profileStatus = json?.status
+
+        save originalProfile
+
+        return !originalProfile.hasErrors()
+    }
+
+    public String getProfileIdentifierForMapQuery(Object profile) {
+        String query = ""
+        if (profile.guid && profile.guid != "null") {
+            query += "${"lsid:${profile.guid}"}"
+        } else {
+            query += profile.scientificName
+        }
+        query
     }
 }

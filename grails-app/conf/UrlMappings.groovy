@@ -10,8 +10,11 @@ class UrlMappings {
 
         // 'Internal' ALA API
         "/admin/search/reindex" controller: "search", action: [POST: "reindex"]
+        "/admin/names/clearCache" controller: "name", action: [POST: "clearCache"]
         "/admin/rematchNames" controller: "admin", action: [POST: "rematchNames"]
         "/admin/tag/$tagId?" controller: "admin", action: [GET: "getTag", PUT: "createTag", POST: "updateTag", DELETE: "deleteTag"]
+        "/admin/backupCollections" controller: "admin", action: [POST: "backupCollections"]
+        "/admin/restoreCollections" controller: "admin", action: [POST: "restoreCollections"]
 
         "/audit/object/$entityId" controller: "audit", action: [GET: "auditTrailForObject"]
 
@@ -25,7 +28,12 @@ class UrlMappings {
         "/opus/$opusId/glossary/$prefix" controller: "opus", action: [GET: "getGlossary"]
         "/opus/$opusId/glossary" controller: "opus", action: [POST: "saveGlossaryItems"]
 
-        "/opus/$opusId/about/" controller: "opus", action: [GET: "about", PUT: "updateAbout"]
+        "/opus/$opusId/additionalStatuses" controller: "opus", action: [POST: 'updateAdditionalStatuses']
+        "/opus/$opusId/about" controller: "opus", action: [GET: "about", PUT: "updateAbout"]
+        "/opus/$opusId/masterList" controller: "opus", action: [POST: 'updateMasterList']
+        "/opus/$opusId/masterList/keybaseItems" controller: "opus", action: 'getMasterListKeybaseItems'
+        "/opus/$opusId/masterList/sync" controller: "opus", action: [POST: 'syncMasterList']
+        "/opus/$opusId/florulaList" controller: "opus", action: [POST: 'updateFlorulaListForUser']
         "/opus/$opusId/vocab/" controller: "vocab", action: "index"
         "/opus/$opusId/vocab/$vocabId" controller: "vocab", action: [GET: "show", POST: "update"]
         "/opus/$opusId/vocab/usages/find" controller: "vocab", action: "findUsagesOfTerm"
@@ -69,6 +77,7 @@ class UrlMappings {
         "/opus/$opusId/profile/$profileId/document/list" controller: "profile", action: [GET:"listDocuments"]
         "/opus/$opusId/profile/$profileId/document/$id?(.$format)?" controller: "profile", action: [POST:"updateDocument", DELETE: "deleteDocument"]
         "/opus/$opusId/profile/$profileId/primaryMultimedia" controller: "profile", action: [POST: "setPrimaryMultimedia"]
+        "/opus/$opusId/profile/$profileId/status" controller: "profile", action: [POST: "setStatus"]
 
 
         "/opus/$opusId/profile/$profileId/links" controller: "profile", action: [POST: "saveLinks"]
@@ -100,6 +109,7 @@ class UrlMappings {
 
         "/opus/$opusId/archive/$profileId" controller: "profile", action: [POST: "archiveProfile"]
         "/opus/$opusId/restore/$profileId" controller: "profile", action: [POST: "restoreArchivedProfile"]
+        "/opus/$opusId/reindex" controller: "opus", action: [POST: "reindex"]
 
         "/checkName" controller: "profile", action: [GET: "checkName"]
 

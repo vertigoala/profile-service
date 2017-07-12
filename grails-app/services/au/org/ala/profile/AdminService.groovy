@@ -5,12 +5,14 @@ import org.springframework.scheduling.annotation.Async
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
+import static au.org.ala.profile.util.Utils.*
 import static groovyx.gpars.GParsPool.withPool
 
 class AdminService extends BaseDataAccessService {
     static final int THREAD_POOL_SIZE = 10
 
     NameService nameService
+    ProfileService profileService
 
     @Async
     void rematchAllNames(List<String> opusIds) {
@@ -42,31 +44,32 @@ class AdminService extends BaseDataAccessService {
             withPool(THREAD_POOL_SIZE) {
                 profiles.eachParallel { Profile profile ->
                     try {
-                        Map<String, String> classification = profile.classification?.collectEntries {
-                            [(it.rank): it.name]
-                        } ?: [:]
+                        Boolean isDirty = false
+                        isDirty = updateProfileWithRematchedName(profile, isDirty, results, opus)
 
-                        Map newMatchedName
-                        if (profile.manuallyMatchedName) {
-                            newMatchedName = nameService.matchName(profile.matchedName.scientificName, classification, profile.matchedName.guid)
-                        } else {
-                            newMatchedName = nameService.matchName(profile.scientificName, classification)
+                        if(profile.draft){
+                            isDirty = updateProfileWithRematchedName(profile.draft, isDirty, results, opus)
                         }
 
-                        if (profile.matchedName?.guid != newMatchedName?.guid) {
-                            results[opus.uuid].profilesUpdated << [
-                                    (profile.uuid): [
-                                            profileName: profile.scientificName,
-                                            old: [guid: profile.guid, name: profile.matchedName?.fullName],
-                                            new: [guid: newMatchedName?.guid, name: newMatchedName?.fullName]
-                                    ]
-                            ]
-                            profile.matchedName = new Name(newMatchedName)
-                            profile.guid = newMatchedName?.guid
-
-                            save profile
-
+                        if(isDirty){
                             changed.incrementAndGet()
+                        }
+
+                        // Doing this check independent of name change since this field was not kept updated with previous
+                        // name changes. So it is possible that profile.guid and lsid in occurrenceQuery are out of sync.
+                        if(profile.occurrenceQuery?.contains("lsid")){
+                            isDirty = updateOccurrenceQuery(profile, isDirty)
+                        }
+
+                        // make sure occurrence query field in profile's draft version is also updated
+                        if(profile.draft?.occurrenceQuery?.contains("lsid")){
+                            // make sure draft's guid is used in occurrenceQuery. It is possible profile and draft
+                            // have different guid.
+                            isDirty = updateOccurrenceQuery(profile.draft, isDirty)
+                        }
+
+                        if(isDirty){
+                            save profile
                         }
                     } catch (Exception e) {
                         log.error("Failed to match ${profile.scientificName}", e)
@@ -83,6 +86,56 @@ class AdminService extends BaseDataAccessService {
         rematch.results = results
         rematch.endDate = new Date()
         save rematch
+    }
+
+    public boolean updateOccurrenceQuery(Object profile, boolean isDirty) {
+        String name = profileService.getProfileIdentifierForMapQuery(profile)
+        String query = profile.occurrenceQuery
+        if (!query?.contains(name)) {
+            profile.occurrenceQuery = updateLSIDInQueryString(name, query);
+            isDirty = true
+        }
+        isDirty
+    }
+
+    public boolean updateProfileWithRematchedName(Object profile, boolean isDirty, Map results, Opus opus) {
+        Map<String, String> classification = profile.classification?.collectEntries {
+            [(it.rank): it.name]
+        } ?: [:]
+
+        Map newMatchedName
+        if (profile.manuallyMatchedName) {
+            newMatchedName = nameService.matchName(profile.matchedName.scientificName, classification, profile.matchedName.guid)
+        } else {
+            newMatchedName = nameService.matchName(profile.scientificName, classification)
+        }
+
+        if (profile.matchedName?.guid != newMatchedName?.guid) {
+            results[opus.uuid].profilesUpdated << [
+                    (profile.uuid): [
+                            profileName: profile.scientificName,
+                            old        : [guid: profile.guid, name: profile.matchedName?.fullName],
+                            new        : [guid: newMatchedName?.guid, name: newMatchedName?.fullName]
+                    ]
+            ]
+            profile.matchedName = new Name(newMatchedName)
+            profile.guid = newMatchedName?.guid
+
+            isDirty = true
+        }
+
+        isDirty
+    }
+
+    private String updateLSIDInQueryString(String lsid, String query){
+        if(lsid && query){
+            Map parsedQuery = parseQueryString(query)
+            if(parsedQuery.q){
+                parsedQuery.q[0] = parsedQuery.q[0].replaceFirst("lsid:[^ \$]+", lsid)
+            }
+
+            createQueryString(parsedQuery);
+        }
     }
 
     Tag createTag(Map properties) {

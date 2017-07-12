@@ -1,7 +1,6 @@
 package au.org.ala.profile.marshaller
 
 import au.org.ala.profile.Profile
-import au.org.ala.profile.util.ImageOption
 import au.org.ala.profile.util.Utils
 import grails.converters.JSON
 
@@ -63,7 +62,9 @@ class ProfileMarshaller {
                     archivedWithName         : profile.archivedWithName,
                     showLinkedOpusAttributes : profile.showLinkedOpusAttributes,
                     lastPublished            : profile.lastPublished,
-                    occurrenceQuery          : profile.occurrenceQuery
+                    occurrenceQuery          : profile.occurrenceQuery,
+                    isCustomMapConfig        : profile.isCustomMapConfig,
+                    profileStatus            : profile.profileStatus
             ]
         }
     }

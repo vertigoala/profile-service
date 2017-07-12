@@ -1,6 +1,5 @@
 package au.org.ala.profile
 
-import au.org.ala.profile.util.ImageOption
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
@@ -11,6 +10,7 @@ class DraftProfile {
     String uuid
     String guid                 //taxon GUID / LSID
     String scientificName
+    String scientificNameLower
     String nameAuthor
     String fullName
     Name matchedName
@@ -22,7 +22,10 @@ class DraftProfile {
     String primaryImage
     String primaryVideo
     String primaryAudio
+    boolean showLinkedOpusAttributes = false // Even if set to true, this needs Opus.showLinkedOpusAttributes to also be true
     String occurrenceQuery
+    boolean isCustomMapConfig = false
+    String profileStatus = Profile.STATUS_PARTIAL
     Map<String, ImageSettings> imageSettings = [:]
     List<String> specimenIds
     List<Authorship> authorship
@@ -63,5 +66,6 @@ class DraftProfile {
         createdBy nullable: true
         lastAttributeChange nullable: true
         occurrenceQuery nullable: true
+        profileStatus nullable: true
     }
 }
