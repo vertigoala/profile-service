@@ -35,3 +35,7 @@
 
 # spring loaded cache
 .slcache
+
+.gradle/
+build/
+out/

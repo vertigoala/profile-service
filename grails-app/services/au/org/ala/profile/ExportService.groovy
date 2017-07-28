@@ -92,8 +92,15 @@ class ExportService extends BaseDataAccessService {
         outputStream.with { writer ->
             writer << "{ \"total\": ${total}, "
             writer << ' "profiles": ['
-            while (profiles.hasNext()) {
-                Map data = profiles.next()
+            def first = true
+            for (def data : profiles) {
+
+                if (first) {
+                    first = false
+                } else {
+                    writer << ","
+                }
+
                 Opus opus = collectionMap[data.opus]
                 Map profile = [
                         id               : data.uuid,
@@ -137,8 +144,7 @@ class ExportService extends BaseDataAccessService {
                 }
 
                 def attributeCursor = Attribute.collection.find([profile: data._id])
-                while (attributeCursor.hasNext()) {
-                    Map attribute = attributeCursor.next()
+                for (def attribute : attributeCursor) {
 
                     Term title = attributeTitles[attribute.title]
 
@@ -184,9 +190,6 @@ class ExportService extends BaseDataAccessService {
                 }
 
                 writer << com.mongodb.util.JSON.serialize(profile)
-                if (profiles.hasNext()) {
-                    writer << ","
-                }
                 count++
             }
 

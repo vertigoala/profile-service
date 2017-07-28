@@ -10,7 +10,8 @@ import com.google.common.base.Stopwatch
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
 import org.apache.commons.lang3.StringUtils
-import org.codehaus.groovy.grails.commons.DomainClassArtefactHandler
+import org.grails.core.artefact.DomainClassArtefactHandler
+
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.commons.CommonsMultipartFile
@@ -214,8 +215,11 @@ class ProfileService extends BaseDataAccessService {
             profile.attributes = sourceProfile.attributes?.collect {
                 Attribute newAttribute = CloneAndDraftUtil.cloneAttribute(it, false)
                 newAttribute.uuid = UUID.randomUUID().toString()
+                newAttribute.profile = profile
                 newAttribute
             }?.toSet()
+
+            Attribute.saveAll(profile.attributes)
             profile.attributes.each {
                 profile.addToAttributes(it)
             }
@@ -987,9 +991,11 @@ class ProfileService extends BaseDataAccessService {
             if (!profile.draft.attributes) {
                 profile.draft.attributes = []
             }
+            attribute.save()
             profile.draft.attributes << attribute
         } else {
             attribute.profile = profile
+            attribute.save()
             profile.addToAttributes(attribute)
         }
 

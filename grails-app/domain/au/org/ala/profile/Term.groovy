@@ -3,8 +3,8 @@ package au.org.ala.profile
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
-@ToString
-@EqualsAndHashCode
+@ToString(includes=['uuid', 'name', 'order', 'required', 'summary', 'containsName'])
+@EqualsAndHashCode(includes=['uuid', 'name', 'order', 'required', 'summary', 'containsName'])
 class Term implements Comparable<Term> {
 
     private static final String NOT_ANALYZED_INDEX = "not_analyzed"

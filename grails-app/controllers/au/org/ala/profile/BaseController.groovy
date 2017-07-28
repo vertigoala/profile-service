@@ -5,7 +5,7 @@ import au.org.ala.web.UserDetails
 import au.org.ala.ws.controller.BasicWSController
 import com.google.common.base.Stopwatch
 
-import static au.org.ala.profile.AuditFilters.REQUEST_USER_DETAILS_KEY
+import static AuditInterceptor.REQUEST_USER_DETAILS_KEY
 import static au.org.ala.profile.util.Utils.isUuid
 import static au.org.ala.profile.util.Utils.enc
 

@@ -6,6 +6,7 @@ import au.org.ala.ws.service.WebService
 import com.google.common.base.Supplier
 import grails.converters.JSON
 import org.apache.commons.lang3.StringUtils
+import org.springframework.beans.factory.annotation.Value
 
 import static au.org.ala.profile.util.Utils.closureSupplier
 import static com.google.common.base.Suppliers.memoizeWithExpiration
@@ -34,11 +35,16 @@ class NameService extends BaseDataAccessService {
 
     def grailsApplication
     ALANameSearcher nameSearcher
+
+
+    @Value('${nsl.name.export.cacheTime:86400}')
+    Integer nameDumpCacheSeconds = 86400
+
     private Supplier<Map<String, Map>> nslNameDumpSupplier = createSimpleNameDumpSupplier()
 
     @PostConstruct
     def init() {
-        nameSearcher = new ALANameSearcher("${grailsApplication.config.name.index.location}")
+//        nameSearcher = new ALANameSearcher("${grailsApplication.config.name.index.location}")
         nslNameDumpSupplier = createSimpleNameDumpSupplier()
     }
 
@@ -420,8 +426,8 @@ class NameService extends BaseDataAccessService {
     }
 
     private def createSimpleNameDumpSupplier() {
-        def seconds = grailsApplication?.config?.nsl?.name?.export?.cacheTime as Integer ?: 86400
-        memoizeWithExpiration(closureSupplier(this.&_loadNSLSimpleNameDump), seconds, SECONDS)
+//        def seconds = grailsApplication?.config?.nsl?.name?.export?.cacheTime as Integer ?: 86400
+        memoizeWithExpiration(closureSupplier(this.&_loadNSLSimpleNameDump), nameDumpCacheSeconds, SECONDS)
     }
 
     Map loadNSLSimpleNameDump() {

@@ -1,6 +1,9 @@
 package au.org.ala.profile
 
+import au.org.ala.profile.util.MongoUtil
 import au.org.ala.profile.util.Utils
+
+import static au.org.ala.profile.util.MongoUtil.toBson
 
 class ReportService {
 
@@ -136,7 +139,7 @@ class ReportService {
         }
         final profileUuids = profiles*.get(0)
 
-        final aggOutput = Comment.collection.aggregate([
+        final aggOutput = Comment.collection.aggregate(toBson([
                 [$match: [lastUpdated: [$gte: from, $lte: to], profileUuid: [$in: profileUuids]]],
                 [$sort: [lastUpdated: -1]],
                 [$group: [
@@ -146,15 +149,17 @@ class ReportService {
                         author     : [$first: '$author']
                 ]],
                 [$sort: [lastUpdated: -1]]
-        ])
+        ]))
 
-        final results = aggOutput.results()
-        final count = results.size()
+//        final results = aggOutput.results()
+        final count
 
         if (countOnly) {
+            count = aggOutput.size()
             return [recordCount: count]
         } else {
-            final resultList = results.asList()
+            final resultList = aggOutput.asList()
+            count = resultList.size()
             final maxIndex = resultList.indices.toInt
             final records
             if (startFrom > maxIndex) {

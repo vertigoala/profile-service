@@ -4,9 +4,9 @@ import com.google.common.cache.CacheBuilder
 import com.google.common.cache.LoadingCache
 import com.google.common.collect.Sets
 import com.google.common.util.concurrent.UncheckedExecutionException
-import org.codehaus.groovy.grails.web.util.WebUtils
-import org.grails.plugins.metrics.groovy.Metered
-import org.grails.plugins.metrics.groovy.Timed
+import grails.plugin.dropwizard.metrics.meters.Metered
+import grails.plugin.dropwizard.metrics.timers.Timed
+import org.grails.web.util.WebUtils
 
 import javax.annotation.PostConstruct
 import javax.servlet.http.HttpServletRequest
@@ -41,8 +41,8 @@ class MasterListService {
      * @return A list of objects that probably have name and scientificName properties.
      * @throws ProfileListUnavailableException
      */
-    @Timed
-    @Metered
+    @Timed('getMasterListTimer')
+    @Metered('getMasterListMeter')
     List<Map<String, String>> getMasterList(Opus opus) throws ProfileListUnavailableException {
         if (!opus.masterListUid) return null
         def listId = opus.masterListUid
@@ -85,8 +85,8 @@ class MasterListService {
      */
     // TODO replace use of this method with extracting the user and override id from all
     // relevant controller actions and service calls
-    @Timed
-    @Metered
+    @Timed('getCombinedLowerCaseNamesListForUserTimer')
+    @Metered('getCombinedLowerCaseNamesListForUserMeter')
     List<String> getCombinedLowerCaseNamesListForUser(Opus opus) {
         def list = getCombinedListForUser(opus)
         if (list == null) return null
@@ -101,8 +101,8 @@ class MasterListService {
      */
     // TODO replace use of this method with extracting the user and override id from all
     // relevant controller actions and service calls
-    @Timed
-    @Metered
+    @Timed('getCombinedNamesListForUserTimer')
+    @Metered('getCombinedNamesListForUserMeter')
     List<String> getCombinedNamesListForUser(Opus opus) {
         def list = getCombinedListForUser(opus)
         if (list == null) return null
@@ -118,8 +118,8 @@ class MasterListService {
      */
     // TODO replace use of this method with extracting the user and override id from all
     // relevant controller actions and service calls
-    @Timed
-    @Metered
+    @Timed('getCombinedListForUserTimer')
+    @Metered('getCombinedListForUserMeter')
     List<Map<String,String>> getCombinedListForUser(Opus opus) {
         String florulaId = getFlorulaListIdForUser(opus.uuid)
         logUri() // Get an idea which urls this is called from
@@ -162,8 +162,8 @@ class MasterListService {
         }
     }
 
-    @Timed
-    @Metered
+    @Timed('getCombinedListForUserWithFlorulaTimer')
+    @Metered('getCombinedListForUserWithFlorulaMeter')
     List<Map<String,String>> getCombinedListForUser(Opus opus, String florulaId) throws ProfileListUnavailableException {
         def florulaListItems = florulaId ? getProfileList(florulaId) : null
         def masterListItems = opus?.masterListUid ?  getProfileList(opus?.masterListUid) : null

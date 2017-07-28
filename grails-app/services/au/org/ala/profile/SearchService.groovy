@@ -1,26 +1,33 @@
 package au.org.ala.profile
 
 import au.org.ala.names.search.SearchResultException
+import au.org.ala.profile.util.MongoUtil
 import au.org.ala.profile.util.ProfileSortOption
 import au.org.ala.profile.util.SearchOptions
 import au.org.ala.profile.util.Utils
 import au.org.ala.web.AuthService
 import au.org.ala.ws.service.WebService
 import com.mongodb.BasicDBObject
+import com.mongodb.DBCollection
 import com.mongodb.MapReduceCommand
 import com.mongodb.MapReduceOutput
+import com.mongodb.client.model.MapReduceAction
+import grails.plugins.elasticsearch.ElasticSearchService
 import org.apache.http.entity.ContentType
 import org.elasticsearch.index.query.BoolQueryBuilder
-import org.elasticsearch.index.query.FilterBuilder
+//import org.elasticsearch.index.query.FilterBuilder
 import org.elasticsearch.index.query.MatchQueryBuilder
 import org.elasticsearch.index.query.QueryBuilder
 import org.elasticsearch.search.sort.SortBuilders
+import org.bson.Document as BDocument
 import org.gbif.ecat.voc.Rank
-import org.grails.plugins.elasticsearch.ElasticSearchService
 import org.springframework.scheduling.annotation.Async
 
 import groovy.json.JsonSlurper
-import static org.elasticsearch.index.query.FilterBuilders.*
+
+import static au.org.ala.profile.util.MongoUtil.toBson
+
+//import static org.elasticsearch.index.query.FilterBuilders.*
 import static org.elasticsearch.index.query.MatchQueryBuilder.Operator.AND
 import static org.elasticsearch.index.query.MatchQueryBuilder.Operator.OR
 import static org.elasticsearch.index.query.QueryBuilders.*
@@ -77,7 +84,8 @@ class SearchService extends BaseDataAccessService {
                 // if there is a term, then we need to use the ES relevance sorting, so we don't need a SortBuilder
             }
 
-            QueryBuilder query = filteredQuery(tQuery, buildFilter(accessibleCollections, options.includeArchived, filterLists))
+//            QueryBuilder query = filteredQuery(tQuery, buildFilter(accessibleCollections, options.includeArchived, filterLists))
+            QueryBuilder query = boolQuery().must(tQuery).filter(buildFilter(accessibleCollections, options.includeArchived, filterLists))
             log.debug(query)
 
             long start = System.currentTimeMillis()
@@ -220,21 +228,21 @@ class SearchService extends BaseDataAccessService {
                 .must(matchQuery("text", term).operator(AND))
     }
 
-    private static FilterBuilder buildFilter(String[] accessibleCollections, boolean includeArchived = false, Map<String, List<String>> filterLists = [:]) {
-        FilterBuilder filter = boolFilter()
+    private static QueryBuilder buildFilter(String[] accessibleCollections, boolean includeArchived = false, Map<String, List<String>> filterLists = [:]) {
+        QueryBuilder filter = boolQuery()
         if (!includeArchived) {
-            filter.must(missingFilter("archivedDate"))
+            filter.mustNot(existsQuery("archivedDate"))
         }
 
 
         filter.should(
                 *(accessibleCollections.collect { uuid ->
-                    def masterListFilter = boolFilter()
-                            .must(nestedFilter("opus", boolFilter().must(termFilter("opus.uuid", uuid))))
+                    def masterListFilter = boolQuery()
+                            .must(nestedQuery("opus", boolQuery().must(termQuery("opus.uuid", uuid))))
 
                     def filterList = filterLists[uuid]
                     if (filterList != null) {
-                        masterListFilter.must(termsFilter("scientificNameLower", filterList))
+                        masterListFilter.must(termsQuery("scientificNameLower", filterList))
                     }
                     masterListFilter
                 })
@@ -322,14 +330,14 @@ class SearchService extends BaseDataAccessService {
 
             // Using a MongoDB Aggregation instead of a GORM Criteria query so we can take advantage of the ability to
             // calculate derived properties in the projection, and sort based on the contents of an array
-            def aggregation = Profile.collection.aggregate([
+            def aggregation = Profile.collection.aggregate(toBson([
                     [$match: criteria],
                     [$project: projection],
                     [$sort: sort],
                     [$skip: startFrom], [$limit: max]
-            ])
+            ]))
 
-            def aggregrateResult = aggregation.results()
+            def aggregrateResult = aggregation.toList()//.results()
 
             if (autoCompleteScientificName) {
                 aggregrateResult = aggregrateResult.unique {it.scientificName}
@@ -384,13 +392,14 @@ class SearchService extends BaseDataAccessService {
 
         // Using a MongoDB Aggregation instead of a GORM Criteria query so we can take advantage of the ability to
         // calculate derived properties in the projection, and sort based on the contents of an array
-        def aggregation = Profile.collection.aggregate(pipeline + [
+        def aggregation = Profile.collection.aggregate(toBson(pipeline + [
                 [$sort: sort],
                 [$skip: startFrom], [$limit: max]
-        ])
+        ]))
 
         int order = 0
-        aggregation.results().collect {
+        def aggregationResults = aggregation.toList()
+        aggregationResults.collect {
             Opus opus = opusMap ? opusMap[it.opus] : Opus.get(it.opus)
 
             [
@@ -425,22 +434,22 @@ class SearchService extends BaseDataAccessService {
 
         def pipeline = commonClassificationAndRankAggregationElements(rank, scientificName, opusList, immediateChildrenOnly)
 
-        def countResult = Profile.collection.aggregate(pipeline + [
+        def countResult = Profile.collection.aggregate(toBson(pipeline + [
                 [$group: ['_id': null, count: [ $sum: 1 ]]]
-        ])
-        def results = countResult.results()
+        ]))
+//        def results = countResult.results()
 
-        return results ? results[0]?.count ?: 0 : 0
+        return countResult.first()?.count ?: 0 //results ? results[0]?.count ?: 0 : 0
     }
 
     boolean hasDescendantsByClassificationAndRank(String rank, String scientificName, Opus opus, boolean immediateOnly) {
         def pipeline = commonClassificationAndRankAggregationElements(rank, scientificName, [opus], immediateOnly)
 
-        def aggregation = Profile.collection.aggregate(pipeline + [
+        def aggregation = Profile.collection.aggregate(toBson(pipeline + [
                 [$skip: 0], [$limit: 1]
-        ])
+        ]))
 
-        return (aggregation.results()?.size() ?: 0) > 0
+        return aggregation.first() != null // (aggregation.results()?.size() ?: 0) > 0
     }
 
     private List<Map> commonClassificationAndRankAggregationElements(String rank, String scientificName, List<Opus> opusList, boolean immediateChildrenOnly) {
@@ -516,7 +525,7 @@ class SearchService extends BaseDataAccessService {
         filter = Utils.sanitizeRegex(filter)?.trim()?.toLowerCase()
 
         List results = []
-        MapReduceOutput hierarchyView = null
+        def tempCollectionName = UUID.randomUUID().toString().replaceAll("-", "")
 
         def filterList = masterListService.getCombinedLowerCaseNamesListForUser(opus)
 
@@ -608,26 +617,36 @@ class SearchService extends BaseDataAccessService {
             BasicDBObject query = new BasicDBObject()
             query.put("opus", opus.id)
 
-            MapReduceCommand command = new MapReduceCommand(Profile.collection, mapFunction, reduceFunction,
-                    UUID.randomUUID().toString().replaceAll("-", ""), MapReduceCommand.OutputType.REPLACE, query)
-            command.setFinalize(finalizeFunction)
-            command.setScope([
-                    filterList: filterList
-            ])
 
-            hierarchyView = Profile.collection.mapReduce(command)
+            def mrIterable = Profile.collection
+                    .mapReduce(mapFunction, reduceFunction)
+                    .collectionName(tempCollectionName)
+                    .action(MapReduceAction.REPLACE)
+                    .finalizeFunction(finalizeFunction)
+                    .filter(new BDocument([opus: opus.id]))
+                    .scope(new BDocument([filterList: filterList ]))
+            mrIterable.first() // need to get a result to actually trigger the map reduce in this driver...
+//            def dbCollection = Profile.getDB().getCollection('profile')
+//            MapReduceCommand command = new MapReduceCommand(Profile.collection, mapFunction, reduceFunction,
+//                    UUID.randomUUID().toString().replaceAll("-", ""), MapReduceCommand.OutputType.REPLACE, query)
+//            command.setFinalize(finalizeFunction)
+//            command.setScope([filterList: filterList ])
+
+
+//            hierarchyView = Profile.collection.mapReduce(command)
+            def outputCollection = Profile.getDB().getCollection(tempCollectionName)
 
             // Use an aggregation to extract the individual classification entries from the standard mongo 'value' object
             // and sort them by rank then name. The results are then flattened into a single list of classification entries
-            results = hierarchyView.getOutputCollection().aggregate([
+            results = outputCollection.aggregate(toBson([
                     [$unwind: '$value'],
                     [$sort: ["value.rankOrder": 1, "value.name": 1]],
                     [$skip: startFrom], [$limit: max < 0 ? DEFAULT_MAX_CHILDREN_RESULTS : max]
-            ])?.results()?.collect { it.value }?.flatten()
+            ]))?.collect { it.value }?.flatten()
 
-            // drop the temporary collection created during the map reduce process to clean up
         } finally {
-            hierarchyView?.drop()
+            // drop the temporary collection created during the map reduce process to clean up
+            Profile.getDB().getCollection(tempCollectionName)?.drop()
         }
 
         results
@@ -642,11 +661,11 @@ class SearchService extends BaseDataAccessService {
 
         if (opus) {
             def filterList = masterListService.getCombinedLowerCaseNamesListForUser(opus)
-            groupedRanks = Profile.collection.aggregate([[$match: matchForOpus(opus, filterList)],
+            groupedRanks = Profile.collection.aggregate(toBson([[$match: matchForOpus(opus, filterList)],
                                                          [$unwind: '$classification'],
                                                          [$group: [_id: [rank: '$classification.rank', name: '$classification.name'], cnt: [$sum: 1]]],
-                                                         [$group: [_id: '$_id.rank', total: [$sum: 1]]]]
-            ).results().iterator().collectEntries {
+                                                         [$group: [_id: '$_id.rank', total: [$sum: 1]]]])
+            ).collectEntries {
                 [(it._id): it.total]
             }
 
@@ -679,13 +698,13 @@ class SearchService extends BaseDataAccessService {
                 }
 
             } else {
-                def result = Profile.collection.aggregate([$match: matchForOpus(opus, filterList)],
+                def result = Profile.collection.aggregate(toBson([[$match: matchForOpus(opus, filterList)],
                         [$unwind: '$classification'],
                         [$match: ["classification.rank": taxon, "classification.name": [$regex: /^${filter}/, $options: "i"]]],
                         [$group: [_id: '$classification.name', cnt: [ $sum: [$cond: [ if: [$ne:['$rank', taxon]] , then: 1, else: 0]]]]],
                         [$sort: ["_id": 1]],
-                        [$skip: startFrom], [$limit: max < 0 ? DEFAULT_MAX_BROAD_SEARCH_RESULTS : max]
-                )?.results()
+                        [$skip: startFrom], [$limit: max < 0 ? DEFAULT_MAX_BROAD_SEARCH_RESULTS : max]])
+                )
 
                 groupedTaxa = result.collectEntries {
                     [(it.get("_id")): it.get("cnt")]

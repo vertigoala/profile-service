@@ -51,6 +51,10 @@ class DraftProfile {
     // didn't fail because of that.
     static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'documents', 'attributes', 'stagedImages', 'imageSettings', 'privateImages', 'attachments']
 
+    static mapping = {
+        autoTimestamp true
+    }
+
     static constraints = {
         nameAuthor nullable: true
         guid nullable: true

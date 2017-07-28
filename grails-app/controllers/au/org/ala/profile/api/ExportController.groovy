@@ -41,10 +41,10 @@ class ExportController extends BaseController {
             if (!opus) {
                 notFound "No matching collection was found for opus id ${params.opusId}"
             } else {
-                int max = params.max ? params.max as int : DEFAULT_MAXIMUM_PAGE_SIZE
-                int offset = params.offset ? params.offset as int : 0
-                boolean includeArchived = params.includeArchived?.toBoolean()
-                boolean summary = params.summary?.toBoolean()
+                int max = params.int('max', DEFAULT_MAXIMUM_PAGE_SIZE)
+                int offset = params.int('offset', 0)
+                boolean includeArchived = params.boolean('includeArchived', false)
+                boolean summary = params.boolean('summary', false)
 
                 response.contentType = ContentType.JSON
                 exportService.exportCollection(response.outputStream, opus, max, offset, summary, includeArchived)
@@ -60,7 +60,7 @@ class ExportController extends BaseController {
             List<String> tags = params.tags?.split(",") ?: []
             List<String> profileNames = params.profileNames?.split(",") ?: []
             List<String> guids = params.guids?.split(",") ?: []
-            boolean summary = params.summary?.toBoolean()
+            boolean summary = params.boolean('summary')
 
             response.contentType = ContentType.JSON
             exportService.exportProfiles(response.outputStream, opusIds, tags, profileNames, guids, summary)

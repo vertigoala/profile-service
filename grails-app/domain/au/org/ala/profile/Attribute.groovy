@@ -4,8 +4,8 @@ import au.org.ala.profile.sanitizer.SanitizedHtml
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
-@EqualsAndHashCode
-@ToString
+@EqualsAndHashCode(includes = ['uuid', 'title', 'text', 'source'])
+@ToString(includes = ['uuid', 'title', 'text', 'source'])
 class Attribute implements Comparable<Attribute> {
 
     static auditable = true

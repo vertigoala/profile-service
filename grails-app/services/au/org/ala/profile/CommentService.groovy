@@ -22,9 +22,13 @@ class CommentService extends BaseDataAccessService {
             Comment parent = Comment.findByUuid(json.parentCommentId);
             checkState parent
 
-            parent.addToChildren(comment)
             comment.uuid = UUID.randomUUID().toString()
-            success = save parent
+            success = save comment
+
+            if (success) {
+                parent.addToChildren(comment)
+                success &= save parent
+            }
         } else {
             success = save comment
         }

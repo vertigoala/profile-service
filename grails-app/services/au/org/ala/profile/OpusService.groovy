@@ -4,9 +4,9 @@ import au.org.ala.profile.security.Role
 import au.org.ala.profile.util.*
 import au.org.ala.web.AuthService
 import com.mongodb.DBObject
+import grails.plugin.dropwizard.metrics.meters.Metered
+import grails.plugin.dropwizard.metrics.timers.Timed
 import org.grails.datastore.mapping.mongo.query.MongoQuery
-import org.grails.plugins.metrics.groovy.Metered
-import org.grails.plugins.metrics.groovy.Timed
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.commons.CommonsMultipartFile
 
@@ -280,7 +280,7 @@ class OpusService extends BaseDataAccessService {
         checkState opus
 
         if (json.containsKey("authorities")) {
-            List<String> incomingIds = json.authorities?.findResults { it.uuid }
+            Set<String> incomingIds = json.authorities?.findResults { it.uuid }?.toSet()
 
             List<Authority> authoritiesToRemove = []
             Map<String, Authority> existingAuthorities = [:]
@@ -301,13 +301,16 @@ class OpusService extends BaseDataAccessService {
                     auth.notes = it.notes
                     auth.role = Role.valueOf(it.role.toUpperCase())
                     auth.user = getOrCreateContributor(it.name, it.userId)
+                    auth.save()
                 } else {
                     Contributor user = getOrCreateContributor(it.name, it.userId)
                     Role role = Role.valueOf(it.role.toUpperCase())
                     if (opus.authorities == null) {
                         opus.authorities = []
                     }
-                    opus.authorities << new Authority(uuid: UUID.randomUUID().toString(),user: user, role: role, notes: it.notes)
+                    def authority = new Authority(uuid: UUID.randomUUID().toString(),user: user, role: role, notes: it.notes)
+                    authority.save()
+                    opus.addToAuthorities(authority)
                 }
             }
 
@@ -701,8 +704,8 @@ class OpusService extends BaseDataAccessService {
         importService.asyncSyncroniseMasterList(opus.uuid, true)
     }
 
-    @Timed
-    @Metered
+    @Timed('isProfileOnMasterListTimer')
+    @Metered('isProfileOnMasterListMeter')
     boolean isProfileOnMasterList(Opus opus, profile) {
         if (!opus.masterListUid || !profile) return true
 

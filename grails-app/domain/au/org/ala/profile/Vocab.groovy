@@ -3,8 +3,8 @@ package au.org.ala.profile
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
-@EqualsAndHashCode
-@ToString
+@EqualsAndHashCode(includes = ['uuid','name','strict'])
+@ToString(includes = ['uuid','name','strict'])
 class Vocab {
 
     String uuid

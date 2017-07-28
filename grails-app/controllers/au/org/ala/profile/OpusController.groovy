@@ -502,7 +502,7 @@ class OpusController extends BaseController {
             } else {
                 def json = request.getJSON()
                 def listId = json.florulaListId
-                UserDetails userDetails = (UserDetails) request.getAttribute(AuditFilters.REQUEST_USER_DETAILS_KEY)
+                UserDetails userDetails = (UserDetails) request.getAttribute(AuditInterceptor.REQUEST_USER_DETAILS_KEY)
                 if (!userDetails.userId) {
                     badRequest "Ain't no user"
                 }

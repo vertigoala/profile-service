@@ -1,10 +1,11 @@
 package au.org.ala.profile
 
-import au.org.ala.profile.util.CloneAndDraftUtil
 import au.org.ala.profile.util.NSLNomenclatureMatchStrategy
 import au.org.ala.profile.util.Utils
 import com.google.common.collect.Sets
 import grails.converters.JSON
+import grails.plugin.dropwizard.metrics.meters.Metered
+import grails.plugin.dropwizard.metrics.timers.Timed
 import groovy.transform.ToString
 import groovyx.gpars.actor.Actors
 import groovyx.gpars.actor.DefaultActor
@@ -12,8 +13,6 @@ import groovyx.gpars.dataflow.Promise
 import groovyx.net.http.ContentType
 import groovyx.net.http.RESTClient
 import org.apache.http.HttpStatus
-import org.grails.plugins.metrics.groovy.Metered
-import org.grails.plugins.metrics.groovy.Timed
 import org.springframework.scheduling.annotation.Async
 
 import javax.annotation.PreDestroy
@@ -413,8 +412,8 @@ class ImportService extends BaseDataAccessService {
         }
     }
 
-    @Timed
-    @Metered
+    @Timed('syncMasterListTimer')
+    @Metered('syncMasterListMeter')
     private def syncMasterList(Opus collection, boolean forceStubRegeneration = false) {
 
         def colId = collection.shortName ?: collection.uuid

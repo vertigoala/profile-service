@@ -9,8 +9,10 @@ class BaseDataAccessService {
         boolean saved
 
         if (entity.errors.allErrors.size() > 0) {
-            log.error("Failed to save ${entity}")
-            entity.errors.each { log.error(it) }
+            log.error("Failed to save {}", entity)
+            entity.errors.each {
+                log.error("{}", it)
+            }
             saved = false
         } else {
             log.info("Saved ${entity}")

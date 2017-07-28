@@ -7,8 +7,8 @@ import org.bson.types.ObjectId
 
 import javax.persistence.Transient
 
-@EqualsAndHashCode
-@ToString
+@EqualsAndHashCode(includes = ['guid', 'scientificName', 'nameAuthor', 'fullName', 'rank', 'opus'])
+@ToString(includes = ['guid', 'scientificName', 'nameAuthor', 'fullName', 'rank', 'opus'])
 class Profile {
 
     private static final String NOT_ANALYZED_INDEX = "not_analyzed"
@@ -23,9 +23,9 @@ class Profile {
         only = ["uuid", "guid", "scientificName", "fullName", "matchedName", "rank", "primaryImage", "opus",
                 "attributes", "lastUpdated", "archivedDate", "archivedWithName", "scientificNameLower",
                 "archivedNameLower", "matchedNameLower", "fullNameLower", "nameAuthor", 'profileStatus']
-        scientificName multi_field: true, boost: 20
-        archivedWithName multi_field: true, boost: 20
-        matchedName component: true, boost: 10
+        scientificName multi_field: true // TODO add to queries, boost: 20
+        archivedWithName multi_field: true // TODO add to queries, boost: 20
+        matchedName component: true // TODO add to queries, boost: 10
         opus component: true
         attributes component: true
         nslNameIdentifier index: NOT_ANALYZED_INDEX
