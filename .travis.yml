@@ -26,7 +26,7 @@ before_install:
   - export TZ=Australia/Canberra
   - date
 script:
-  - ./grailsw --non-interactive test-app
+  - ./grailsw test-app
   - ./gradlew -Dgrails.env=prod assemble
 #  - ./grailsw refresh-dependencies --non-interactive
 #  - ./grailsw test-app --non-interactive
