@@ -193,7 +193,11 @@ log4j = {
 
     debug   "grails.app",
 //            "org.grails.plugins.elasticsearch",
-            "au.org.ala"
+            "au.org.ala.web",
+	        "au.org.ala.ws",
+            'au.org.ala.cas',
+            "grails.app.filters.au.org.ala.web",
+	        "grails.app.filters.au.org.ala.ws"
 
     trace   "grails.app.services.au.org.ala.profile.MasterListService"
 }
