@@ -106,7 +106,7 @@ class ProfileController extends BaseController {
                     if (!attachment) {
                         notFound "No attachment exists in profile ${params.profileId} with id ${params.attachmentId}"
                     } else {
-                        attachment.downloadUrl = "${grailsApplication.config.grails.serverURL}/opus/${profile.opus.uuid}/profile/${profile.uuid}/attachment/${attachment.uuid}/download"
+                        attachment.downloadUrl = "${grailsApplication.config.profile.hub.base.url}/opus/${profile.opus.uuid}/profile/${profile.uuid}/attachment/${attachment.uuid}/download"
                         render ([attachment] as JSON)
                     }
                 } else {
@@ -116,7 +116,7 @@ class ProfileController extends BaseController {
                         // external resource. If they have a local file, then the filename property will be set. If they
                         // are an external link, then the url property will be set.
                         if (it.filename) {
-                            it.downloadUrl = "${grailsApplication.config.grails.serverURL}/opus/${profile.opus.uuid}/profile/${profile.uuid}/attachment/${it.uuid}/download"
+                            it.downloadUrl = "${grailsApplication.config.profile.hub.base.url}/opus/${profile.opus.uuid}/profile/${profile.uuid}/attachment/${it.uuid}/download"
                         }
                     }
 
