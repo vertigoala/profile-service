@@ -68,6 +68,7 @@ class OpusMarshaller {
                     hasAboutPage               : opus.aboutHtml != null,
                     profileCount               : opus.profileCount,
                     florulaListId              : opus.florulaListId ?: '',
+                    aboutHtml                  : opus.aboutHtml,
                     citationHtml               : opus.citationHtml,
                     citationProfile            : opus.citationProfile,
                     accessToken                : opus.accessToken,
