@@ -85,29 +85,42 @@ class VocabService extends BaseDataAccessService {
         term
     }
 
-    int findUsagesOfTerm(String vocabId, String termName) {
+    int findUsagesOfTerm(String opusId, String vocabId, String termName) {
+
         Term term = Term.findByVocabAndNameIlike(Vocab.findByUuid(vocabId), termName)
 
-        List<Attribute> attributes = Attribute.findAllByTitle(term)
+        Opus opus = Opus.findByUuid(opusId)
+        if (opus.authorshipVocabUuid == vocabId) {
+            List<Profile> profiles = Profile.findAll {authorship.category == term.id || draft.authorship.category == term.id}
 
-        attributes.size()
+            return profiles.size()
+
+        } else {
+            List<Attribute> attributes = Attribute.findAllByTitle(term)
+
+            attributes.size()
+        }
     }
 
-    Map<String, Integer> replaceUsagesOfTerm(json) {
+    Map<String, Integer> replaceUsagesOfTerm(String opusId, jsonMap) {
+
+        def json = jsonMap.list
         log.debug("Replacing vocabulary term usages: ${json}")
 
         Map<String, Integer> replacedUsages = [:]
 
-        json.each { replacement ->
-            int replaced = replaceTerm(json.vocabId, json.existingTermName, json.newTermName)
+        Opus opus = Opus.findByUuid(opusId)
 
-            replacedUsages << [(json.existingTermName): replaced]
+        json.each { replacement ->
+            int replaced = replaceTerm(opus, replacement.vocabId, replacement.existingTermName, replacement.newTermName)
+
+            replacedUsages << [(replacement.existingTermName): replaced]
         }
 
         replacedUsages
     }
 
-    def replaceTerm = { vocabId, existingTermName, newTermName ->
+    def replaceTerm = { opus, vocabId, existingTermName, newTermName ->
         int replacedUsages = 0
 
         Term existingTerm = Term.findByVocabAndNameIlike(Vocab.findByUuid(vocabId), existingTermName)
@@ -115,14 +128,37 @@ class VocabService extends BaseDataAccessService {
         if (existingTerm) {
             Term newTerm = getOrCreateTerm(newTermName, vocabId)
 
-            List<Attribute> attributes = Attribute.findAllByTitle(existingTerm)
+            if (opus.authorshipVocabUuid == vocabId) {
+                List<Profile> profiles = Profile.findAll {authorship.category == existingTerm.id || draft.authorship.category == existingTerm.id}
 
-            attributes.each {
-                it.title = newTerm
+                profiles.each {
+                    it.authorship.each {a ->
+                        if (a.category == existingTerm) {
+                            a.category = newTerm
+                        }
+                    }
+                    it.draft.each {d ->
+                        d.authorship.each { a ->
+                            if (a.category == existingTerm) {
+                                a.category = newTerm
+                            }
+                        }
+                    }
+                    save it
 
-                save it
+                    replacedUsages++
+                }
+            } else {
 
-                replacedUsages++
+                List<Attribute> attributes = Attribute.findAllByTitle(existingTerm)
+
+                attributes.each {
+                    it.title = newTerm
+
+                    save it
+
+                    replacedUsages++
+                }
             }
 
             existingTerm.delete()
