@@ -1,11 +1,15 @@
 package au.org.ala.profile
 
 import org.springframework.transaction.annotation.Transactional
-
+import com.gmongo.GMongo
+import com.mongodb.*
 import javax.persistence.PersistenceException
 
 @Transactional
 class VocabService extends BaseDataAccessService {
+
+    GMongo mongo
+    def grailsApplication
 
     boolean updateVocab(String vocabId, Map data) {
         log.debug("Updating vocabulary ${vocabId} with data ${data}")
@@ -59,13 +63,13 @@ class VocabService extends BaseDataAccessService {
         save vocab
     }
 
-    Term getOrCreateTerm(String name, String vocabId) {
+    Term getOrCreateTerm(String name, String vocabId, String excludeTerm = null) {
         Term term
 
         Vocab vocab = Vocab.findByUuid(vocabId);
 
         if (vocab) {
-            term = Term.findByVocabAndNameIlike(vocab, name)
+            term = excludeTerm? Term.findByVocabAndUuidNotEqualAndNameIlike(vocab, excludeTerm, name) : Term.findByVocabAndNameIlike(vocab, name)
 
             if (!term) {
                 if (vocab.strict) {
@@ -85,11 +89,12 @@ class VocabService extends BaseDataAccessService {
         term
     }
 
-    int findUsagesOfTerm(String opusId, String vocabId, String termName) {
+    int findUsagesOfTerm(String opusId, String vocabId, String termUuid) {
 
-        Term term = Term.findByVocabAndNameIlike(Vocab.findByUuid(vocabId), termName)
-
+        Term term = Term.findByVocabAndUuid(Vocab.findByUuid(vocabId), termUuid)
         Opus opus = Opus.findByUuid(opusId)
+
+        // Check if this is acknowledgement term
         if (opus.authorshipVocabUuid == vocabId) {
             List<Profile> profiles = Profile.findAll {authorship.category == term.id || draft.authorship.category == term.id}
 
@@ -99,6 +104,12 @@ class VocabService extends BaseDataAccessService {
             List<Attribute> attributes = Attribute.findAllByTitle(term)
 
             attributes.size()
+
+            // Draft for profiles store attributes as well
+            List<Profile> profiles = Profile.findAll {draft.attributes.title == term.id}
+
+            return (attributes.size() + profiles.size())
+
         }
     }
 
@@ -112,7 +123,7 @@ class VocabService extends BaseDataAccessService {
         Opus opus = Opus.findByUuid(opusId)
 
         json.each { replacement ->
-            int replaced = replaceTerm(opus, replacement.vocabId, replacement.existingTermName, replacement.newTermName)
+             int replaced = replaceTerm(opus, replacement.vocabId, replacement.existingTermId, replacement.newTermName)
 
             replacedUsages << [(replacement.existingTermName): replaced]
         }
@@ -120,48 +131,63 @@ class VocabService extends BaseDataAccessService {
         replacedUsages
     }
 
-    def replaceTerm = { opus, vocabId, existingTermName, newTermName ->
+
+
+    def replaceTerm = { opus, vocabId, existingTermId, newTermName ->
+
+        def db = mongo.getDB(grailsApplication.config.grails.mongo.databaseName)
         int replacedUsages = 0
 
-        Term existingTerm = Term.findByVocabAndNameIlike(Vocab.findByUuid(vocabId), existingTermName)
+        // There can be more than 1 terms having same term names. So, checking by term id is necessary.
+        Term existingTerm = Term.findByVocabAndUuid(Vocab.findByUuid(vocabId), existingTermId)
+        Term newTerm = getOrCreateTerm(newTermName, vocabId, existingTermId)
 
-        if (existingTerm) {
-            Term newTerm = getOrCreateTerm(newTermName, vocabId)
+        //Make sure both existing and new terms are valid before updating
+        if (existingTerm && newTerm) {
 
+            // Check if this is acknowledgement term
             if (opus.authorshipVocabUuid == vocabId) {
-                List<Profile> profiles = Profile.findAll {authorship.category == existingTerm.id || draft.authorship.category == existingTerm.id}
 
-                profiles.each {
-                    it.authorship.each {a ->
-                        if (a.category == existingTerm) {
-                            a.category = newTerm
-                        }
-                    }
-                    it.draft.each {d ->
-                        d.authorship.each { a ->
-                            if (a.category == existingTerm) {
-                                a.category = newTerm
-                            }
-                        }
-                    }
-                    save it
-
-                    replacedUsages++
+                // Bulk update for profiles and profiles draft acknowledgement term as GORM update takes long time for many records.
+                DBCollection profileCollection = db.getCollection("profile")
+                def updateQuery = new BasicDBObject('$set', new BasicDBObject('authorship.$.category', newTerm.id))
+                def searchQuery = new BasicDBObject(['authorship.category': existingTerm.id])
+                WriteResult updateResult = profileCollection.updateMulti(searchQuery, updateQuery)
+                if (updateResult && updateResult.n) {
+                    replacedUsages = updateResult.n
                 }
+
+                def draftUpdateQuery = new BasicDBObject('$set', new BasicDBObject('draft.authorship.$.category', newTerm.id))
+                def draftSearchQuery = new BasicDBObject(['draft.authorship.category': existingTerm.id])
+                WriteResult draftUpdateResult = profileCollection.updateMulti(draftSearchQuery, draftUpdateQuery)
+                if (draftUpdateResult && draftUpdateResult.n) {
+                    replacedUsages += draftUpdateResult.n
+                }
+
             } else {
 
-                List<Attribute> attributes = Attribute.findAllByTitle(existingTerm)
+                DBCollection profileCollection = db.getCollection("profile")
+                DBCollection attributeCollection = db.getCollection("attribute")
 
-                attributes.each {
-                    it.title = newTerm
-
-                    save it
-
-                    replacedUsages++
+                def attributeUpdateQuery = new BasicDBObject('$set', new BasicDBObject('title', newTerm.id))
+                def attributeSearchQuery = new BasicDBObject('title': existingTerm.id)
+                WriteResult attributeUpdateResult = attributeCollection.updateMulti(attributeSearchQuery, attributeUpdateQuery)
+                if (attributeUpdateResult && attributeUpdateResult.n) {
+                    replacedUsages = attributeUpdateResult.n
                 }
+
+                def draftUpdateQuery = new BasicDBObject('$set', new BasicDBObject('draft.attributes.$.title', newTerm.id))
+                def draftSearchQuery = new BasicDBObject(['draft.attributes.title': existingTerm.id])
+                WriteResult draftUpdateResult = profileCollection.updateMulti(draftSearchQuery, draftUpdateQuery)
+                if (draftUpdateResult && draftUpdateResult.n) {
+                    replacedUsages += draftUpdateResult.n
+                }
+
             }
 
-            existingTerm.delete()
+            if (replacedUsages > 0) {
+                existingTerm.delete()
+            }
         }
 
         replacedUsages
