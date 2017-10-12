@@ -73,7 +73,7 @@ class VocabController extends BaseController {
         if (!params.vocabId || !params.term) {
             badRequest()
         } else {
-            int usages = vocabService.findUsagesOfTerm(params.vocabId, params.term)
+            int usages = vocabService.findUsagesOfTerm(params.opusId, params.vocabId, params.term)
 
             render([usageCount: usages] as JSON)
         }
@@ -84,7 +84,7 @@ class VocabController extends BaseController {
         if (!json) {
             badRequest()
         } else {
-            Map<String, Integer> usages = vocabService.replaceUsagesOfTerm(json)
+            Map<String, Integer> usages = vocabService.replaceUsagesOfTerm(params.opusId, json)
 
             render([usages: usages] as JSON)
         }
