@@ -12,6 +12,7 @@ import groovyx.gpars.dataflow.Promise
 import groovyx.net.http.ContentType
 import groovyx.net.http.RESTClient
 import org.apache.http.HttpStatus
+import org.grails.plugins.elasticsearch.ElasticSearchService
 import org.grails.plugins.metrics.groovy.Metered
 import org.grails.plugins.metrics.groovy.Timed
 import org.springframework.scheduling.annotation.Async
@@ -29,6 +30,7 @@ class ImportService extends BaseDataAccessService {
 
     ProfileService profileService
     NameService nameService
+    ElasticSearchService elasticSearchService
     def grailsApplication
     def masterListService
 
@@ -377,6 +379,17 @@ class ImportService extends BaseDataAccessService {
 
     final static int EMPTY_PROFILE_VERSION = 3
 
+    //Adds a basic level of monitoring to the master list synchronisation so the UI can be more responsive
+    // without interfering with the current execution model implemented already in this class
+    /**
+     * Return true if there is currently a synchronisation underway for the current opus
+     * @param uuid The opus UUID
+     * @return true if the current Opus masterlist is being synchronised
+     */
+    boolean isMasterListSyncing(String uuid) {
+        runningActors.contains(uuid)
+    }
+
     /**
      * Syncronise the master list for the given Opus UUID and wait for the result before returning.
      *
@@ -461,6 +474,7 @@ class ImportService extends BaseDataAccessService {
                 }
 
                 Profile.deleteAll(toDelete)
+                elasticSearchService.unindex(toDelete)
                 def deleteCount = toDelete.size()
 
                 log.info("Sync Master List for ${colId} deleted ${deleteCount} existing empty records which do not exist on master list")
@@ -473,6 +487,7 @@ class ImportService extends BaseDataAccessService {
                 }
 
                 Profile.deleteAll(toDelete)
+                elasticSearchService.unindex(toDelete)
                 deleteCount = toDelete.size()
                 log.info("Sync Master List for ${colId} deleted ${deleteCount} ${forceStubRegeneration ? '' : 'outdated '}empty records")
                 toDelete.clear()
@@ -609,18 +624,22 @@ class ImportService extends BaseDataAccessService {
         }
     }
 
+    Map<String, DefaultActor> actors = [:].withDefault(createUuidSyncActor)
+
+    // Actor for an opus is either running or not
+    Set<String> runningActors = [] as Set
+
     // This actor responds to SyncActorMessages and creates a new actor per Opus UUID on
     // demand when a SyncMessage arrives, the response of the child actor will then be
     // routed to the sender of the original message
     def syncActor = Actors.actor {
-        Map<String, DefaultActor> actors = [:].withDefault(createUuidSyncActor)
 
         loop {
             react { message ->
                 switch (message) {
                     case SyncActorMessage.SyncMessage:
                         if (message.uuid) {
-                            def actor = actors[message.uuid]
+                            DefaultActor actor = actors[message.uuid]
                             actor.send(message, sender) // send the result to the sender
                         }
                         break
@@ -635,6 +654,8 @@ class ImportService extends BaseDataAccessService {
             }
         }
     }
+
+
 
     /* sealed */ static class SyncActorMessage {
         @ToString final static class ShutdownMessage extends SyncActorMessage { final static INSTANCE = new ShutdownMessage() }
@@ -652,6 +673,7 @@ class ImportService extends BaseDataAccessService {
 
     private SyncResponse syncMasterListForActor(String opusUuid, boolean forceStubRegeneration = false) {
         try {
+            runningActors.add(opusUuid)
             return Opus.withNewSession { session ->
                 def opus = Opus.findByUuid(opusUuid)
                 if (opus) {
@@ -663,6 +685,8 @@ class ImportService extends BaseDataAccessService {
             }
         } catch (Exception e) {
             return new SyncResponse.SyncFailed(exception: e)
+        } finally {
+            runningActors.remove(opusUuid)
         }
     }
 

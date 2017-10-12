@@ -474,6 +474,22 @@ class OpusController extends BaseController {
         }
     }
 
+    def isMasterListSyncing() {
+        if (!params.opusId) {
+            badRequest "opusId is required"
+        } else {
+            Opus opus = getOpus()
+            if (opus) {
+                def result = importService.isMasterListSyncing(opus.uuid)
+                response.status = 200
+                render([response:result] as JSON)
+            } else {
+                notFound 'opus not found'
+            }
+        }
+    }
+
+
     def getMasterListKeybaseItems() {
         if (!params.opusId) {
             badRequest "opusId is required"
