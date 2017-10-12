@@ -1,20 +1,25 @@
 package au.org.ala.profile
 
+import org.grails.plugins.elasticsearch.ElasticSearchService
+
 class ImportServiceSpec extends BaseIntegrationSpec {
 
     ImportService importService
     MasterListService masterListService
     NameService nameService
     ProfileService profileService
+    ElasticSearchService elasticSearchService
 
     def setup() {
         masterListService = Stub(MasterListService)
         nameService = Stub(NameService)
         profileService = Stub(ProfileService)
+        elasticSearchService = Stub(ElasticSearchService)
         importService = new ImportService()
         importService.masterListService = masterListService
         importService.nameService = nameService
         importService.profileService = profileService
+        importService.elasticSearchService = elasticSearchService
 
         masterListService.getMasterList(_) >> { opus -> [['name': 'a', 'scientificName': 'a'], ['name': 'b', 'scientificName': 'b'], ['name': 'C', 'scientificName': 'C']]}
 
