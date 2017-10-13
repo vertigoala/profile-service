@@ -41,6 +41,7 @@ class SearchService extends BaseDataAccessService {
     MasterListService masterListService
     WebService webService
     def grailsApplication
+    OpusService opusService
 
     Map search(List<String> opusIds, String term, int offset, int pageSize, SearchOptions options) {
         log.debug("Searching for ${term} in collection(s) ${opusIds} with options ${options}")
@@ -332,7 +333,12 @@ class SearchService extends BaseDataAccessService {
             def aggregrateResult = aggregation.results()
 
             if (autoCompleteScientificName) {
-                aggregrateResult = aggregrateResult.unique {it.scientificName}
+                aggregrateResult = aggregrateResult.unique { it.scientificName }
+
+                aggregrateResult = aggregrateResult.grep {
+                    Opus opus = opusMap ? opusMap[it.opus] : Opus.get(it.opus)
+                    opusService.isProfileOnMasterList(opus, it)
+                }
             }
 
             int order = 0;
