@@ -102,6 +102,7 @@ class Profile {
 
     String scientificNameLower
 
+    ProfileSettings profileSettings
     @Transient
     String getFullNameLower() { fullName?.toLowerCase() }
     @Transient
@@ -109,7 +110,7 @@ class Profile {
     @Transient
     String getMatchedNameLower() { matchedName?.scientificName?.toLowerCase() }
 
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'documents', 'matchedName', 'privateImages', 'attachments', 'imageSettings']
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'documents', 'matchedName', 'privateImages', 'attachments', 'imageSettings', 'profileSettings']
 
     static hasMany = [attributes: Attribute]
 
@@ -144,6 +145,7 @@ class Profile {
         profileStatus nullable: true
         emptyProfileVersion nullable: true
         lastPublished nullable: true
+        profileSettings nullable: true
     }
 
     static mapping = {

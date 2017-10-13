@@ -140,6 +140,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
                 bhlLinks: [new Link(uuid: "B1", title: "bhl1")],
                 bibliography: [new Bibliography(uuid: "B1", text: "bib1")],
                 authorship: [new Authorship(term: term, text: "bib1")],
+                profileSettings: [formatNameWithNormalText: true]
         )
         save existingProfile
 
@@ -163,6 +164,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         newProfile.bibliography[0] != existingProfile.bibliography[0]
         newProfile.authorship.size() == 1
         !newProfile.authorship[0].is(existingProfile.authorship[0]) // authorship doens't have an ID, so object equality will match, but reference equality should not
+        newProfile.profileSettings.formatNameWithNormalText
     }
 
     def "duplicateProfile should clone the attributes for the profile being duplicated"() {
@@ -444,6 +446,19 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         }
     }
 
+    def "createProfile should create profileSettings"() {
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        String image = UUID.randomUUID().toString()
+
+        when:
+        Profile profile = service.createProfile(opus.uuid, [scientificName: "sciName", profileSettings: [formatNameWithNormalText: true]])
+
+        then:
+        Profile.withNewSession { s ->
+            Profile.findByOpusAndScientificName(opus, 'sciName').profileSettings.formatNameWithNormalText
+        }
+    }
 
     def "saveSpecimens should change the specimens only if the incoming data has the specimenIds attribute and the value is different"() {
         given:
@@ -1413,6 +1428,20 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile.draft.authorship.size() == 1
         profile.draft.authorship[0].text == "Sarah"
         profile.draft.authorship[0].category.name == "Author"
+    }
+
+    def "saveProfileSettings should create an embedded profileSettings"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+        Profile profile = new Profile(opus: opus, scientificName: "sciName")
+        save profile
+
+        when: "the incoming profileSettings is not empty"
+        service.saveProfileSettings(profile.uuid, [profileSettings: [formatNameWithNormalText:true]])
+
+        then: "profile.profileSettings is populated with the json settings"
+        profile.profileSettings.formatNameWithNormalText
     }
 
     def "toggleDraftMode should create a new draft Profile if one does not exist"() {

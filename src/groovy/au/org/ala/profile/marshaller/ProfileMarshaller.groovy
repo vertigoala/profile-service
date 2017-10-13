@@ -64,7 +64,8 @@ class ProfileMarshaller {
                     lastPublished            : profile.lastPublished,
                     occurrenceQuery          : profile.occurrenceQuery,
                     isCustomMapConfig        : profile.isCustomMapConfig,
-                    profileStatus            : profile.profileStatus
+                    profileStatus            : profile.profileStatus,
+                    profileSettings          : profile.profileSettings? [ formatNameWithNormalText: profile.profileSettings.formatNameWithNormalText]: null
             ]
         }
     }

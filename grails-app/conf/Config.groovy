@@ -187,9 +187,9 @@ log4j = {
             'grails.app.taglib.org.grails.plugin.resource',
             'grails.app.resourceMappers.org.grails.plugin.resource'
 
-    info    'au.org.ala.ws.security',
-            'au.org.ala.cas',
-            'grails.app.filters.au.org.ala.ws.security'
+//    info    'au.org.ala.ws.security',
+//            'au.org.ala.cas',
+//            'grails.app.filters.au.org.ala.ws.security'
 
     debug   "grails.app",
 //            "org.grails.plugins.elasticsearch",
@@ -197,7 +197,10 @@ log4j = {
 	        "au.org.ala.ws",
             'au.org.ala.cas',
             "grails.app.filters.au.org.ala.web",
-	        "grails.app.filters.au.org.ala.ws"
+	        "grails.app.filters.au.org.ala.ws",
+            'au.org.ala.ws.security',
+            'grails.app.filters.au.org.ala.ws.security'
+
 
     trace   "grails.app.services.au.org.ala.profile.MasterListService"
 }

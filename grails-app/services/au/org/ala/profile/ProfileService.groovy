@@ -219,6 +219,9 @@ class ProfileService extends BaseDataAccessService {
             profile.attributes.each {
                 profile.addToAttributes(it)
             }
+
+            profile.profileSettings =
+                    new ProfileSettings(formatNameWithNormalText: sourceProfile?.profileSettings?.formatNameWithNormalText)
         }
     }
 
@@ -508,6 +511,8 @@ class ProfileService extends BaseDataAccessService {
 
         saveAuthorship(profile, json, true)
 
+        saveProfileSettings(profile, json, true)
+
         boolean success = save profile
 
         if (!success) {
@@ -559,6 +564,29 @@ class ProfileService extends BaseDataAccessService {
 
         saveAuthorship(profile, json)
     }
+
+    boolean saveProfileSettings(Profile profile, Map json, boolean deferSave = false) {
+        if (json.containsKey("profileSettings")) {
+            if (json.profileSettings) {
+                profileOrDraft(profile).profileSettings =
+                        new ProfileSettings(formatNameWithNormalText: json.profileSettings?.formatNameWithNormalText)
+            }
+            if (!deferSave) {
+                save profile
+            }
+        }
+    }
+
+    boolean saveProfileSettings(String profileId, Map json) {
+        checkArgument profileId
+        checkArgument json
+
+        Profile profile = Profile.findByUuid(profileId)
+        checkState profile
+
+        saveProfileSettings(profile, json)
+    }
+
 
     boolean saveImages(Profile profile, Map json, boolean deferSave = false) {
         checkArgument profile
