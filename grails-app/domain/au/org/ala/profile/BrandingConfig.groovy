@@ -11,6 +11,10 @@ class BrandingConfig {
 
     String profileBannerUrl // banner image for profile pages
 
+    String pdfBannerUrl
+
+    String pdfBackBannerUrl
+
     List<Logo> logos = []
     String thumbnailUrl
 
@@ -23,6 +27,8 @@ class BrandingConfig {
     static constraints = {
         opusBannerUrl nullable: true
         profileBannerUrl nullable: true
+        pdfBannerUrl nullable: true
+        pdfBackBannerUrl nullable: true
         thumbnailUrl nullable: true
         colourTheme nullable: true
         issn nullable: true, maxSize: 8, minSize: 8

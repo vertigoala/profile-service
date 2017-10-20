@@ -146,6 +146,10 @@ class OpusService extends BaseDataAccessService {
                     json.brandingConfig.opusBannerUrl : null
             opus.brandingConfig.profileBannerUrl = json.brandingConfig.profileBannerUrl ?
                     json.brandingConfig.profileBannerUrl : null
+            opus.brandingConfig.pdfBannerUrl = json.brandingConfig.pdfBannerUrl ?
+                    json.brandingConfig.pdfBannerUrl : null
+            opus.brandingConfig.pdfBackBannerUrl = json.brandingConfig.pdfBackBannerUrl ?
+                    json.brandingConfig.pdfBackBannerUrl : null
             opus.brandingConfig.colourTheme = json.brandingConfig.colourTheme ? json.brandingConfig.colourTheme : null
             opus.brandingConfig.issn = json.brandingConfig.issn ?: null
             opus.brandingConfig.pdfLicense = json.brandingConfig.pdfLicense ?: null
