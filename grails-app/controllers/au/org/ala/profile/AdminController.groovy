@@ -12,10 +12,8 @@ class AdminController extends BaseController {
 
     def rematchNames() {
         List opusIds = request.getJSON()?.opusIds ?: []
-
-        NameRematch result = adminService.rematchAllNames(opusIds)
-
-        render result as JSON
+        adminService.rematchAllNames(opusIds)
+        success [:]
     }
 
     def getTag(String tagId) {
