@@ -46,10 +46,11 @@ class DraftProfile {
     Date draftDate = new Date()
     String createdBy
     Date lastPublished
+    ProfileSettings profileSettings
 
     // Omitting imageSettings prevented mongo from storing the embedded Map properly, however the Integration Tests
     // didn't fail because of that.
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'documents', 'attributes', 'stagedImages', 'imageSettings', 'privateImages', 'attachments']
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'documents', 'attributes', 'stagedImages', 'imageSettings', 'privateImages', 'attachments', 'profileSettings']
 
     static constraints = {
         nameAuthor nullable: true
@@ -67,5 +68,6 @@ class DraftProfile {
         lastAttributeChange nullable: true
         occurrenceQuery nullable: true
         profileStatus nullable: true
+        profileSettings nullable: true
     }
 }

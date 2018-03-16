@@ -219,6 +219,8 @@ class ProfileService extends BaseDataAccessService {
             profile.attributes.each {
                 profile.addToAttributes(it)
             }
+            profile.profileSettings = new ProfileSettings(autoFormatProfileName: json.profileSettings?.autoFormatProfileName, formattedNameText: json.profileSettings?.formattedNameText)
+                //new ProfileSettings(formatNameWithNormalText: sourceProfile?.profileSettings?.formatNameWithNormalText)
         }
     }
 
@@ -508,6 +510,8 @@ class ProfileService extends BaseDataAccessService {
 
         saveAuthorship(profile, json, true)
 
+        saveProfileSettings(profile, json, true)
+
         boolean success = save profile
 
         if (!success) {
@@ -558,6 +562,33 @@ class ProfileService extends BaseDataAccessService {
         checkState profile
 
         saveAuthorship(profile, json)
+    }
+
+    boolean saveProfileSettings(Profile profile, Map json, boolean deferSave = false) {
+        if (json.containsKey("profileSettings")) {
+            if (json.profileSettings) {
+                if (!profileOrDraft(profile).profileSettings) {
+                    profileOrDraft(profile).profileSettings =
+                            new ProfileSettings(autoFormatProfileName: json.profileSettings?.autoFormatProfileName, formattedNameText: json.profileSettings?.formattedNameText)
+                } else {
+                    profileOrDraft(profile).profileSettings.autoFormatProfileName = json.profileSettings?.autoFormatProfileName
+                    profileOrDraft(profile).profileSettings.formattedNameText = json.profileSettings?.formattedNameText
+                }
+            }
+            if (!deferSave) {
+                save profile
+            }
+        }
+    }
+
+    boolean saveProfileSettings(String profileId, Map json) {
+        checkArgument profileId
+        checkArgument json
+
+        Profile profile = Profile.findByUuid(profileId)
+        checkState profile
+
+        saveProfileSettings(profile, json)
     }
 
     boolean saveImages(Profile profile, Map json, boolean deferSave = false) {

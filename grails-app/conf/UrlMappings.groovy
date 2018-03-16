@@ -99,6 +99,8 @@ class UrlMappings {
         "/opus/$opusId/profile/$profileId/publication" controller: "profile", action: [GET: "listPublications", POST: "savePublication"]
         "/opus/$opusId/profile/$profileId/publication/$publicationId/file" controller: "profile", action: [GET: "getPublicationFile"]
 
+        "/opus/$opusId/profile/$profileId/profileSettings" controller: "profile", action: [GET: "getProfileSettings", POST: "saveProfileSettings"]
+
         "/opus/$opusId/profile/$profileId/comment" controller: "comment", action: [GET: "getComments", PUT: "addComment"]
         "/opus/$opusId/profile/$profileId/comment/$commentId" controller: "comment", action: [GET: "getComment", POST: "updateComment", DELETE: "deleteComment"]
 

@@ -60,6 +60,22 @@ class ProfileController extends BaseController {
         }
     }
 
+    def saveProfilesSettings() {
+        def json = request.getJSON()
+
+        if (!params.profileId || !json) {
+            badRequest()
+        } else {
+            boolean saved = profileService.saveProfileSettings(params.profileId, json)
+
+            if (saved) {
+                render([success: saved] as JSON)
+            } else {
+                saveFailed()
+            }
+        }
+    }
+
     def savePublication() {
         MultipartFile file = null
         if (request instanceof MultipartHttpServletRequest) {
