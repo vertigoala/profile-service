@@ -88,7 +88,7 @@ class AdminService extends BaseDataAccessService {
         save rematch
     }
 
-    public boolean updateOccurrenceQuery(Object profile, boolean isDirty) {
+    boolean updateOccurrenceQuery(Object profile, boolean isDirty) {
         String name = profileService.getProfileIdentifierForMapQuery(profile)
         String query = profile.occurrenceQuery
         if (!query?.contains(name)) {
@@ -98,14 +98,18 @@ class AdminService extends BaseDataAccessService {
         isDirty
     }
 
-    public boolean updateProfileWithRematchedName(Object profile, boolean isDirty, Map results, Opus opus) {
+    boolean updateProfileWithRematchedName(Object profile, boolean isDirty, Map results, Opus opus) {
         Map<String, String> classification = profile.classification?.collectEntries {
             [(it.rank): it.name]
         } ?: [:]
 
         Map newMatchedName
         if (profile.manuallyMatchedName) {
-            newMatchedName = nameService.matchName(profile.matchedName.scientificName, classification, profile.matchedName.guid)
+            if (profile.matchedName) {
+                newMatchedName = nameService.matchName(profile.matchedName.scientificName, classification, profile.matchedName.guid)
+            } else {
+                log.info("Skip rematch, profile does not have a matched name: ${profile}")
+            }
         } else {
             newMatchedName = nameService.matchName(profile.scientificName, classification)
         }

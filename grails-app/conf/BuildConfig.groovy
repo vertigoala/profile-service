@@ -44,7 +44,7 @@ grails.project.dependency.resolution = {
     dependencies {
         // specify dependencies here under either 'build', 'compile', 'runtime', 'test' or 'provided' scopes e.g.
         test 'org.grails:grails-datastore-test-support:1.0.1-grails-2.4'
-        runtime ('au.org.ala:ala-name-matching:2.4.1-SNAPSHOT') {
+        runtime ('au.org.ala:ala-name-matching:2.4.1') {
             excludes 'lucene-queries', 'lucene-analyzers', 'lucene-core', 'lucene-analyzers-common', 'lucene-queryparser', 'lucene-sandbox', 'slf4j-log4j12'
         }
         compile "com.xlson.groovycsv:groovycsv:1.0"
