@@ -15,7 +15,7 @@ class AdminService extends BaseDataAccessService {
     ProfileService profileService
 
     @Async
-    void rematchAllNames(List<String> opusIds) {
+    NameRematch rematchAllNames(List<String> opusIds) {
         long start = System.currentTimeMillis()
 
         List<Opus> collections
@@ -86,6 +86,7 @@ class AdminService extends BaseDataAccessService {
         rematch.results = results
         rematch.endDate = new Date()
         save rematch
+        rematch
     }
 
     boolean updateOccurrenceQuery(Object profile, boolean isDirty) {
