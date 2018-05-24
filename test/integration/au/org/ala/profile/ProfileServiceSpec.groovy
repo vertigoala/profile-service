@@ -139,7 +139,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
                 links: [new Link(uuid: "L1", title: "link1")],
                 bhlLinks: [new Link(uuid: "B1", title: "bhl1")],
                 bibliography: [new Bibliography(uuid: "B1", text: "bib1")],
-                authorship: [new Authorship(term: term, text: "bib1")],
+                authorship: [new Authorship(term: term, text: "bib1")]
         )
         save existingProfile
 
