@@ -93,6 +93,43 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         profile == null
     }
 
+    def "createProfile with incorrect profile group should fail"() {
+        given:
+        Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
+        save opus
+
+        Opus calendar = new Opus(glossary: new Glossary(), dataResourceUid: "dr5678", title: "calendar")
+        save calendar
+
+        ProfileGroupService groupService = new ProfileGroupService()
+        ProfileGroup group = groupService.createGroup(calendar.uuid, [language: "language1", englishName: "test"])
+
+        when:
+        Profile profile = service.createProfile(opus.uuid, [scientificName: "sciName", group: group])
+
+        then:
+        profile == null
+    }
+
+    def "createProfile with correct profile group should return the new profile on success"() {
+        given:
+        Opus calendar = new Opus(glossary: new Glossary(), dataResourceUid: "dr5678", title: "calendar")
+        save calendar
+
+        ProfileGroupService groupService = new ProfileGroupService()
+        ProfileGroup group = groupService.createGroup(calendar.uuid, [language: "language1", englishName: "test"])
+
+        when:
+//        Profile profile = service.createProfile(calendar.uuid, [scientificName: "sciName", group: group])
+        Profile profile = new Profile(opus: calendar, scientificName: "sciName")
+        profile.group = group
+        save profile
+
+        then:
+        profile != null
+        profile.group == group
+    }
+
     def "createProfile should NOT automatically put the profile in draft mode if the Opus.autoDraftProfiles flag = false"() {
         given:
         Opus opus = new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title", autoDraftProfiles: false)
