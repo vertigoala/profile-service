@@ -102,7 +102,7 @@ class ProfileServiceSpec extends BaseIntegrationSpec {
         save calendar
 
         ProfileGroupService groupService = new ProfileGroupService()
-        ProfileGroup group = groupService.createGroup(calendar.uuid, [language: "language1", englishName: "test"])
+        ProfileGroup group = groupService.createGroup(calendar.uuid, [language: "language1", description: "test", seasonMonths: "Jan"])
 
         when:
         Profile profile = service.createProfile(opus.uuid, [scientificName: "sciName", group: group])
