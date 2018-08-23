@@ -24,8 +24,8 @@ class ProfileGroup {
     String uuid
     String language // or local name
     String englishName
-    String englishMonths
-//    String weatherIcon
+    String seasonMonths
+    String weatherIcon
     String description
 
     @Transient
@@ -37,8 +37,9 @@ class ProfileGroup {
     static constraints = {
         language nullable:  false
         englishName nullable: true
-        description nullable: true
-        englishMonths nullable: true
+        description nullable: false
+        seasonMonths nullable: false
+        weatherIcon nullable: true
     }
 
     def beforeValidate() {
