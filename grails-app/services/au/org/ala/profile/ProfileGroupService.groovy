@@ -36,12 +36,45 @@ class ProfileGroupService extends BaseDataAccessService {
 
     }
 
+    /**
+     * Update a profile group by provided map of values
+     * @param opusId uuid of the opus
+     * @param json map containing group key-value pairs
+     * @return the profile group
+     */
     ProfileGroup updateGroup(String groupId, Map json) {
+        ProfileGroup group = ProfileGroup.findByUuid(groupId)
 
+        if (json.containsKey("language")) {
+            group.language = json.language
+        }
+
+        if (json.containsKey("englishName")) {
+            group.englishName = json.englishName
+        }
+
+        if (json.containsKey("seasonMonths")) {
+            group.seasonMonths = json.seasonMonths
+        }
+
+        if (json.containsKey("description")) {
+            group.description = json.description
+        }
+
+        if (json.containsKey("weatherIcon")) {
+            group.weatherIcon = json.weatherIcon
+        }
+
+        boolean success = save group
+        if (!success) {
+            group = null
+        }
+
+        group
     }
 
     /**
-     * Delete profile group and its profiles
+     * Delete profile group and its associated profiles
      * @param groupId uuid of the group
      * @return status of the deletion
      */
