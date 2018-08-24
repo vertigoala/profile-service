@@ -15,18 +15,7 @@ class ProfileGroupServiceSpec extends BaseIntegrationSpec {
 
     def cleanup() {
     }
-//
-//    def "save a group with features"() {
-//        given:
-//        Opus opus = new Opus(uuid: "opus1", title: "opus1", dataResourceUid: "1", glossary: new Glossary())
-//        save opus
-//
-//        ProfileGroup = new ProfileGroup(uuid: "group1", language: "language1", englishName: "test")
-//
-//        language // or local name
-//        String englishName
-//
-//    }
+
     def "createGroup should expect both arguments to be provided"() {
         when:
         service.createGroup(null, [a: "b"])
@@ -55,11 +44,38 @@ class ProfileGroupServiceSpec extends BaseIntegrationSpec {
         save opus
 
         when:
-        ProfileGroup profileGroup = service.createGroup(opus.uuid, [language: "language1", englishName: "test"])
+        ProfileGroup profileGroup = service.createGroup(opus.uuid, [language: "language1", description: "test", seasonMonths: 'Jan'])
 
         then:
         profileGroup != null && profileGroup.id != null
         ProfileGroup.count() == 1
         ProfileGroup.list()[0].language == "language1"
+    }
+
+    def "delete profile group should remove the group and profiles"() {
+        given:
+        Opus calendar = new Opus(glossary: new Glossary(), dataResourceUid: "dr5678", title: "calendar")
+        save calendar
+
+        ProfileGroup group = new ProfileGroup(opus: calendar, language: "language1", description: "test", seasonMonths: 'Jan')
+        save group
+
+        Profile profile1 = new Profile(uuid: "1", opus: calendar, scientificName: "sciName 1", group: group)
+        Profile profile2 = new Profile(uuid: "2", opus: calendar, scientificName: "sciName 2", group: group)
+        save profile1
+        save profile2
+
+        String groupId = group.uuid
+
+        expect:
+        ProfileGroup.count() == 1
+        Profile.findByGroup(group).group.uuid == groupId
+
+        when:
+        service.deleteGroup(groupId)
+
+        then:
+        ProfileGroup.count() == 0
+        Profile.findByGroup(group) == null
     }
 }
