@@ -746,7 +746,7 @@ class SearchService extends BaseDataAccessService {
         if (sortBy == ProfileSortOption.NAME) {
             sort = ['scientificName': 1]
         } else {
-            sort = ['unknownRank': 1, 'classification.name': 1, 'rankOrder': 1, 'scientificName': 1]
+            sort = ['unknownRank': 1, 'rankOrder': 1, 'classification.name': 1,  'scientificName': 1]
         }
 
         sort
@@ -761,14 +761,18 @@ class SearchService extends BaseDataAccessService {
      */
     private static Map constructProfileSearchProjection() {
         Map projection = [rankOrder: [:]]
-        def previousStep = projection.rankOrder
+        def previousStep = projection.rankOrder // Originally previousStep pointr to a Map
 
         // Note: the if-then-else map form of the $cond aggregation operation resulted in an unexplained StackOverflowError
         // when running against MongoDB 2.6 and 3.0.0 on Ubuntu 14.04, despite working correctly on a Mac.
         Rank.values().eachWithIndex { rank, index ->
-            List cond = [['$eq': ['$rank', rank.name().toLowerCase()]], index, []]
-            previousStep << [$cond: cond]
-            previousStep = cond[2]
+            List cond = [['$eq': ['$rank', rank.name().toLowerCase()]], index]
+            if(!index) {
+                previousStep << [$cond: cond] // Adding entry to map
+            } else {
+                previousStep << [$cond: cond] // Adding entry to List
+            }
+            previousStep = cond
         }
         previousStep << 999
 
