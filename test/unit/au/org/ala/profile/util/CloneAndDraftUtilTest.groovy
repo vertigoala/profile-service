@@ -15,15 +15,19 @@ import au.org.ala.profile.Term
 import spock.lang.Specification
 
 import static au.org.ala.profile.util.ImageOption.EXCLUDE
+import static au.org.ala.profile.util.ImageOption.INCLUDE
 
 class CloneAndDraftUtilTest extends Specification {
 
     Profile original
+    Profile profileWithDraft
     Contributor fred
     Contributor jill
     Contributor bob
     Attribute attribute1
     Attribute attribute2
+    Attribute attribute1Draft
+    Attribute attribute2Draft
 
     def setup() {
         fred = new Contributor(uuid: "user1", userId: "user1", name: "fred")
@@ -31,6 +35,8 @@ class CloneAndDraftUtilTest extends Specification {
         bob = new Contributor(uuid: "user3", userId: "user3", name: "bob")
         attribute1 = new Attribute(uuid: "attr1", title: new Term(name: "attr1"), text: "attribute1", creators: [fred], editors: [jill, bob])
         attribute2 = new Attribute(uuid: "attr2", title: new Term(name: "attr2"), text: "attribute2", creators: [jill], editors: [fred])
+        attribute1Draft = new Attribute(uuid: "attr1", title: new Term(name: "attr3"), text: "attribute3", creators: [fred], editors: [jill, bob])
+        attribute2Draft = new Attribute(uuid: "attr2", title: new Term(name: "attr4"), text: "attribute4", creators: [jill], editors: [fred])
         original = new Profile(
                 uuid: "uuid",
                 scientificName: "sciName",
@@ -52,7 +58,60 @@ class CloneAndDraftUtilTest extends Specification {
                 publications: [new Publication(title: "pub1"), new Publication(title: "pub2")],
                 attributes: [attribute1, attribute2],
                 attachments: [new Attachment(title: "doc1"), new Attachment(title: "doc2")],
-                dateCreated: new Date()
+                dateCreated: new Date(),
+                isCustomMapConfig: true,
+                occurrenceQuery: "q=lsid:http://id.biodiversity.org.au/node/apni/2903532&fq=state:%22New%20South%20Wales%22"
+        )
+
+        profileWithDraft = new Profile(
+                uuid: "uuid",
+                scientificName: "sciName",
+                nameAuthor: "nameAuthor",
+                guid: "guid",
+                rank: "rank",
+                taxonomyTree: "taxonomyTree",
+                nslNameIdentifier: "nslId",
+                primaryImage: "primaryImage",
+                showLinkedOpusAttributes: true,
+                profileStatus: Profile.STATUS_PARTIAL,
+                imageSettings: [image1: new ImageSettings(imageDisplayOption: EXCLUDE), image2: new ImageSettings(imageDisplayOption: EXCLUDE)],
+                specimenIds: ["spec1", "spec2"],
+                authorship: [new Authorship(category: new Term(name: "category1"), text: "bob"), new Authorship(category: new Term(name: "category2"), text: "jill")],
+                classification: [new Classification(rank: "kingdom", name: "Plantae"), new Classification(rank: "family", name: "Acacia")],
+                links: [new Link(title: "link1"), new Link(title: "link2")],
+                bhlLinks: [new Link(title: "bhl1"), new Link(title: "bhl2")],
+                bibliography: [new Bibliography(text: "bib1"), new Bibliography(text: "bib2")],
+                publications: [new Publication(title: "pub1"), new Publication(title: "pub2")],
+                attributes: [attribute1, attribute2],
+                attachments: [new Attachment(title: "doc1"), new Attachment(title: "doc2")],
+                dateCreated: new Date(),
+                isCustomMapConfig: true,
+                occurrenceQuery: "q=lsid:http://id.biodiversity.org.au/node/apni/2903532&fq=state:%22New%20South%20Wales%22",
+                draft: new DraftProfile(
+                        uuid: "uuid",
+                        scientificName: "sciName",
+                        nameAuthor: "nameAuthor",
+                        guid: "guid",
+                        rank: "rank",
+                        taxonomyTree: "taxonomyTree2",
+                        nslNameIdentifier: "nslId2",
+                        primaryImage: "primaryImage2",
+                        showLinkedOpusAttributes: false,
+                        profileStatus: Profile.STATUS_LEGACY,
+                        imageSettings: [image1: new ImageSettings(imageDisplayOption: INCLUDE), image2: new ImageSettings(imageDisplayOption: INCLUDE)],
+                        specimenIds: ["spec3", "spec4"],
+                        authorship: [new Authorship(category: new Term(name: "category3"), text: "bob2"), new Authorship(category: new Term(name: "category4"), text: "jill2")],
+                        classification: [new Classification(rank: "kingdom", name: "Plantae"), new Classification(rank: "family", name: "Acacia")],
+                        links: [new Link(title: "link4"), new Link(title: "link3")],
+                        bhlLinks: [new Link(title: "bhl4"), new Link(title: "bhl3")],
+                        bibliography: [new Bibliography(text: "bib3"), new Bibliography(text: "bib4")],
+                        publications: [new Publication(title: "pub3"), new Publication(title: "pub4")],
+                        attributes: [attribute1Draft, attribute2Draft],
+                        attachments: [new Attachment(title: "doc3"), new Attachment(title: "doc4")],
+                        dateCreated: new Date(),
+                        isCustomMapConfig: true,
+                        occurrenceQuery: "q=lsid:http://id.biodiversity.org.au/node/apni/2903532&fq=state:%22ACT%22"
+                )
         )
     }
 
@@ -101,6 +160,59 @@ class CloneAndDraftUtilTest extends Specification {
 
         !draft.attachments.is(original.attachments)
         draft.attachments == original.attachments as List
+
+        draft.isCustomMapConfig == original.isCustomMapConfig
+        draft.occurrenceQuery == original.occurrenceQuery
+    }
+
+    def "publishShouldUpdateAllFields"() {
+        when:
+        CloneAndDraftUtil.updateProfileFromDraft(profileWithDraft)
+
+        then:
+        profileWithDraft.uuid == profileWithDraft.draft.uuid
+        profileWithDraft.scientificName == profileWithDraft.draft.scientificName
+        profileWithDraft.nameAuthor == profileWithDraft.draft.nameAuthor
+        profileWithDraft.rank == profileWithDraft.draft.rank
+        profileWithDraft.guid == profileWithDraft.draft.guid
+        profileWithDraft.nslNameIdentifier == profileWithDraft.draft.nslNameIdentifier
+        profileWithDraft.primaryImage == profileWithDraft.draft.primaryImage
+        profileWithDraft.showLinkedOpusAttributes == profileWithDraft.draft.showLinkedOpusAttributes
+        profileWithDraft.taxonomyTree == profileWithDraft.draft.taxonomyTree
+        profileWithDraft.profileStatus == profileWithDraft.draft.profileStatus
+
+        !profileWithDraft.imageSettings.is(profileWithDraft.draft.imageSettings)
+        profileWithDraft.imageSettings == profileWithDraft.draft.imageSettings
+
+        !profileWithDraft.specimenIds.is(profileWithDraft.draft.specimenIds)
+        profileWithDraft.specimenIds == profileWithDraft.draft.specimenIds
+
+        !profileWithDraft.authorship.is(profileWithDraft.draft.authorship)
+        profileWithDraft.authorship == profileWithDraft.draft.authorship
+
+        !profileWithDraft.classification.is(profileWithDraft.draft.classification)
+        profileWithDraft.classification == profileWithDraft.draft.classification
+
+        !profileWithDraft.links.is(profileWithDraft.draft.links)
+        profileWithDraft.links == profileWithDraft.draft.links
+
+        !profileWithDraft.bhlLinks.is(profileWithDraft.draft.bhlLinks)
+        profileWithDraft.bhlLinks == profileWithDraft.draft.bhlLinks
+
+        !profileWithDraft.bibliography.is(profileWithDraft.draft.bibliography)
+        profileWithDraft.bibliography == profileWithDraft.draft.bibliography
+
+        !profileWithDraft.publications.is(profileWithDraft.draft.publications)
+        profileWithDraft.publications == profileWithDraft.draft.publications
+
+        !profileWithDraft.attachments.is(profileWithDraft.draft.attachments)
+        profileWithDraft.attachments == profileWithDraft.draft.attachments as List
+
+        profileWithDraft.isCustomMapConfig == profileWithDraft.draft.isCustomMapConfig
+        profileWithDraft.occurrenceQuery == profileWithDraft.draft.occurrenceQuery
+
+        !profileWithDraft.attributes.is(profileWithDraft.draft.attributes)
+        profileWithDraft.attributes == profileWithDraft.draft.attributes as Set
     }
 
     def "cloneAuthorship should create a new object with copies of all attributes"() {

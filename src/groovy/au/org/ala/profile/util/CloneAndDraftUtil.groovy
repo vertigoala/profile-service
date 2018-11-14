@@ -34,17 +34,18 @@ class CloneAndDraftUtil {
         profile.primaryImage = profile.draft.primaryImage
         profile.showLinkedOpusAttributes = profile.draft.showLinkedOpusAttributes
         profile.occurrenceQuery = profile.draft.occurrenceQuery
-        profile.imageSettings = profile.draft.imageSettings
-        profile.specimenIds = profile.draft.specimenIds
-        profile.authorship = profile.draft.authorship
-        profile.classification = profile.draft.classification
-        profile.links = profile.draft.links
-        profile.bhlLinks = profile.draft.bhlLinks
-        profile.bibliography = profile.draft.bibliography
-        profile.documents = profile.draft.documents
-        profile.publications = profile.draft.publications
-        profile.privateImages = profile.draft.privateImages
-        profile.attachments = profile.draft.attachments
+        profile.isCustomMapConfig = profile.draft.isCustomMapConfig
+        profile.imageSettings = profile.draft.imageSettings?.clone()
+        profile.specimenIds = profile.draft.specimenIds?.collect()
+        profile.authorship = profile.draft.authorship?.collect { cloneAuthorship(it) }
+        profile.classification = profile.draft.classification?.collect { cloneClassification(it) }
+        profile.links = profile.draft.links?.collect { cloneLink(it) }
+        profile.bhlLinks = profile.draft.bhlLinks?.collect { cloneLink(it) }
+        profile.bibliography = profile.draft.bibliography?.collect { cloneBibliography(it) }
+        profile.documents = profile.draft.documents?.collect { cloneDocuments(it) }
+        profile.publications = profile.draft.publications?.collect { clonePublication(it) }
+        profile.privateImages = profile.draft.privateImages?.collect { cloneImage(it) }
+        profile.attachments = profile.draft.attachments?.collect { cloneAttachment(it) }
         profile.manualClassification = profile.draft.manualClassification
         profile.profileStatus = profile.draft.profileStatus
 
@@ -83,6 +84,7 @@ class CloneAndDraftUtil {
         clone.primaryImage = profile.primaryImage
         clone.showLinkedOpusAttributes = profile.showLinkedOpusAttributes
         clone.occurrenceQuery = profile.occurrenceQuery
+        clone.isCustomMapConfig = profile.isCustomMapConfig
         clone.imageSettings = profile.imageSettings?.clone()
         clone.specimenIds = profile.specimenIds?.collect()
         clone.authorship = profile.authorship?.collect { cloneAuthorship(it) }

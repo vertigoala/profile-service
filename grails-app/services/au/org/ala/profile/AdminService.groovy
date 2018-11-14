@@ -118,9 +118,9 @@ class AdminService extends BaseDataAccessService {
         if (profile.matchedName?.guid != newMatchedName?.guid) {
             results[opus.uuid].profilesUpdated << [
                     (profile.uuid): [
-                            profileName: profile.scientificName,
-                            old        : [guid: profile.guid, name: profile.matchedName?.fullName],
-                            new        : [guid: newMatchedName?.guid, name: newMatchedName?.fullName]
+                            'profileName': profile.scientificName,
+                            'old'        : [guid: profile.guid, name: profile.matchedName?.fullName],
+                            'new'        : [guid: newMatchedName?.guid, name: newMatchedName?.fullName]
                     ]
             ]
             profile.matchedName = new Name(newMatchedName)
