@@ -198,29 +198,123 @@ class ProfileService extends BaseDataAccessService {
             // occurrence query, and attachments
             profile.specimenIds = sourceProfile.specimenIds?.collect()
             profile.authorship = sourceProfile.authorship?.collect { CloneAndDraftUtil.cloneAuthorship(it) }
-            profile.links = sourceProfile.links?.collect { CloneAndDraftUtil.cloneLink(it, false) }
-            profile.links?.each {
-                it.uuid = UUID.randomUUID().toString()
-            }
-            profile.bhlLinks = sourceProfile.bhlLinks?.collect { CloneAndDraftUtil.cloneLink(it, false) }
-            profile.bhlLinks?.each {
-                it.uuid = UUID.randomUUID().toString()
-            }
-            profile.bibliography = sourceProfile.bibliography?.collect { CloneAndDraftUtil.cloneBibliography(it, false) }
-            profile.bibliography?.each {
-                it.uuid = UUID.randomUUID().toString()
-            }
-
-            profile.attributes = sourceProfile.attributes?.collect {
-                Attribute newAttribute = CloneAndDraftUtil.cloneAttribute(it, false)
-                newAttribute.uuid = UUID.randomUUID().toString()
-                newAttribute
-            }?.toSet()
-            profile.attributes.each {
-                profile.addToAttributes(it)
-            }
             profile.profileSettings = new ProfileSettings(autoFormatProfileName: json.profileSettings?.autoFormatProfileName, formattedNameText: json.profileSettings?.formattedNameText)
-                //new ProfileSettings(formatNameWithNormalText: sourceProfile?.profileSettings?.formatNameWithNormalText)
+            //new ProfileSettings(formatNameWithNormalText: sourceProfile?.profileSettings?.formatNameWithNormalText)
+
+            // For a draft profile
+            if (sourceProfile.draft) {
+                profile.uuid = UUID.randomUUID().toString()
+                profile.draft = new DraftProfile()
+                profile.draft.uuid = profile.uuid
+                profile.draft.scientificName = profile.scientificName //?
+                profile.draft.scientificNameLower = profile.scientificNameLower//?
+
+                // attributes
+                def uuidMap = [:]
+                // copy published ones
+                profile.draft.attributes = sourceProfile.attributes?.collect {
+                    Attribute newAttribute = CloneAndDraftUtil.cloneAttribute(it, false)
+                    newAttribute.uuid = UUID.randomUUID().toString()
+                    uuidMap.put(it.uuid, newAttribute.uuid)
+                    newAttribute
+                }?.toList()
+                // update values if any
+                sourceProfile.draft.attributes?.each {
+                    String uuid = it.uuid
+                    Attribute existing = profile.draft.attributes.find { it.uuid == uuidMap[uuid] }
+                    if (existing) {
+                        existing.title = it.title
+                        existing.text = it.text
+                    } else {
+                        Attribute newAttribute = CloneAndDraftUtil.cloneAttribute(it, false)
+                        newAttribute.uuid = UUID.randomUUID().toString()
+                        profile.draft.attributes << newAttribute
+                    }
+                }
+
+                // links
+                profile.draft.links = sourceProfile.links?.collect {
+                    Link newLink = CloneAndDraftUtil.cloneLink(it, false)
+                    newLink.uuid = UUID.randomUUID().toString()
+                    uuidMap.put(it.uuid, newLink.uuid)
+
+                }?.toList()
+                sourceProfile.draft.links?.each {
+                    String uuid = it.uuid
+                    Link existing = profile.draft.links.find { it.uuid == uuidMap[uuid] }
+                    if (existing) {
+                        existing.title = it.title
+                        existing.url = it.url
+                        existing.description = it.description
+                    } else {
+                        Link newLink = CloneAndDraftUtil.cloneLink(it, false)
+                        newLink.uuid = UUID.randomUUID().toString()
+                        profile.draft.links << newLink
+                    }
+                }
+
+                // Biodiversity Heritage Library references
+                profile.draft.bhlLinks = sourceProfile.bhlLinks?.collect {
+                    Link newLink = CloneAndDraftUtil.cloneLink(it, false)
+                    newLink.uuid = UUID.randomUUID().toString()
+                    uuidMap.put(it.uuid, newLink.uuid)
+                }?.toList()
+                sourceProfile.draft.bhlLinks?.each {
+                    String uuid = it.uuid
+                    Link existing = profile.draft.bhlLinks.find { it.uuid == uuidMap[uuid] }
+                    if (existing) {
+                        existing.title = it.title
+                        existing.url = it.url
+                        existing.description = it.description
+                    } else {
+                        Link newLink = CloneAndDraftUtil.cloneLink(it, false)
+                        newLink.uuid = UUID.randomUUID().toString()
+                        profile.draft.bhlLinks << newLink
+                    }
+                }
+
+                // Bibliography
+                profile.draft.bibliography = sourceProfile.bibliography?.collect {
+                    Bibliography newBb = CloneAndDraftUtil.cloneBibliography(it, false)
+                    newBb.uuid = UUID.randomUUID().toString()
+                    uuidMap.put(it.uuid, newBb.uuid)
+                }?.toList()
+                sourceProfile.draft.bibliography?.each {
+                    String uuid = it.uuid
+                    Bibliography existing = profile.draft.bibliography.find { it.uuid == uuidMap[uuid] }
+                    if (existing) {
+                        existing.text = it.text
+                        existing.order = it.order
+                    } else {
+                        Bibliography newBb = CloneAndDraftUtil.cloneBibliography(it, false)
+                        newBb.uuid = UUID.randomUUID().toString()
+                        profile.draft.bibliography << newBb
+                    }
+                }
+
+            } else {
+                profile.attributes = sourceProfile.attributes?.collect {
+                    Attribute newAttribute = CloneAndDraftUtil.cloneAttribute(it, false)
+                    newAttribute.uuid = UUID.randomUUID().toString()
+                    newAttribute
+                }?.toSet()
+                profile.attributes.each {
+                    profile.addToAttributes(it)
+                }
+
+                profile.links = sourceProfile.links?.collect { CloneAndDraftUtil.cloneLink(it, false) }
+                profile.links?.each {
+                    it.uuid = UUID.randomUUID().toString()
+                }
+                profile.bhlLinks = sourceProfile.bhlLinks?.collect { CloneAndDraftUtil.cloneLink(it, false) }
+                profile.bhlLinks?.each {
+                    it.uuid = UUID.randomUUID().toString()
+                }
+                profile.bibliography = sourceProfile.bibliography?.collect { CloneAndDraftUtil.cloneBibliography(it, false) }
+                profile.bibliography?.each {
+                    it.uuid = UUID.randomUUID().toString()
+                }
+            }
         }
     }
 
@@ -464,7 +558,7 @@ class ProfileService extends BaseDataAccessService {
 
             save profile
         } else {
-            profile.draft = CloneAndDraftUtil.createDraft(profile)
+            profile.draft = profile.draft ?: CloneAndDraftUtil.createDraft(profile)
             profile.draft.createdBy = authService.getUserForUserId(authService.getUserId()).displayName
 
             save profile
