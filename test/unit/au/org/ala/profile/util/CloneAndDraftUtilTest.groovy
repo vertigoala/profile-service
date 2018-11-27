@@ -165,7 +165,7 @@ class CloneAndDraftUtilTest extends Specification {
         draft.occurrenceQuery == original.occurrenceQuery
     }
 
-    def "publishShouldUpdateAllFields"() {
+    def "updateProfileFromDraftShouldUpdateAllFields"() {
         when:
         CloneAndDraftUtil.updateProfileFromDraft(profileWithDraft)
 
