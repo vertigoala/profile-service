@@ -206,8 +206,8 @@ class ProfileService extends BaseDataAccessService {
                 profile.uuid = UUID.randomUUID().toString()
                 profile.draft = new DraftProfile()
                 profile.draft.uuid = profile.uuid
-                profile.draft.scientificName = profile.scientificName //?
-                profile.draft.scientificNameLower = profile.scientificNameLower//?
+                profile.draft.scientificName = profile.scientificName
+                profile.draft.scientificNameLower = profile.scientificNameLower
 
                 // attributes
                 def uuidMap = [:]
