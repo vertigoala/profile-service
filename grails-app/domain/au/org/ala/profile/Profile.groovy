@@ -104,9 +104,6 @@ class Profile {
 
     ProfileSettings profileSettings
 
-    // a.k.a season
-    ProfileGroup group
-
     @Transient
     String getFullNameLower() { fullName?.toLowerCase() }
     @Transient
@@ -150,9 +147,6 @@ class Profile {
         emptyProfileVersion nullable: true
         lastPublished nullable: true
         profileSettings nullable: true
-        group nullable: true, validator: { val, obj, errors ->
-            if (val && !(obj.opus.uuid == val.opus.uuid)) errors.rejectValue('group', 'noMatch')
-        }
     }
 
     static mapping = {
