@@ -953,12 +953,13 @@ class ProfileService extends BaseDataAccessService {
 
         Publication publication = new Publication()
         publication.title = profile.scientificName
-        publication.authors = profile.authorship.find { it.category.name == "Author" }?.text
+        publication.authors = profile.authorship.find { it.category.name ==~ /\b(?i)author.*/ }?.text
         publication.publicationDate = new Date()
         publication.userId = authService.getUserId()
         publication.uuid = UUID.randomUUID().toString()
         if (profile.publications) {
-            publication.version = profile.publications.sort { it.version }.last().version + 1
+            publication.version = profile.publications.sort { it.version }.last().version ?: profile.publications.size()
+            publication.version += 1
         } else {
             publication.version = 1
         }

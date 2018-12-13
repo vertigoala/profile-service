@@ -105,7 +105,6 @@ class CloneAndDraftUtilTest extends Specification {
                         links: [new Link(title: "link4"), new Link(title: "link3")],
                         bhlLinks: [new Link(title: "bhl4"), new Link(title: "bhl3")],
                         bibliography: [new Bibliography(text: "bib3"), new Bibliography(text: "bib4")],
-                        publications: [new Publication(title: "pub3"), new Publication(title: "pub4")],
                         attributes: [attribute1Draft, attribute2Draft],
                         attachments: [new Attachment(title: "doc3"), new Attachment(title: "doc4")],
                         dateCreated: new Date(),
@@ -151,9 +150,6 @@ class CloneAndDraftUtilTest extends Specification {
 
         !draft.bibliography.is(original.bibliography)
         draft.bibliography == original.bibliography
-
-        !draft.publications.is(original.publications)
-        draft.publications == original.publications
 
         !draft.attributes.is(original.attributes)
         draft.attributes == original.attributes as List
@@ -201,9 +197,6 @@ class CloneAndDraftUtilTest extends Specification {
 
         !profileWithDraft.bibliography.is(profileWithDraft.draft.bibliography)
         profileWithDraft.bibliography == profileWithDraft.draft.bibliography
-
-        !profileWithDraft.publications.is(profileWithDraft.draft.publications)
-        profileWithDraft.publications == profileWithDraft.draft.publications
 
         !profileWithDraft.attachments.is(profileWithDraft.draft.attachments)
         profileWithDraft.attachments == profileWithDraft.draft.attachments as List
@@ -257,18 +250,6 @@ class CloneAndDraftUtilTest extends Specification {
 
         when:
         Link clone = CloneAndDraftUtil.cloneLink(original)
-
-        then:
-        !clone.is(original)
-        clone == original
-    }
-
-    def "clonePublication should create a new object with copies of all attributes"() {
-        given:
-        Publication original = new Publication(uuid: "uuid", publicationDate: new Date(), title: "title", doi: "doi", userId: "userId", authors: "authors")
-
-        when:
-        Publication clone = CloneAndDraftUtil.clonePublication(original)
 
         then:
         !clone.is(original)

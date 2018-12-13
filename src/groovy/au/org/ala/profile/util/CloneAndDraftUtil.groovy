@@ -1,17 +1,6 @@
 package au.org.ala.profile.util
 
-import au.org.ala.profile.Attachment
-import au.org.ala.profile.Attribute
-import au.org.ala.profile.Authorship
-import au.org.ala.profile.Bibliography
-import au.org.ala.profile.Classification
-import au.org.ala.profile.Document
-import au.org.ala.profile.DraftProfile
-import au.org.ala.profile.Link
-import au.org.ala.profile.LocalImage
-import au.org.ala.profile.Name
-import au.org.ala.profile.Profile
-import au.org.ala.profile.Publication
+import au.org.ala.profile.*
 
 class CloneAndDraftUtil {
 
@@ -43,7 +32,6 @@ class CloneAndDraftUtil {
         profile.bhlLinks = profile.draft.bhlLinks?.collect { cloneLink(it) }
         profile.bibliography = profile.draft.bibliography?.collect { cloneBibliography(it) }
         profile.documents = profile.draft.documents?.collect { cloneDocuments(it) }
-        profile.publications = profile.draft.publications?.collect { clonePublication(it) }
         profile.privateImages = profile.draft.privateImages?.collect { cloneImage(it) }
         profile.attachments = profile.draft.attachments?.collect { cloneAttachment(it) }
         profile.manualClassification = profile.draft.manualClassification
@@ -95,7 +83,6 @@ class CloneAndDraftUtil {
         clone.bhlLinks = profile.bhlLinks?.collect { cloneLink(it) }
         clone.bibliography = profile.bibliography?.collect { cloneBibliography(it) }
         clone.documents = profile.documents?.collect { cloneDocuments(it) }
-        clone.publications = profile.publications?.collect { clonePublication(it) }
         clone.attributes = profile.attributes?.collect { cloneAttribute(it) }
         clone.privateImages = profile.privateImages?.collect { cloneImage(it) }
         clone.attachments = profile.attachments?.collect { cloneAttachment(it) }
@@ -171,18 +158,6 @@ class CloneAndDraftUtil {
         clone.edition = source.edition
         clone.publisherName = source.publisherName
         clone.fullTitle = source.fullTitle
-
-        clone
-    }
-
-    static Publication clonePublication(Publication source) {
-        Publication clone = new Publication()
-        clone.uuid = source.uuid
-        clone.publicationDate = source.publicationDate
-        clone.title = source.title
-        clone.doi = source.doi
-        clone.userId = source.userId
-        clone.authors = source.authors
 
         clone
     }
