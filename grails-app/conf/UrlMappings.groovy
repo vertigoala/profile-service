@@ -21,6 +21,7 @@ class UrlMappings {
         "/audit/user/$userId" controller: "audit", action: [GET: "auditTrailForUser"]
 
         "/tags" controller: "opus", action: [GET: "getTags"]
+        "/tags/$tagAbbrev/opuses"  controller: "opus", action: [GET: "listOpusesByTagAbbrev"]
 
         "/opus/$opusId/glossary/item/" controller: "opus", action: [PUT: "createGlossaryItem"]
         "/opus/$opusId/glossary/item/$glossaryItemId" controller: "opus", action: [DELETE: "deleteGlossaryItem", POST: "updateGlossaryItem"]

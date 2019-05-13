@@ -193,7 +193,7 @@ class Profile {
 
         if(isDirty("draft") && dirtyPropertyNames.size() == 1 ) {
             if (draft) { // Draft Created
-                draft.lastPublished = lastPublished // No changes to the draft have happened yet
+                draft.lastPublished = lastPublished ?: new Date() // No changes to the draft have happened yet
             }
             // else => Draft cancelled
             // Do nothing, draft will be wiped out and this.lastPublished remains untouched

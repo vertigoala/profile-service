@@ -302,15 +302,6 @@ class SearchServiceSpec extends BaseIntegrationSpec {
     def "findByScientificName should sort the results by taxonomic hierarchy when sortOrder = TAXONOMY"() {
         Opus opus = save new Opus(glossary: new Glossary(), dataResourceUid: "dr1234", title: "title")
 
-        save new Profile(scientificName: "Austrobaileyaceae", fullName: "Austrobaileyaceae",
-                opus: opus, rank: "family", classification: [new Classification(rank: "kingdom", name: "plantae"),
-                                                             new Classification(rank: "phylum", name: "Charophyta"),
-                                                             new Classification(rank: "class", name: "Equisetopsida"),
-                                                             new Classification(rank: "subclass", name: "Magnoliidae"),
-                                                             new Classification(rank: "superorder", name: "Austrobaileyanae"),
-                                                             new Classification(rank: "order", name: "Austrobaileyales"),
-                                                             new Classification(rank: "family", name: "Austrobaileyaceae")])
-
         save new Profile(scientificName: "Austrobaileya", fullName: "Austrobaileya", opus:
                 opus, rank: "genus", classification: [new Classification(rank: "kingdom", name: "plantae"),
                                                       new Classification(rank: "phylum", name: "Charophyta"),
@@ -320,6 +311,9 @@ class SearchServiceSpec extends BaseIntegrationSpec {
                                                       new Classification(rank: "order", name: "Austrobaileyales"),
                                                       new Classification(rank: "family", name: "Austrobaileyaceae"),
                                                       new Classification(rank: "genus", name: "Austrobaileya")])
+
+        save new Profile(scientificName: "Austrobaileyaceae Croizat", fullName: "Austrobaileyaceae Croizat",
+                opus: opus)
 
         save new Profile(scientificName: "Austrobaileya scandens", fullName: "Austrobaileya scandens",
                 opus: opus, rank: "species", classification: [new Classification(rank: "kingdom", name: "plantae"),
@@ -332,14 +326,36 @@ class SearchServiceSpec extends BaseIntegrationSpec {
                                                               new Classification(rank: "genus", name: "Austrobaileya"),
                                                               new Classification(rank: "species", name: "Austrobaileya scandens")])
 
+        save new Profile(scientificName: "Austromatthaea L.S.Sm.", fullName: "Austromatthaea L.S.Sm.",
+                opus: opus, rank: "genus", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                              new Classification(rank: "phylum", name: "Charophyta"),
+                                                              new Classification(rank: "class", name: "Equisetopsida"),
+                                                              new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                              new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                              new Classification(rank: "order", name: "Laurales"),
+                                                              new Classification(rank: "family", name: "Monimiaceae"),
+                                                              new Classification(rank: "genus", name: "Austromatthaea")])
+
+        save new Profile(scientificName: "Austrobaileyaceae", fullName: "Austrobaileyaceae",
+                opus: opus, rank: "family", classification: [new Classification(rank: "kingdom", name: "plantae"),
+                                                             new Classification(rank: "phylum", name: "Charophyta"),
+                                                             new Classification(rank: "class", name: "Equisetopsida"),
+                                                             new Classification(rank: "subclass", name: "Magnoliidae"),
+                                                             new Classification(rank: "superorder", name: "Austrobaileyanae"),
+                                                             new Classification(rank: "order", name: "Austrobaileyales"),
+                                                             new Classification(rank: "family", name: "Austrobaileyaceae")])
+
+
         when:
         def result = service.findByScientificName("Austro", [opus.uuid], ProfileSortOption.TAXONOMY)
 
         then:
-        result.size() == 3
+        result.size() == 5
         result[0].scientificName == "Austrobaileyaceae" // family
         result[1].scientificName == "Austrobaileya" // genus
-        result[2].scientificName == "Austrobaileya scandens" // species
+        result[2].scientificName == "Austromatthaea L.S.Sm." // genus then classification name
+        result[3].scientificName == "Austrobaileya scandens" // species
+        result[4].scientificName == "Austrobaileyaceae Croizat" // No rank
     }
 
     def "findByScientificName should sort the results alphabetically by name when sortOrder = NAME"() {
@@ -711,10 +727,10 @@ class SearchServiceSpec extends BaseIntegrationSpec {
         then:
         result.size() == 6
         result[0].scientificName == "Austrobaileyaceae"
-        result[1].scientificName == "Austrobaileya"
-        result[2].scientificName == "Austrobaileya scandens"
-        result[3].scientificName == "Trimeniaceae"
-        result[4].scientificName == "Trimenia"
+        result[1].scientificName == "Trimeniaceae"
+        result[2].scientificName == "Austrobaileya"
+        result[3].scientificName == "Trimenia"
+        result[4].scientificName == "Austrobaileya scandens"
         result[5].scientificName == "Trimenia moorei"
     }
 

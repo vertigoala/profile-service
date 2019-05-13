@@ -31,6 +31,26 @@ class OpusController extends BaseController {
         respond opuses
     }
 
+    /**
+     * List Opuses by a tag abbreviation
+     * @return all matching opuses
+     */
+    def listOpusesByTagAbbrev() {
+        if (!params.tagAbbrev) {
+            badRequest "You must provide a tag abbreviation"
+        } else {
+            Tag tag = Tag.findByAbbrev(params.tagAbbrev)
+            if (tag) {
+                def opuses = Opus.findAllByTags(tag)
+                render opuses as JSON
+//                respond opuses
+            }
+            else {
+                notFound "No matching tag was found for abbreviation ${params.tagAbbrev}"
+            }
+        }
+    }
+
     def show() {
         def result = getOpus()
         if (result) {

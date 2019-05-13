@@ -302,8 +302,8 @@ class ProfileController extends BaseController {
     def createProfile() {
         def json = request.getJSON()
 
-        if (!json || !json.scientificName || !json.opusId) {
-            badRequest "A json body with at least the scientificName and an opus id is required"
+        if (!json || !json.scientificName) {
+            badRequest "A json body with at least the scientificName is required"
         } else {
             Opus opus = getOpus()
             if (!opus) {

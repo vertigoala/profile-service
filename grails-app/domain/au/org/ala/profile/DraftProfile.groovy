@@ -34,7 +34,6 @@ class DraftProfile {
     List<Link> links
     List<Link> bhlLinks
     List<Attribute> attributes
-    List<Publication> publications
     List<Bibliography> bibliography
     List<Document> documents
     List<LocalImage> stagedImages
@@ -50,7 +49,7 @@ class DraftProfile {
 
     // Omitting imageSettings prevented mongo from storing the embedded Map properly, however the Integration Tests
     // didn't fail because of that.
-    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'publications', 'bibliography', 'documents', 'attributes', 'stagedImages', 'imageSettings', 'privateImages', 'attachments', 'profileSettings']
+    static embedded = ['authorship', 'classification', 'draft', 'links', 'bhlLinks', 'bibliography', 'documents', 'attributes', 'stagedImages', 'imageSettings', 'privateImages', 'attachments', 'profileSettings']
 
     static constraints = {
         nameAuthor nullable: true

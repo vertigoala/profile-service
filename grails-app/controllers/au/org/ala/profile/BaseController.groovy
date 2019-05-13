@@ -58,14 +58,15 @@ class BaseController extends BasicWSController {
         }
 
         if(profile.draft?.isCustomMapConfig == false){
-            profile.draft?.occurrenceQuery = createOccurrenceQuery(profile)
+            profile.draft?.occurrenceQuery = createOccurrenceQuery(profile, true)
         }
 
         profile
     }
 
-    private String createOccurrenceQuery(Profile profile) {
+    private String createOccurrenceQuery(profile, boolean draft = false) {
         Opus opus = profile.opus
+        profile = draft ? profile.draft : profile
 
         String result = ""
 
