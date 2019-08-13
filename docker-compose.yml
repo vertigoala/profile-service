@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+
+  profile-service:
+    build:
+      context: .
+    image: vertigoala/profile-service
+    container_name: profile-service
+    depends_on:
+      - mongoprofiles
+      - esprofiles  
+    container_name: profile-service
+    # environment:
+    #   - JAVA_OPTS=-Xmx1g -Xms128m -XX:MaxPermSize=256m -Xss256k -Djava.awt.headless=true
+    ports:
+      - 8080:8080
+    volumes:
+      - ./config/profile-service-config.properties:/data/profile-service/config/profile-service-config.properties
+    # environment:
+    #   - ALA_DOMAIN=ala-hml.vertigo.com.br
+
+  mongoprofiles:
+    image: mongo:3.4.6
+    container_name: mongoprofiles
+    ports:
+      - 27017:27017
+    command: --smallfiles
+  
+  esprofiles:
+    image: elasticsearch:1.7.4
+    container_name: esprofiles
+    environment:
+      - cluster.name=esprofiles
+  #   # ./usr/share/elasticsearch/bin/plugin -u https://github.com/noamt/elasticsearch-grails-plugin/archive/0.0.4.5.zip -i elasticsearch-grails-plugin-0.0.4.5
+  #   volumes:
+  #     - "./elastic-config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml"
+  #     - "./elastic-config/elasticsearch:/etc/default/elasticsearch"
+  #     - "./es_index:/usr/share/elasticsearch/data"
+    ports:
+      - 9200:9200
+      - 9300:9300
+
