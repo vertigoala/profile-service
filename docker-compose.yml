@@ -11,10 +11,12 @@ services:
       - mongoprofiles
       - esprofiles  
     container_name: profile-service
-    # environment:
-    #   - JAVA_OPTS=-Xmx1g -Xms128m -XX:MaxPermSize=256m -Xss256k -Djava.awt.headless=true
+    environment:
+      - JAVA_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
+#      - JAVA_OPTS=-Xmx1g -Xms128m -XX:MaxPermSize=256m -Xss256k -Djava.awt.headless=true
     ports:
       - 8080:8080
+      - 5005:5005
     volumes:
       - ./config/profile-service-config.properties:/data/profile-service/config/profile-service-config.properties
     # environment:

@@ -154,7 +154,8 @@ class SearchController extends BaseController {
         }
     }
 
-    @RequireApiKey
+    // COMMENTED OUT - THIS IS BREAKING WEB INTERFACE
+    //@RequireApiKey
     def reindex() {
 
        searchService.reindexAll()

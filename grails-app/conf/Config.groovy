@@ -160,8 +160,9 @@ log4j = {
     appenders {
         environments {
             production {
-                println "Log4j logs will be written to : ${loggingDir}"
-                rollingFile name: "tomcatLog", maxFileSize: '1MB', file: "${loggingDir}/${appName}.log", threshold: Level.DEBUG, layout: pattern(conversionPattern: "%d %-5p [%c{1}] %m%n")
+                //println "Log4j logs will be written to : ${loggingDir}"
+                //rollingFile name: "tomcatLog", maxFileSize: '1MB', file: "${loggingDir}/${appName}.log", threshold: Level.DEBUG, layout: pattern(conversionPattern: "%d %-5p [%c{1}] %m%n")
+                console name: "stdout", layout: pattern(conversionPattern: "%d %-5p [%c{1}] %m%n"), threshold: Level.DEBUG
             }
             development {
                 console name: "stdout", layout: pattern(conversionPattern: "%d %-5p [%c{1}] %m%n"), threshold: Level.DEBUG
@@ -173,8 +174,10 @@ log4j = {
     }
     root {
         // change the root logger to my tomcatLog file
-        error 'tomcatLog'
-        warn 'tomcatLog'
+        //error 'tomcatLog'
+        //warn 'tomcatLog'
+        error 'stdout'
+        warn 'stdout'
         additivity = true
     }
 
