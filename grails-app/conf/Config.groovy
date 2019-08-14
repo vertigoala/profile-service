@@ -147,6 +147,7 @@ environments {
         }
         elasticSearch {
             client.mode = "transport"
+            client.hosts = [[host: "esprofiles", port: 9300]]
         }
     }
 }
@@ -195,7 +196,7 @@ log4j = {
             'grails.app.filters.au.org.ala.ws.security'
 
     debug   "grails.app",
-//            "org.grails.plugins.elasticsearch",
+            "org.grails.plugins.elasticsearch",
             "au.org.ala.web",
 	        "au.org.ala.ws",
             'au.org.ala.cas',
@@ -207,7 +208,7 @@ log4j = {
 
 elasticSearch {
     // see http://noamt.github.io/elasticsearch-grails-plugin/guide/configuration.html for defaults
-    client.hosts = [[host: "localhost", port: 9300]]
+    client.hosts = [[host: "esprofiles", port: 9300]]
     datastoreImpl = "mongoDatastore"
     bulkIndexOnStartup = false
 }

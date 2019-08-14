@@ -35,8 +35,8 @@ services:
     environment:
       - cluster.name=esprofiles
   #   # ./usr/share/elasticsearch/bin/plugin -u https://github.com/noamt/elasticsearch-grails-plugin/archive/0.0.4.5.zip -i elasticsearch-grails-plugin-0.0.4.5
-  #   volumes:
-  #     - "./elastic-config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml"
+    volumes:
+      - "./config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml"
   #     - "./elastic-config/elasticsearch:/etc/default/elasticsearch"
   #     - "./es_index:/usr/share/elasticsearch/data"
     ports:
