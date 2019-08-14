@@ -35,6 +35,7 @@ RUN addgroup -g 101 tomcat && \
 USER tomcat
 
 ENV CATALINA_OPTS '-Dgrails.env=production'
+ENV JAVA_OPTS '-Dport.shutdown=8005 -Dport.http=8080'
 
 ENTRYPOINT ["tini", "--"]
 CMD ["catalina.sh", "run"]
