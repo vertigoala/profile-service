@@ -3,8 +3,8 @@
 #
 FROM tomcat:8.5-jre8-alpine
 
-ARG ARTIFACT_URL=https://nexus.ala.org.au/service/local/repositories/releases/content/au/org/ala/profile-service/2.4/profile-service-2.4.war
-#ARG ARTIFACT_URL=https://ala-rnp.s3.amazonaws.com/ala-assets/brasil/profile-service-2.5-SNAPSHOT.war
+#ARG ARTIFACT_URL=https://nexus.ala.org.au/service/local/repositories/releases/content/au/org/ala/profile-service/2.4/profile-service-2.4.war
+ARG ARTIFACT_URL=https://ala-rnp.s3.amazonaws.com/ala-assets/brasil/profile-service-2.5-SNAPSHOT.war
 ARG WAR_NAME=profile-service
 
 RUN mkdir -p /data/profile-service/config \
